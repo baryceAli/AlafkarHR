@@ -39,6 +39,14 @@ public class CreateProductHandler(CatalogDbContext dbContext, IHttpContextAccess
                 command.Product.CategoryId.Value,
                 //command.Product.UnitId.Value,
                 command.Product.ProductType,
+                command.Product.SalesDescription,
+                command.Product.PurchaseDescription,
+                command.Product.CustomerTaxRate,
+                command.Product.VendorTaxRate,
+                command.Product.IncomeAccountId,
+                command.Product.ExpenseAccountId,
+                command.Product.CostingPolicy,
+                command.Product.ImageUrl,
                 companyId,
                 
                 userId);

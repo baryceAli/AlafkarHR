@@ -12,6 +12,11 @@ public class Supplier : Aggregate<Guid>
     public string? TaxNumber { get; private set; }
     public decimal CreditLimit { get; private set; }
     public decimal OpeningBalance { get; private set; }
+    public Guid? PayableAccountId { get; private set; }
+    public Guid? ExpenseAccountId { get; private set; }
+    public Guid? DefaultCurrencyId { get; private set; }
+    public string? FiscalPosition { get; private set; }
+    public string? VendorPaymentReference { get; private set; }
     public string? Notes { get; private set; }
     public Guid CompanyId { get; private set; }
 
@@ -24,6 +29,29 @@ public class Supplier : Aggregate<Guid>
     protected Supplier() { }
 
     public static Supplier Create(string name, string? commercialName, string supplierCode, Guid? supplierGroupId, SupplierStatus status, SupplierType type, SupplierPaymentTermType paymentTerm, string? taxNumber, decimal creditLimit, decimal openingBalance, string? notes, Guid companyId, string createdBy)
+    {
+        return Create(
+            name,
+            commercialName,
+            supplierCode,
+            supplierGroupId,
+            status,
+            type,
+            paymentTerm,
+            taxNumber,
+            creditLimit,
+            openingBalance,
+            null,
+            null,
+            null,
+            null,
+            null,
+            notes,
+            companyId,
+            createdBy);
+    }
+
+    public static Supplier Create(string name, string? commercialName, string supplierCode, Guid? supplierGroupId, SupplierStatus status, SupplierType type, SupplierPaymentTermType paymentTerm, string? taxNumber, decimal creditLimit, decimal openingBalance, Guid? payableAccountId, Guid? expenseAccountId, Guid? defaultCurrencyId, string? fiscalPosition, string? vendorPaymentReference, string? notes, Guid companyId, string createdBy)
     {
         return new Supplier
         {
@@ -38,6 +66,11 @@ public class Supplier : Aggregate<Guid>
             TaxNumber = taxNumber,
             CreditLimit = creditLimit,
             OpeningBalance = openingBalance,
+            PayableAccountId = payableAccountId,
+            ExpenseAccountId = expenseAccountId,
+            DefaultCurrencyId = defaultCurrencyId,
+            FiscalPosition = fiscalPosition,
+            VendorPaymentReference = vendorPaymentReference,
             Notes = notes,
             CompanyId = companyId,
             CreatedAt = DateTime.UtcNow,
@@ -45,7 +78,7 @@ public class Supplier : Aggregate<Guid>
         };
     }
 
-    public void Update(string name, string? commercialName, string supplierCode, Guid? supplierGroupId, SupplierStatus status, SupplierType type, SupplierPaymentTermType paymentTerm, string? taxNumber, decimal creditLimit, decimal openingBalance, string? notes, List<SupplierAddressDto> addresses, List<SupplierContactDto> contacts, string modifiedBy)
+    public void Update(string name, string? commercialName, string supplierCode, Guid? supplierGroupId, SupplierStatus status, SupplierType type, SupplierPaymentTermType paymentTerm, string? taxNumber, decimal creditLimit, decimal openingBalance, Guid? payableAccountId, Guid? expenseAccountId, Guid? defaultCurrencyId, string? fiscalPosition, string? vendorPaymentReference, string? notes, List<SupplierAddressDto> addresses, List<SupplierContactDto> contacts, string modifiedBy)
     {
         Name = name;
         CommercialName = commercialName;
@@ -57,6 +90,11 @@ public class Supplier : Aggregate<Guid>
         TaxNumber = taxNumber;
         CreditLimit = creditLimit;
         OpeningBalance = openingBalance;
+        PayableAccountId = payableAccountId;
+        ExpenseAccountId = expenseAccountId;
+        DefaultCurrencyId = defaultCurrencyId;
+        FiscalPosition = fiscalPosition;
+        VendorPaymentReference = vendorPaymentReference;
         Notes = notes;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = modifiedBy;
@@ -67,12 +105,22 @@ public class Supplier : Aggregate<Guid>
 
     public void AddAddress(string title, string addressLine1, string? addressLine2, double longitude, double latitude, string city, string state, string country, string postalCode, bool isDefaultBilling, string createdBy)
     {
-        _addresses.Add(SupplierAddress.Create(title, addressLine1, addressLine2, longitude, latitude, city, state, country, postalCode, isDefaultBilling, createdBy));
+        AddAddress(title, addressLine1, addressLine2, longitude, latitude, city, state, country, postalCode, isDefaultBilling, PartnerAddressType.Contact, createdBy);
+    }
+
+    public void AddAddress(string title, string addressLine1, string? addressLine2, double longitude, double latitude, string city, string state, string country, string postalCode, bool isDefaultBilling, PartnerAddressType addressType, string createdBy)
+    {
+        _addresses.Add(SupplierAddress.Create(title, addressLine1, addressLine2, longitude, latitude, city, state, country, postalCode, isDefaultBilling, addressType, createdBy));
     }
 
     public void AddContact(string fullName, string? jobTitle, string? email, string? phoneNumber, bool isPrimaryContact, string createdBy)
     {
-        _contacts.Add(SupplierContact.Create(fullName, jobTitle, email, phoneNumber, isPrimaryContact, createdBy));
+        AddContact(fullName, jobTitle, email, phoneNumber, isPrimaryContact, PartnerContactType.Contact, createdBy);
+    }
+
+    public void AddContact(string fullName, string? jobTitle, string? email, string? phoneNumber, bool isPrimaryContact, PartnerContactType contactType, string createdBy)
+    {
+        _contacts.Add(SupplierContact.Create(fullName, jobTitle, email, phoneNumber, isPrimaryContact, contactType, createdBy));
     }
 
     public void Remove(string deletedBy)
@@ -91,7 +139,7 @@ public class Supplier : Aggregate<Guid>
         {
             if (address.Id == Guid.Empty)
             {
-                AddAddress(address.Title, address.AddressLine1, address.AddressLine2, address.Longitude, address.Latitude, address.City, address.State, address.Country, address.PostalCode, address.IsDefaultBilling, modifiedBy);
+                AddAddress(address.Title, address.AddressLine1, address.AddressLine2, address.Longitude, address.Latitude, address.City, address.State, address.Country, address.PostalCode, address.IsDefaultBilling, address.AddressType, modifiedBy);
                 continue;
             }
 
@@ -99,7 +147,7 @@ public class Supplier : Aggregate<Guid>
                 throw new BadRequestException($"Invalid or deleted supplier address id: {address.Id}");
 
             var existing = activeAddresses.First(a => a.Id == address.Id);
-            existing.Update(address.Title, address.AddressLine1, address.AddressLine2, address.Longitude, address.Latitude, address.City, address.State, address.Country, address.PostalCode, address.IsDefaultBilling, modifiedBy);
+            existing.Update(address.Title, address.AddressLine1, address.AddressLine2, address.Longitude, address.Latitude, address.City, address.State, address.Country, address.PostalCode, address.IsDefaultBilling, address.AddressType, modifiedBy);
         }
 
         var incomingIds = addresses.Where(a => a.Id != Guid.Empty).Select(a => a.Id).ToHashSet();
@@ -118,7 +166,7 @@ public class Supplier : Aggregate<Guid>
         {
             if (contact.Id == Guid.Empty)
             {
-                AddContact(contact.FullName, contact.JobTitle, contact.Email, contact.PhoneNumber, contact.IsPrimaryContact, modifiedBy);
+                AddContact(contact.FullName, contact.JobTitle, contact.Email, contact.PhoneNumber, contact.IsPrimaryContact, contact.ContactType, modifiedBy);
                 continue;
             }
 
@@ -126,7 +174,7 @@ public class Supplier : Aggregate<Guid>
                 throw new BadRequestException($"Invalid or deleted supplier contact id: {contact.Id}");
 
             var existing = activeContacts.First(c => c.Id == contact.Id);
-            existing.Update(contact.FullName, contact.JobTitle, contact.Email, contact.PhoneNumber, contact.IsPrimaryContact, modifiedBy);
+            existing.Update(contact.FullName, contact.JobTitle, contact.Email, contact.PhoneNumber, contact.IsPrimaryContact, contact.ContactType, modifiedBy);
         }
 
         var incomingIds = contacts.Where(c => c.Id != Guid.Empty).Select(c => c.Id).ToHashSet();
@@ -136,3 +184,4 @@ public class Supplier : Aggregate<Guid>
         }
     }
 }
+

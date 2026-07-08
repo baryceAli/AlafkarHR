@@ -11,8 +11,9 @@ public class Contact:Entity<Guid>
     public string? PhoneNumber { get; private set; }
     
     public bool IsPrimaryContact { get; private set; }
+    public PartnerContactType ContactType { get; private set; } = PartnerContactType.Contact;
     protected Contact() { }
-    internal Contact(string fullName, string? jobTitle, string? email, string? phoneNumber, bool isPrimaryContact)
+    internal Contact(string fullName, string? jobTitle, string? email, string? phoneNumber, bool isPrimaryContact, PartnerContactType contactType)
     {
         Id = Guid.Empty;
         FullName = fullName;
@@ -20,8 +21,9 @@ public class Contact:Entity<Guid>
         Email = email;
         PhoneNumber = phoneNumber;
         IsPrimaryContact = isPrimaryContact;
+        ContactType = contactType;
     }
-    public static Contact Create(string fullName, string? jobTitle, string? email, string? phoneNumber, bool isPrimaryContact, string createdBy)
+    public static Contact Create(string fullName, string? jobTitle, string? email, string? phoneNumber, bool isPrimaryContact, PartnerContactType contactType, string createdBy)
     {
         return new Contact
         {
@@ -31,17 +33,19 @@ public class Contact:Entity<Guid>
             Email = email,
             PhoneNumber = phoneNumber,
             IsPrimaryContact = isPrimaryContact,
+            ContactType = contactType,
             CreatedBy= createdBy,
             CreatedAt= DateTime.UtcNow
         };
     }
-    public void Update(string fullName, string? jobTitle, string? email, string? phoneNumber, bool isPrimaryContact,string modifiedBy)
+    public void Update(string fullName, string? jobTitle, string? email, string? phoneNumber, bool isPrimaryContact, PartnerContactType contactType,string modifiedBy)
     {
         FullName=fullName;
         JobTitle=jobTitle;
         Email=email;
         PhoneNumber=phoneNumber;
         IsPrimaryContact = isPrimaryContact;
+        ContactType = contactType;
         ModifiedAt= DateTime.UtcNow;
         ModifiedBy= modifiedBy;
 

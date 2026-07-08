@@ -8,6 +8,7 @@ global using Microsoft.EntityFrameworkCore;
 global using Shared.Contracts.CQRS;
 global using Shared.DDD;
 global using Shared.Exceptions;
+global using SharedWithUI.Customers.Enums;
 global using SharedWithUI.Permissions;
 global using SharedWithUI.Suppliers.Dtos;
 global using SharedWithUI.Suppliers.Enums;

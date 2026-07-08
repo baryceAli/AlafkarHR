@@ -17,6 +17,7 @@ public class SalesOrder : Aggregate<Guid>
     public Guid CustomerId { get; private set; }
 
     public Guid? PriceListId { get; private set; }
+    public Guid? QuotationTemplateId { get; private set; }
     public Guid? SourceQuotationId { get; private set; }
     public string? SalespersonId { get; private set; }
     public SalesInvoicingPolicy InvoicingPolicy { get; private set; } = SalesInvoicingPolicy.InvoiceDeliveredQuantity;
@@ -32,8 +33,15 @@ public class SalesOrder : Aggregate<Guid>
     public DateTime OrderDate { get; private set; }
     public DateTime? DeliveryDate { get; private set; }
     public string? CustomerPurchaseOrderNumber { get; private set; }
+    public Guid? InvoiceAddressId { get; private set; }
+    public Guid? DeliveryAddressId { get; private set; }
     public string? Notes { get; private set; }
     public string? Terms { get; private set; }
+    public bool RequiresCustomerSignature { get; private set; }
+    public bool RequiresOnlinePayment { get; private set; }
+    public decimal DownPaymentAmount { get; private set; }
+    public decimal DownPaymentPercent { get; private set; }
+    public bool IsProForma { get; private set; }
 
     public decimal Subtotal { get; private set; }
 
@@ -93,12 +101,69 @@ public class SalesOrder : Aggregate<Guid>
         string? notes = null,
         string? terms = null)
     {
+        return Create(
+            id,
+            number,
+            customerId,
+            priceListId,
+            null,
+            companyId,
+            branchId,
+            storeFrontId,
+            posCashierSessionId,
+            createdBy,
+            salespersonId,
+            sourceQuotationId,
+            invoicingPolicy,
+            sourceType,
+            sourceDocumentId,
+            sourceDocumentNumber,
+            paymentId,
+            deliveryDate,
+            customerPurchaseOrderNumber,
+            null,
+            null,
+            notes,
+            terms);
+    }
+
+    public static SalesOrder Create(
+        Guid id,
+        string number,
+        Guid customerId,
+        Guid? priceListId,
+        Guid? quotationTemplateId,
+        Guid companyId,
+        Guid? branchId,
+        Guid? storeFrontId,
+        Guid? posCashierSessionId,
+        string createdBy,
+        string? salespersonId = null,
+        Guid? sourceQuotationId = null,
+        SalesInvoicingPolicy invoicingPolicy = SalesInvoicingPolicy.InvoiceDeliveredQuantity,
+        SalesOrderSourceType sourceType = SalesOrderSourceType.Manual,
+        Guid? sourceDocumentId = null,
+        string? sourceDocumentNumber = null,
+        Guid? paymentId = null,
+        DateTime? deliveryDate = null,
+        string? customerPurchaseOrderNumber = null,
+        Guid? invoiceAddressId = null,
+        Guid? deliveryAddressId = null,
+        string? notes = null,
+        string? terms = null,
+        bool requiresCustomerSignature = false,
+        bool requiresOnlinePayment = false,
+        decimal downPaymentAmount = 0,
+        decimal downPaymentPercent = 0,
+        bool isProForma = false)
+    {
         return new SalesOrder
         {
             Id = id,
             Number = number,
             CustomerId = customerId,
             PriceListId = priceListId,
+            QuotationTemplateId = quotationTemplateId,
             Status = SalesOrderStatus.Draft,
             OrderDate = DateTime.UtcNow,
             CompanyId = companyId,
@@ -114,8 +179,15 @@ public class SalesOrder : Aggregate<Guid>
             PaymentId = paymentId,
             DeliveryDate = deliveryDate,
             CustomerPurchaseOrderNumber = customerPurchaseOrderNumber,
+            InvoiceAddressId = invoiceAddressId,
+            DeliveryAddressId = deliveryAddressId,
             Notes = notes,
             Terms = terms,
+            RequiresCustomerSignature = requiresCustomerSignature,
+            RequiresOnlinePayment = requiresOnlinePayment,
+            DownPaymentAmount = downPaymentAmount,
+            DownPaymentPercent = downPaymentPercent,
+            IsProForma = isProForma,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = createdBy
         };

@@ -16,6 +16,8 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
         builder.Property(x => x.CommercialName).HasMaxLength(200);
         builder.Property(x => x.SupplierCode).IsRequired().HasMaxLength(50);
         builder.Property(x => x.TaxNumber).HasMaxLength(50);
+        builder.Property(x => x.FiscalPosition).HasMaxLength(100);
+        builder.Property(x => x.VendorPaymentReference).HasMaxLength(100);
         builder.Property(x => x.Notes).HasMaxLength(2000);
         builder.Property(x => x.CompanyId).IsRequired();
 
@@ -50,6 +52,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
             address.Property(x => x.Longitude).HasPrecision(18, 10);
             address.Property(x => x.Latitude).HasPrecision(18, 10);
             address.Property(x => x.IsDefaultBilling).IsRequired();
+            address.Property(x => x.AddressType).HasConversion<int>().HasDefaultValue(PartnerAddressType.Contact).IsRequired();
 
             address.Property(x => x.CreatedBy).HasMaxLength(100);
             address.Property(x => x.ModifiedBy).HasMaxLength(100);
@@ -68,6 +71,7 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
             contact.Property(x => x.Email).HasMaxLength(200);
             contact.Property(x => x.PhoneNumber).HasMaxLength(50);
             contact.Property(x => x.IsPrimaryContact).IsRequired();
+            contact.Property(x => x.ContactType).HasConversion<int>().HasDefaultValue(PartnerContactType.Contact).IsRequired();
 
             contact.Property(x => x.CreatedBy).HasMaxLength(100);
             contact.Property(x => x.ModifiedBy).HasMaxLength(100);

@@ -10,6 +10,7 @@ public class SalesOrderDto
     public Guid CustomerId { get; set; }
 
     public Guid? PriceListId { get; set; }
+    public Guid? QuotationTemplateId { get; set; }
     public string? CouponCode { get; set; }
     public string? SalespersonId { get; set; }
     public Guid? SourceQuotationId { get; set; }
@@ -25,8 +26,15 @@ public class SalesOrderDto
     public DateTime OrderDate { get; set; }
     public DateTime? DeliveryDate { get; set; }
     public string? CustomerPurchaseOrderNumber { get; set; }
+    public Guid? InvoiceAddressId { get; set; }
+    public Guid? DeliveryAddressId { get; set; }
     public string? Notes { get; set; }
     public string? Terms { get; set; }
+    public bool RequiresCustomerSignature { get; set; }
+    public bool RequiresOnlinePayment { get; set; }
+    public decimal DownPaymentAmount { get; set; }
+    public decimal DownPaymentPercent { get; set; }
+    public bool IsProForma { get; set; }
 
     public decimal Subtotal { get; set; }
 

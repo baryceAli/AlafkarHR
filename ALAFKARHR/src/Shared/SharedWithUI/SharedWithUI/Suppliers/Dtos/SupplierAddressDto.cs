@@ -1,5 +1,7 @@
 namespace SharedWithUI.Suppliers.Dtos;
 
+using SharedWithUI.Customers.Enums;
+
 public class SupplierAddressDto
 {
     public Guid Id { get; set; }
@@ -13,4 +15,5 @@ public class SupplierAddressDto
     public string Country { get; set; } = string.Empty;
     public string PostalCode { get; set; } = string.Empty;
     public bool IsDefaultBilling { get; set; }
+    public PartnerAddressType AddressType { get; set; } = PartnerAddressType.Contact;
 }

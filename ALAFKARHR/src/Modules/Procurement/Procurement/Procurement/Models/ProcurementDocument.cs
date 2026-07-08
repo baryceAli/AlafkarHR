@@ -21,6 +21,14 @@ public abstract class ProcurementDocument : Aggregate<Guid>
     public Guid? CurrencyId { get; protected set; }
     public Guid? SourceDocumentId { get; protected set; }
     public string? SourceDocumentNumber { get; protected set; }
+    public DateTime? SentAt { get; protected set; }
+    public string? SentBy { get; protected set; }
+    public Guid? PurchaseTemplateId { get; protected set; }
+    public Guid? BlanketOrderId { get; protected set; }
+    public Guid? TenderId { get; protected set; }
+    public PurchaseBillControlPolicy BillControlPolicy { get; protected set; } = PurchaseBillControlPolicy.OrderedQuantities;
+    public ThreeWayMatchStatus ThreeWayMatchStatus { get; protected set; } = ThreeWayMatchStatus.NotRequired;
+    public bool IsBillable { get; protected set; }
     public string? Notes { get; protected set; }
     public decimal Subtotal { get; protected set; }
     public decimal TaxAmount { get; protected set; }
@@ -74,6 +82,14 @@ public abstract class ProcurementDocument : Aggregate<Guid>
             CurrencyId = CurrencyId,
             SourceDocumentId = SourceDocumentId,
             SourceDocumentNumber = SourceDocumentNumber,
+            SentAt = SentAt,
+            SentBy = SentBy,
+            PurchaseTemplateId = PurchaseTemplateId,
+            BlanketOrderId = BlanketOrderId,
+            TenderId = TenderId,
+            BillControlPolicy = BillControlPolicy,
+            ThreeWayMatchStatus = ThreeWayMatchStatus,
+            IsBillable = IsBillable,
             Notes = Notes,
             Subtotal = Subtotal,
             TaxAmount = TaxAmount,
@@ -94,6 +110,18 @@ public abstract class ProcurementDocument : Aggregate<Guid>
         CurrencyId = dto.CurrencyId;
         SourceDocumentId = dto.SourceDocumentId;
         SourceDocumentNumber = dto.SourceDocumentNumber;
+        SentAt = dto.SentAt;
+        SentBy = dto.SentBy;
+        PurchaseTemplateId = dto.PurchaseTemplateId;
+        BlanketOrderId = dto.BlanketOrderId;
+        TenderId = dto.TenderId;
+        BillControlPolicy = dto.BillControlPolicy == default
+            ? PurchaseBillControlPolicy.OrderedQuantities
+            : dto.BillControlPolicy;
+        ThreeWayMatchStatus = dto.ThreeWayMatchStatus == default
+            ? ThreeWayMatchStatus.NotRequired
+            : dto.ThreeWayMatchStatus;
+        IsBillable = dto.IsBillable;
         Notes = dto.Notes;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = userId;
@@ -146,6 +174,10 @@ public class ProcurementDocumentLine : Entity<Guid>
     public Guid? WarehouseId { get; private set; }
     public Guid? BatchId { get; private set; }
     public Guid? ReorderingRuleId { get; private set; }
+    public PurchaseBillControlPolicy? BillControlPolicy { get; private set; }
+    public ThreeWayMatchStatus ThreeWayMatchStatus { get; private set; } = ThreeWayMatchStatus.NotRequired;
+    public decimal ReceivedQuantity { get; private set; }
+    public decimal BilledQuantity { get; private set; }
     public decimal Quantity { get; private set; }
     public decimal UnitCost { get; private set; }
     public decimal DiscountRate { get; private set; }
@@ -171,6 +203,12 @@ public class ProcurementDocumentLine : Entity<Guid>
             WarehouseId = dto.WarehouseId,
             BatchId = dto.BatchId,
             ReorderingRuleId = dto.ReorderingRuleId,
+            BillControlPolicy = dto.BillControlPolicy,
+            ThreeWayMatchStatus = dto.ThreeWayMatchStatus == default
+                ? ThreeWayMatchStatus.NotRequired
+                : dto.ThreeWayMatchStatus,
+            ReceivedQuantity = dto.ReceivedQuantity,
+            BilledQuantity = dto.BilledQuantity,
             Quantity = dto.Quantity,
             UnitCost = dto.UnitCost,
             DiscountRate = dto.DiscountRate,
@@ -206,6 +244,10 @@ public class ProcurementDocumentLine : Entity<Guid>
             WarehouseId = WarehouseId,
             BatchId = BatchId,
             ReorderingRuleId = ReorderingRuleId,
+            BillControlPolicy = BillControlPolicy,
+            ThreeWayMatchStatus = ThreeWayMatchStatus,
+            ReceivedQuantity = ReceivedQuantity,
+            BilledQuantity = BilledQuantity,
             Quantity = Quantity,
             UnitCost = UnitCost,
             DiscountRate = DiscountRate,

@@ -13,6 +13,7 @@ public class SalesQuotation : Aggregate<Guid>
     public Guid CustomerId { get; private set; }
     public string? CustomerName { get; private set; }
     public Guid? PriceListId { get; private set; }
+    public Guid? QuotationTemplateId { get; private set; }
     public string? CouponCode { get; private set; }
     public string? SalespersonId { get; private set; }
     public SalesQuotationStatus Status { get; private set; }
@@ -29,6 +30,11 @@ public class SalesQuotation : Aggregate<Guid>
     public DateTime? RejectedAt { get; private set; }
     public DateTime? ConvertedAt { get; private set; }
     public string? RejectionReason { get; private set; }
+    public bool RequiresCustomerSignature { get; private set; }
+    public bool RequiresOnlinePayment { get; private set; }
+    public decimal DownPaymentAmount { get; private set; }
+    public decimal DownPaymentPercent { get; private set; }
+    public bool IsProForma { get; private set; }
     public IReadOnlyCollection<SalesQuotationLine> Lines => _lines;
 
     public static SalesQuotation Create(SalesQuotationDto dto, string userId)
@@ -45,6 +51,7 @@ public class SalesQuotation : Aggregate<Guid>
             CustomerId = dto.CustomerId,
             CustomerName = dto.CustomerName,
             PriceListId = dto.PriceListId,
+            QuotationTemplateId = dto.QuotationTemplateId,
             CouponCode = dto.CouponCode,
             SalespersonId = dto.SalespersonId ?? userId,
             Status = SalesQuotationStatus.Draft,
@@ -52,6 +59,11 @@ public class SalesQuotation : Aggregate<Guid>
             ValidUntil = dto.ValidUntil,
             Notes = dto.Notes,
             Terms = dto.Terms,
+            RequiresCustomerSignature = dto.RequiresCustomerSignature,
+            RequiresOnlinePayment = dto.RequiresOnlinePayment,
+            DownPaymentAmount = dto.DownPaymentAmount,
+            DownPaymentPercent = dto.DownPaymentPercent,
+            IsProForma = dto.IsProForma,
             CreatedAt = DateTime.UtcNow,
             CreatedBy = userId
         };
@@ -66,12 +78,18 @@ public class SalesQuotation : Aggregate<Guid>
         CustomerId = dto.CustomerId;
         CustomerName = dto.CustomerName;
         PriceListId = dto.PriceListId;
+        QuotationTemplateId = dto.QuotationTemplateId;
         CouponCode = dto.CouponCode;
         SalespersonId = dto.SalespersonId ?? SalespersonId;
         QuotationDate = dto.QuotationDate == default ? QuotationDate : dto.QuotationDate;
         ValidUntil = dto.ValidUntil;
         Notes = dto.Notes;
         Terms = dto.Terms;
+        RequiresCustomerSignature = dto.RequiresCustomerSignature;
+        RequiresOnlinePayment = dto.RequiresOnlinePayment;
+        DownPaymentAmount = dto.DownPaymentAmount;
+        DownPaymentPercent = dto.DownPaymentPercent;
+        IsProForma = dto.IsProForma;
         ReplaceLines(dto.Lines, userId);
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = userId;
