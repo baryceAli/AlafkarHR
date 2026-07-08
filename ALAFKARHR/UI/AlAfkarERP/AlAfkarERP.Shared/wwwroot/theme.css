@@ -4899,6 +4899,163 @@ video {
     padding: 0 var(--erp-space-1) var(--erp-space-1);
 }
 
+:root .enterprise-functional-list {
+    display: grid;
+    gap: var(--erp-space-2);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+:root .enterprise-functional-button {
+    align-items: center;
+    background: var(--erp-surface-muted);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-md);
+    color: var(--erp-text-muted);
+    display: flex;
+    gap: var(--erp-space-2);
+    min-height: 46px;
+    min-width: 0;
+    padding: var(--erp-space-2);
+    text-align: start;
+}
+
+:root .enterprise-functional-button:hover,
+:root .enterprise-functional-button:focus-visible,
+:root .enterprise-functional-button.is-active {
+    background: var(--erp-primary-soft);
+    border-color: color-mix(in srgb, var(--erp-primary) 26%, var(--erp-border));
+    color: var(--erp-primary);
+}
+
+:root .enterprise-functional-button.is-active {
+    border-inline-start: 3px solid var(--erp-primary);
+}
+
+:root .enterprise-functional-icon {
+    align-items: center;
+    background: var(--erp-surface);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-md);
+    display: inline-flex;
+    flex: 0 0 30px;
+    height: 30px;
+    justify-content: center;
+    width: 30px;
+}
+
+:root .enterprise-functional-button span:last-child {
+    display: grid;
+    min-width: 0;
+}
+
+:root .enterprise-functional-button strong,
+:root .enterprise-functional-button small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:root .enterprise-functional-button strong {
+    color: var(--erp-text);
+    font-size: var(--erp-type-body-sm-size);
+    line-height: var(--erp-type-body-sm-line);
+}
+
+:root .enterprise-functional-button small {
+    color: var(--erp-text-soft);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
+}
+
+:root .enterprise-quick-section {
+    display: grid;
+    gap: var(--erp-space-2);
+}
+
+:root .enterprise-quick-list {
+    display: flex;
+    gap: var(--erp-space-2);
+    overflow-x: auto;
+    padding-block-end: var(--erp-space-1);
+}
+
+:root .enterprise-quick-link {
+    align-items: center;
+    background: var(--erp-surface-muted);
+    border: 1px solid var(--erp-border);
+    border-radius: var(--erp-radius-full);
+    color: var(--erp-text-muted);
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: var(--erp-space-1);
+    max-inline-size: 180px;
+    min-height: 32px;
+    padding-block: var(--erp-space-1);
+    padding-inline: var(--erp-space-2);
+}
+
+:root .enterprise-quick-link span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:root .enterprise-quick-link:hover,
+:root .enterprise-quick-link:focus-visible,
+:root .enterprise-quick-link.is-active {
+    background: var(--erp-primary-soft);
+    border-color: color-mix(in srgb, var(--erp-primary) 24%, var(--erp-border));
+    color: var(--erp-primary);
+}
+
+:root .enterprise-flat-list {
+    gap: var(--erp-space-3);
+}
+
+:root .enterprise-flat-section {
+    display: grid;
+    gap: var(--erp-space-1);
+}
+
+:root .enterprise-flat-heading {
+    align-items: center;
+    color: var(--erp-text-muted);
+    display: flex;
+    gap: var(--erp-space-2);
+    min-height: 30px;
+    padding-inline: var(--erp-space-1);
+}
+
+:root .enterprise-flat-heading > span:last-child {
+    display: grid;
+    min-width: 0;
+}
+
+:root .enterprise-flat-heading strong,
+:root .enterprise-flat-heading small,
+:root .enterprise-flat-heading > span:first-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+:root .enterprise-flat-heading strong,
+:root .enterprise-flat-heading > span:first-child {
+    color: var(--erp-text);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 16px;
+    text-transform: uppercase;
+}
+
+:root .enterprise-flat-heading small {
+    color: var(--erp-text-soft);
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 14px;
+}
+
 :root .enterprise-section-header {
     align-items: center;
     background: transparent;
