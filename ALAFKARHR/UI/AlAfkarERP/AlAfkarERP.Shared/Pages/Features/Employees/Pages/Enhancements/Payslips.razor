@@ -17,7 +17,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
-<div dir="@SharedDataService.PageDirection">
+<main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Payslips", "مسيرات الموظفين")"
                 Subtitle="@Text("Create payroll periods, generate payslips, add payroll inputs, and run approval/payment actions.", "إنشاء فترات الرواتب وتوليد المسيرات وإضافة المدخلات وتنفيذ الاعتماد والدفع.")"
                 Icon="bi-receipt" />
@@ -57,8 +57,8 @@
                         <h6 class="mb-0">@Text("Periods", "الفترات")</h6>
                         <button class="btn btn-outline-secondary btn-sm" @onclick="LoadData"><i class="bi bi-arrow-clockwise"></i></button>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
+                    <div class="erp-table-wrap">
+                        <table class="table table-sm erp-table align-middle">
                             <thead><tr><th>@Text("Period", "الفترة")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var item in periods)
@@ -112,8 +112,8 @@
             <div class="col-xl-8">
                 <AppCard>
                     <h6 class="mb-3">@Text("Entries", "القيود")</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
+                    <div class="erp-table-wrap">
+                        <table class="table table-sm erp-table align-middle">
                             <thead><tr><th>@Text("Period", "الفترة")</th><th>@Text("Employees", "الموظفون")</th><th>@Text("Net", "الصافي")</th><th>@Text("Status", "الحالة")</th><th>@Text("Accounting", "المحاسبة")</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var item in entries)
@@ -190,8 +190,8 @@
                     }
                     else
                     {
-                        <div class="table-responsive mt-3">
-                            <table class="table table-sm align-middle">
+                        <div class="erp-table-wrap mt-3">
+                            <table class="table table-sm erp-table align-middle">
                                 <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Type", "النوع")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
                                 <tbody>
                                     @foreach (var item in inputs)
@@ -222,8 +222,8 @@
                     }
                     else
                     {
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle">
+                        <div class="erp-table-wrap">
+                            <table class="table table-sm erp-table align-middle">
                                 <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Gross", "الإجمالي")</th><th>@Text("Deductions", "الخصومات")</th><th>@Text("Net", "الصافي")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
                                 <tbody>
                                     @foreach (var item in payslips)
@@ -264,8 +264,8 @@
                     <div class="col-md-3"><strong>@Text("Net", "الصافي"):</strong> @selectedPayslip.NetAmount.ToString("N2")</div>
                     <div class="col-md-3"><strong>@Text("Period", "الفترة"):</strong> @selectedPayslip.Year-@selectedPayslip.Month.ToString("00")</div>
                 </div>
-                <div class="table-responsive">
-                    <table class="table table-sm">
+                <div class="erp-table-wrap">
+                    <table class="table table-sm erp-table">
                         <thead><tr><th>@Text("Line", "البند")</th><th>@Text("Type", "النوع")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Source", "المصدر")</th></tr></thead>
                         <tbody>
                             @foreach (var line in selectedPayslip.Lines)
@@ -283,7 +283,7 @@
             </AppCard>
         }
     }
-</div>
+</main>
 
 @code {
     private Guid companyId;

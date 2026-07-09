@@ -17,7 +17,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
-<div dir="@SharedDataService.PageDirection">
+<main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Salary Structures", "هياكل الرواتب")"
                 Subtitle="@Text("Build reusable payroll structures and assign them to employees.", "إنشاء هياكل رواتب قابلة لإعادة الاستخدام وتعيينها للموظفين.")"
                 Icon="bi-diagram-3" />
@@ -103,8 +103,8 @@
                     }
                     else
                     {
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle">
+                        <div class="erp-table-wrap">
+                            <table class="table table-sm erp-table align-middle">
                                 <thead><tr><th>@Text("Name", "الاسم")</th><th>@Text("Lines", "البنود")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
                                 <tbody>
                                     @foreach (var item in structures)
@@ -167,8 +167,8 @@
             <div class="col-xl-8">
                 <AppCard>
                     <h6 class="mb-3">@Text("Assignment History", "سجل التعيينات")</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
+                    <div class="erp-table-wrap">
+                        <table class="table table-sm erp-table align-middle">
                             <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Structure", "الهيكل")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var item in assignments)
@@ -191,7 +191,7 @@
             </div>
         </div>
     }
-</div>
+</main>
 
 @code {
     private Guid companyId;

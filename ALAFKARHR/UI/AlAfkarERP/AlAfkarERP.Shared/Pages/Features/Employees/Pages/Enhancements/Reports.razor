@@ -35,7 +35,7 @@
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 
-<div dir="@SharedDataService.PageDirection">
+<main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("HR Reports", "تقارير الموارد البشرية")"
                 Subtitle="@Text("A cross-module report launcher with live previews from the current HR services.", "مشغل تقارير عابر للوحدات مع معاينات مباشرة من خدمات الموارد البشرية الحالية.")"
                 Icon="bi-bar-chart-line" />
@@ -122,7 +122,7 @@
             }
         </AppCard>
     }
-</div>
+</main>
 
 @code {
     private Guid companyId;
@@ -223,7 +223,7 @@
 
     private RenderFragment PreviewEmployees() => employees.Count == 0
         ? EmptyPreview(Text("No employee data", "لا توجد بيانات موظفين"), Text("Employee directory preview will appear here when employees are loaded.", "ستظهر معاينة دليل الموظفين هنا عند تحميل الموظفين."), "bi-people")
-        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("No", "الرقم")</th><th>@Text("Status", "الحالة")</th><th>@Text("Work location", "موقع العمل")</th></tr></thead><tbody>@foreach (var item in employees.Take(12)){<tr><td>@EmployeeName(item)</td><td>@item.EmployeeNo</td><td>@EmployeeStatus(item)</td><td>@item.WorkLocation</td></tr>}</tbody></table></div>;
+        : @<div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("No", "الرقم")</th><th>@Text("Status", "الحالة")</th><th>@Text("Work location", "موقع العمل")</th></tr></thead><tbody>@foreach (var item in employees.Take(12)){<tr><td>@EmployeeName(item)</td><td>@item.EmployeeNo</td><td>@EmployeeStatus(item)</td><td>@item.WorkLocation</td></tr>}</tbody></table></div>;
 
     private RenderFragment PreviewEmployee360()
     {
@@ -255,19 +255,19 @@
 
     private RenderFragment PreviewLeave() => leaveApplications.Count == 0 && leaveLedger.Count == 0
         ? EmptyPreview(Text("No leave report data", "لا توجد بيانات إجازات"), Text("Applications and ledger movements will appear here when available.", "ستظهر الطلبات وحركات السجل هنا عند توفرها."), "bi-calendar-heart")
-        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Period", "الفترة")</th><th>@Text("Status", "الحالة")</th><th>@Text("Ledger", "السجل")</th></tr></thead><tbody>@foreach (var item in leaveApplications.Take(10)){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</td><td>@item.Status</td><td>@leaveLedger.Count(x => x.EmployeeId == item.EmployeeId)</td></tr>}</tbody></table></div>;
+        : @<div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Period", "الفترة")</th><th>@Text("Status", "الحالة")</th><th>@Text("Ledger", "السجل")</th></tr></thead><tbody>@foreach (var item in leaveApplications.Take(10)){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.StartDate.ToShortDateString() - @item.EndDate.ToShortDateString()</td><td>@item.Status</td><td>@leaveLedger.Count(x => x.EmployeeId == item.EmployeeId)</td></tr>}</tbody></table></div>;
 
     private RenderFragment PreviewAttendance() => attendanceCorrections.Count == 0 && workEntries.Count == 0
         ? EmptyPreview(Text("No attendance report data", "لا توجد بيانات حضور"), Text("Corrections and work entries will appear here when available.", "ستظهر التصحيحات وقيود العمل هنا عند توفرها."), "bi-calendar-check")
-        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Date", "التاريخ")</th><th>@Text("Status", "الحالة")</th><th>@Text("Work entries", "قيود العمل")</th></tr></thead><tbody>@foreach (var item in attendanceCorrections.Take(10)){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.WorkDate.ToShortDateString()</td><td>@item.Status</td><td>@workEntries.Count(x => x.EmployeeId == item.EmployeeId)</td></tr>}@foreach (var item in workEntries.Take(10)){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.WorkDate.ToShortDateString()</td><td>@item.Status</td><td>@item.EntryType</td></tr>}</tbody></table></div>;
+        : @<div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Date", "التاريخ")</th><th>@Text("Status", "الحالة")</th><th>@Text("Work entries", "قيود العمل")</th></tr></thead><tbody>@foreach (var item in attendanceCorrections.Take(10)){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.WorkDate.ToShortDateString()</td><td>@item.Status</td><td>@workEntries.Count(x => x.EmployeeId == item.EmployeeId)</td></tr>}@foreach (var item in workEntries.Take(10)){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.WorkDate.ToShortDateString()</td><td>@item.Status</td><td>@item.EntryType</td></tr>}</tbody></table></div>;
 
     private RenderFragment PreviewPayroll() => payrollEntries.Count == 0 && payslips.Count == 0
         ? EmptyPreview(Text("No payroll report data", "لا توجد بيانات رواتب"), Text("Payroll entries and payslip status will appear here when available.", "ستظهر قيود الرواتب وحالة المسيرات هنا عند توفرها."), "bi-cash-stack")
-        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Entry", "القيد")</th><th>@Text("Status", "الحالة")</th><th>@Text("Employees", "الموظفون")</th><th>@Text("Net", "الصافي")</th></tr></thead><tbody>@foreach (var item in payrollEntries.Take(10)){<tr><td>@item.PeriodName</td><td>@item.Status</td><td>@item.EmployeeCount</td><td>@item.NetAmount.ToString("N2")</td></tr>}@foreach (var item in payslips.Take(10)){<tr><td>@(item.EmployeeName ?? EmployeeName(item.EmployeeId))</td><td>@item.Status</td><td>@(item.IsWpsEligible ? Text("WPS eligible", "مؤهل حماية الأجور") : Text("Not WPS ready", "غير جاهز لحماية الأجور"))</td><td>@item.NetAmount.ToString("N2")</td></tr>}</tbody></table></div>;
+        : @<div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Entry", "القيد")</th><th>@Text("Status", "الحالة")</th><th>@Text("Employees", "الموظفون")</th><th>@Text("Net", "الصافي")</th></tr></thead><tbody>@foreach (var item in payrollEntries.Take(10)){<tr><td>@item.PeriodName</td><td>@item.Status</td><td>@item.EmployeeCount</td><td>@item.NetAmount.ToString("N2")</td></tr>}@foreach (var item in payslips.Take(10)){<tr><td>@(item.EmployeeName ?? EmployeeName(item.EmployeeId))</td><td>@item.Status</td><td>@(item.IsWpsEligible ? Text("WPS eligible", "مؤهل حماية الأجور") : Text("Not WPS ready", "غير جاهز لحماية الأجور"))</td><td>@item.NetAmount.ToString("N2")</td></tr>}</tbody></table></div>;
 
     private RenderFragment PreviewTalent() => requisitions.Count == 0 && applicants.Count == 0 && trainingEvents.Count == 0 && appraisals.Count == 0
         ? EmptyPreview(Text("No talent report data", "لا توجد بيانات مواهب"), Text("Recruitment, training, and appraisal previews will appear here.", "ستظهر هنا معاينات التوظيف والتدريب والتقييم."), "bi-mortarboard")
-        : @<div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Area", "المجال")</th><th>@Text("Item", "البند")</th><th>@Text("Status", "الحالة")</th><th>@Text("Reference", "المرجع")</th></tr></thead><tbody>@foreach (var item in requisitions.Take(4)){<tr><td>@Text("Recruitment", "التوظيف")</td><td>@item.Title</td><td>@item.Status</td><td>@item.RequestedAt.ToShortDateString()</td></tr>}@foreach (var item in applicants.Take(4)){<tr><td>@Text("Applicants", "المتقدمون")</td><td>@item.FullName</td><td>@item.Status</td><td>@(item.JobRequisitionTitle ?? "-")</td></tr>}@foreach (var item in trainingEvents.Take(4)){<tr><td>@Text("Training", "التدريب")</td><td>@item.Title</td><td>@item.Status</td><td>@item.StartAt.ToShortDateString()</td></tr>}@foreach (var item in appraisals.Take(4)){<tr><td>@Text("Performance", "الأداء")</td><td>@(item.EmployeeName ?? EmployeeName(item.EmployeeId))</td><td>@item.Status</td><td>@item.Rating</td></tr>}</tbody></table></div>;
+        : @<div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Area", "المجال")</th><th>@Text("Item", "البند")</th><th>@Text("Status", "الحالة")</th><th>@Text("Reference", "المرجع")</th></tr></thead><tbody>@foreach (var item in requisitions.Take(4)){<tr><td>@Text("Recruitment", "التوظيف")</td><td>@item.Title</td><td>@item.Status</td><td>@item.RequestedAt.ToShortDateString()</td></tr>}@foreach (var item in applicants.Take(4)){<tr><td>@Text("Applicants", "المتقدمون")</td><td>@item.FullName</td><td>@item.Status</td><td>@(item.JobRequisitionTitle ?? "-")</td></tr>}@foreach (var item in trainingEvents.Take(4)){<tr><td>@Text("Training", "التدريب")</td><td>@item.Title</td><td>@item.Status</td><td>@item.StartAt.ToShortDateString()</td></tr>}@foreach (var item in appraisals.Take(4)){<tr><td>@Text("Performance", "الأداء")</td><td>@(item.EmployeeName ?? EmployeeName(item.EmployeeId))</td><td>@item.Status</td><td>@item.Rating</td></tr>}</tbody></table></div>;
 
     private RenderFragment PreviewCompliance() => employeeDocuments.Count == 0 && payslips.Count == 0 && trainingEvents.Count == 0
         ? EmptyPreview(Text("No compliance signals", "لا توجد مؤشرات امتثال"), Text("Renewal documents, WPS readiness, paid payslips, and active training signals will appear here.", "ستظهر هنا المستندات التي تحتاج تجديدا وجاهزية حماية الأجور والمسيرات المدفوعة والتدريب النشط."), "bi-shield-check")

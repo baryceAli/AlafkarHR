@@ -19,7 +19,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
-<div dir="@SharedDataService.PageDirection">
+<main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Training", "التدريب")"
                 Subtitle="@Text("Manage programs, scheduled events, attendees, results, feedback, and employee certificate linkage.", "إدارة البرامج والفعاليات والحضور والنتائج والملاحظات وربط شهادات الموظفين.")"
                 Icon="bi-award" />
@@ -64,7 +64,7 @@
                     }
                     else
                     {
-                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Program", "البرنامج")</th><th>@Text("Provider", "المزود")</th><th>@Text("Category", "التصنيف")</th><th></th></tr></thead><tbody>@foreach (var item in programs){<tr><td><div class="fw-semibold">@item.Name</div><div class="text-muted small">@item.Objective</div></td><td>@item.Provider</td><td>@item.Category</td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditProgram(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteProgram(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
+                        <div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Program", "البرنامج")</th><th>@Text("Provider", "المزود")</th><th>@Text("Category", "التصنيف")</th><th></th></tr></thead><tbody>@foreach (var item in programs){<tr><td><div class="fw-semibold">@item.Name</div><div class="text-muted small">@item.Objective</div></td><td>@item.Provider</td><td>@item.Category</td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditProgram(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteProgram(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
                     }
                 </AppCard>
             </div>
@@ -94,7 +94,7 @@
                     }
                     else
                     {
-                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Event", "الفعالية")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th>@Text("Attendees", "الحضور")</th><th></th></tr></thead><tbody>@foreach (var item in events){<tr class="@(selectedEventId == item.Id ? "table-active" : string.Empty)"><td><div class="fw-semibold">@item.Title</div><div class="text-muted small">@ProgramName(item.ProgramId)</div></td><td>@item.StartAt.ToShortDateString() - @item.EndAt.ToShortDateString()</td><td><span class="badge @StatusClass(item.Status)">@EventStatusText(item.Status)</span></td><td>@item.AttendeeCount / @item.Capacity</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectEvent(item)"><i class="bi bi-eye"></i></button> <button class="btn btn-outline-warning btn-sm" @onclick="() => EditEvent(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEvent(item.Id)" disabled="@(!CanComplete)">@Text("Open", "فتح")</button> <button class="btn btn-outline-info btn-sm" @onclick="() => StartEvent(item.Id)" disabled="@(!CanComplete)">@Text("Start", "بدء")</button> <button class="btn btn-outline-success btn-sm" @onclick="() => CompleteEvent(item.Id)" disabled="@(!CanComplete)">@Text("Complete", "إكمال")</button> <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelEvent(item.Id)" disabled="@(!CanComplete)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
+                        <div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Event", "الفعالية")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th>@Text("Attendees", "الحضور")</th><th></th></tr></thead><tbody>@foreach (var item in events){<tr class="@(selectedEventId == item.Id ? "table-active" : string.Empty)"><td><div class="fw-semibold">@item.Title</div><div class="text-muted small">@ProgramName(item.ProgramId)</div></td><td>@item.StartAt.ToShortDateString() - @item.EndAt.ToShortDateString()</td><td><span class="badge @StatusClass(item.Status)">@EventStatusText(item.Status)</span></td><td>@item.AttendeeCount / @item.Capacity</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectEvent(item)"><i class="bi bi-eye"></i></button> <button class="btn btn-outline-warning btn-sm" @onclick="() => EditEvent(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEvent(item.Id)" disabled="@(!CanComplete)">@Text("Open", "فتح")</button> <button class="btn btn-outline-info btn-sm" @onclick="() => StartEvent(item.Id)" disabled="@(!CanComplete)">@Text("Start", "بدء")</button> <button class="btn btn-outline-success btn-sm" @onclick="() => CompleteEvent(item.Id)" disabled="@(!CanComplete)">@Text("Complete", "إكمال")</button> <button class="btn btn-outline-danger btn-sm" @onclick="() => CancelEvent(item.Id)" disabled="@(!CanComplete)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
                     }
                 </AppCard>
             </div>
@@ -116,7 +116,7 @@
                 }
                 else
                 {
-                    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Status", "الحالة")</th><th>@Text("Score", "الدرجة")</th><th>@Text("Certificate", "الشهادة")</th><th></th></tr></thead><tbody>@foreach (var item in attendees){<tr class="@(selectedAttendeeId == item.Id ? "table-active" : string.Empty)"><td><div class="fw-semibold">@EmployeeName(item.EmployeeId)</div><div class="text-muted small">@item.Feedback</div></td><td><span class="badge @AttendeeStatusClass(item.Status)">@AttendeeStatusText(item.Status)</span></td><td>@(item.Score?.ToString("N2") ?? "-")</td><td>@(item.CertificationId.HasValue ? item.CertificateName ?? item.CertificationId.Value.ToString("N")[..8] : Text("Not linked", "غير مرتبطة"))</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectAttendee(item)"><i class="bi bi-eye"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => MarkAttendance(item.Id, true)" disabled="@(!CanEdit)">@Text("Attend", "حضور")</button> <button class="btn btn-outline-warning btn-sm" @onclick="() => EditAttendee(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteAttendee(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Status", "الحالة")</th><th>@Text("Score", "الدرجة")</th><th>@Text("Certificate", "الشهادة")</th><th></th></tr></thead><tbody>@foreach (var item in attendees){<tr class="@(selectedAttendeeId == item.Id ? "table-active" : string.Empty)"><td><div class="fw-semibold">@EmployeeName(item.EmployeeId)</div><div class="text-muted small">@item.Feedback</div></td><td><span class="badge @AttendeeStatusClass(item.Status)">@AttendeeStatusText(item.Status)</span></td><td>@(item.Score?.ToString("N2") ?? "-")</td><td>@(item.CertificationId.HasValue ? item.CertificateName ?? item.CertificationId.Value.ToString("N")[..8] : Text("Not linked", "غير مرتبطة"))</td><td class="text-end"><button class="btn btn-outline-primary btn-sm" @onclick="() => SelectAttendee(item)"><i class="bi bi-eye"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => MarkAttendance(item.Id, true)" disabled="@(!CanEdit)">@Text("Attend", "حضور")</button> <button class="btn btn-outline-warning btn-sm" @onclick="() => EditAttendee(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteAttendee(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>}</tbody></table></div>
                 }
 
                 @if (SelectedAttendee is not null)
@@ -135,7 +135,7 @@
             }
         </AppCard>
     }
-</div>
+</main>
 
 @code {
     private Guid companyId;

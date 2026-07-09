@@ -18,7 +18,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
-<div dir="@SharedDataService.PageDirection">
+<main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Performance Management", "إدارة الأداء")"
                 Subtitle="@Text("Manage appraisal cycles, goals, competencies, scoring, review, and approval.", "إدارة دورات التقييم والأهداف والكفاءات والدرجات والمراجعة والاعتماد.")"
                 Icon="bi-graph-up-arrow" />
@@ -65,8 +65,8 @@
                     }
                     else
                     {
-                        <div class="table-responsive">
-                            <table class="table table-sm align-middle">
+                        <div class="erp-table-wrap">
+                            <table class="table table-sm erp-table align-middle">
                                 <thead><tr><th>@Text("Cycle", "الدورة")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
                                 <tbody>
                                     @foreach (var item in cycles)
@@ -109,7 +109,7 @@
                     }
                     else
                     {
-                        <div class="table-responsive"><table class="table table-sm align-middle"><tbody>
+                        <div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><tbody>
                         @foreach (var item in goals)
                         {
                             <tr><td><div class="fw-semibold">@item.Name</div><div class="text-muted small">@item.Code - @item.Weight.ToString("N2")%</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditGoal(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteGoal(item)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>
@@ -134,7 +134,7 @@
                     }
                     else
                     {
-                        <div class="table-responsive"><table class="table table-sm align-middle"><tbody>
+                        <div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><tbody>
                         @foreach (var item in competencies)
                         {
                             <tr><td><div class="fw-semibold">@item.Name</div><div class="text-muted small">@item.Weight.ToString("N2")%</div></td><td class="text-end"><button class="btn btn-outline-warning btn-sm" @onclick="() => EditCompetency(item)" disabled="@(!CanEdit)"><i class="bi bi-pencil"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteCompetency(item)" disabled="@(!CanEdit)"><i class="bi bi-trash"></i></button></td></tr>
@@ -162,24 +162,24 @@
                     <div class="col-xl-6">
                         <h6>@Text("Assigned Goals", "الأهداف المعينة")</h6>
                         <div class="row g-2 mb-2"><div class="col-5"><select class="form-select" @bind="employeeGoalModel.GoalDefinitionId"><option value="@Guid.Empty">@Text("Goal", "الهدف")</option>@foreach (var goal in goals){<option value="@goal.Id">@goal.Name</option>}</select></div><div class="col-2"><InputNumber class="form-control" @bind-Value="employeeGoalModel.TargetValue" /></div><div class="col-2"><InputNumber class="form-control" @bind-Value="employeeGoalModel.Weight" /></div><div class="col-3 d-grid"><button class="btn btn-outline-primary" @onclick="SaveEmployeeGoal" disabled="@(!CanEdit)">@Text("Assign", "تعيين")</button></div></div>
-                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Goal", "الهدف")</th><th>@Text("Target", "المستهدف")</th><th>@Text("Achieved", "المحقق")</th><th>@Text("Score", "الدرجة")</th><th></th></tr></thead><tbody>@foreach (var item in employeeGoals){<tr><td>@item.Goal</td><td>@item.TargetValue.ToString("N2")</td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.ActualValue" /></td><td>@item.Score.ToString("N2")</td><td><button class="btn btn-outline-success btn-sm" @onclick="() => SaveAchievement(item)" disabled="@(!CanEdit)"><i class="bi bi-check2"></i></button></td></tr>}</tbody></table></div>
+                        <div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Goal", "الهدف")</th><th>@Text("Target", "المستهدف")</th><th>@Text("Achieved", "المحقق")</th><th>@Text("Score", "الدرجة")</th><th></th></tr></thead><tbody>@foreach (var item in employeeGoals){<tr><td>@item.Goal</td><td>@item.TargetValue.ToString("N2")</td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.ActualValue" /></td><td>@item.Score.ToString("N2")</td><td><button class="btn btn-outline-success btn-sm" @onclick="() => SaveAchievement(item)" disabled="@(!CanEdit)"><i class="bi bi-check2"></i></button></td></tr>}</tbody></table></div>
                     </div>
                     <div class="col-xl-6">
                         <h6>@Text("Competency Scores", "درجات الكفاءات")</h6>
                         <div class="row g-2 mb-2"><div class="col-5"><select class="form-select" @bind="competencyScoreModel.CompetencyId"><option value="@Guid.Empty">@Text("Competency", "الكفاءة")</option>@foreach (var competency in competencies){<option value="@competency.Id">@competency.Name</option>}</select></div><div class="col-2"><InputNumber class="form-control" @bind-Value="competencyScoreModel.Score" /></div><div class="col-2"><InputNumber class="form-control" @bind-Value="competencyScoreModel.Weight" /></div><div class="col-3 d-grid"><button class="btn btn-outline-primary" @onclick="SaveCompetencyScore" disabled="@(!CanEdit)">@Text("Score", "تسجيل")</button></div></div>
-                        <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Competency", "الكفاءة")</th><th>@Text("Score", "الدرجة")</th><th>@Text("Weight", "الوزن")</th><th>@Text("Weighted", "الموزونة")</th></tr></thead><tbody>@foreach (var item in competencyScores){<tr><td>@item.CompetencyName</td><td>@item.Score.ToString("N2")</td><td>@item.Weight.ToString("N2")</td><td>@item.WeightedScore.ToString("N2")</td></tr>}</tbody></table></div>
+                        <div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Competency", "الكفاءة")</th><th>@Text("Score", "الدرجة")</th><th>@Text("Weight", "الوزن")</th><th>@Text("Weighted", "الموزونة")</th></tr></thead><tbody>@foreach (var item in competencyScores){<tr><td>@item.CompetencyName</td><td>@item.Score.ToString("N2")</td><td>@item.Weight.ToString("N2")</td><td>@item.WeightedScore.ToString("N2")</td></tr>}</tbody></table></div>
                     </div>
                 </div>
 
                 <div class="border-top pt-3 mt-3">
                     <div class="d-flex flex-wrap gap-2 mb-3"><button class="btn btn-primary" @onclick="CreateEvaluation" disabled="@(!CanCreate)"><i class="bi bi-plus-lg"></i> @Text("Create Evaluation", "إنشاء تقييم")</button><button class="btn btn-outline-primary" @onclick="RefreshEvaluations"><i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")</button></div>
                     <div class="row g-2 mb-3"><div class="col-md-6"><InputTextArea class="form-control" rows="2" placeholder="@Text("Employee feedback", "ملاحظات الموظف")" @bind-Value="employeeFeedback" /></div><div class="col-md-6"><InputTextArea class="form-control" rows="2" placeholder="@Text("Manager feedback", "ملاحظات المدير")" @bind-Value="managerFeedback" /></div></div>
-                    <div class="table-responsive"><table class="table table-sm align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Cycle", "الدورة")</th><th>@Text("KPI", "المؤشرات")</th><th>@Text("Competency", "الكفاءة")</th><th>@Text("Final", "النهائية")</th><th>@Text("Rating", "التصنيف")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in evaluations){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.CycleName</td><td>@item.KpiScore.ToString("N2")</td><td>@item.CompetencyScore.ToString("N2")</td><td>@((item.FinalScore ?? 0m).ToString("N2"))</td><td>@item.Rating</td><td><span class="badge @StatusClass(item.Status)">@StatusText(item.StatusLabel)</span></td><td class="text-end"><button class="btn btn-outline-secondary btn-sm" @onclick="() => Recalculate(item.Id)" disabled="@(!CanReview)"><i class="bi bi-calculator"></i></button> <button class="btn btn-outline-primary btn-sm" @onclick="() => Submit(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-send"></i></button> <button class="btn btn-outline-info btn-sm" @onclick="() => Review(item.Id)" disabled="@(!CanReview)"><i class="bi bi-chat-square-text"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => Approve(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-patch-check"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => Cancel(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table table-sm erp-table align-middle"><thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Cycle", "الدورة")</th><th>@Text("KPI", "المؤشرات")</th><th>@Text("Competency", "الكفاءة")</th><th>@Text("Final", "النهائية")</th><th>@Text("Rating", "التصنيف")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in evaluations){<tr><td>@EmployeeName(item.EmployeeId)</td><td>@item.CycleName</td><td>@item.KpiScore.ToString("N2")</td><td>@item.CompetencyScore.ToString("N2")</td><td>@((item.FinalScore ?? 0m).ToString("N2"))</td><td>@item.Rating</td><td><span class="badge @StatusClass(item.Status)">@StatusText(item.StatusLabel)</span></td><td class="text-end"><button class="btn btn-outline-secondary btn-sm" @onclick="() => Recalculate(item.Id)" disabled="@(!CanReview)"><i class="bi bi-calculator"></i></button> <button class="btn btn-outline-primary btn-sm" @onclick="() => Submit(item.Id)" disabled="@(!CanEdit)"><i class="bi bi-send"></i></button> <button class="btn btn-outline-info btn-sm" @onclick="() => Review(item.Id)" disabled="@(!CanReview)"><i class="bi bi-chat-square-text"></i></button> <button class="btn btn-outline-success btn-sm" @onclick="() => Approve(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-patch-check"></i></button> <button class="btn btn-outline-danger btn-sm" @onclick="() => Cancel(item.Id)" disabled="@(!CanApprove)"><i class="bi bi-x-circle"></i></button></td></tr>}</tbody></table></div>
                 </div>
             }
         </AppCard>
     }
-</div>
+</main>
 
 @code {
     private Guid companyId;

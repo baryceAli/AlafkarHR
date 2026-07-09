@@ -29,7 +29,7 @@
     return;
 }
 
-<div class="employee-lookup-page" dir="@SharedDataService.PageDirection">
+<main class="erp-page employee-lookup-page" dir="@SharedDataService.PageDirection">
     <div class="employee-lookup-header mb-4">
         <div>
             <div class="text-uppercase text-primary fw-semibold small mb-1">@Text("Employee Setup", "اعدادات الموظفين")</div>
@@ -74,7 +74,7 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-3">
+    <AppCard CssClass="mb-3">
         <div class="card-body">
             <div class="employee-lookup-toolbar mb-3">
                 <div class="employee-lookup-search">
@@ -96,12 +96,12 @@
                 </div>
             </div>
 
-    <div class="table-responsive">
+    <div class="erp-table-wrap">
             <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
 
-    <table class="table employee-lookup-table align-middle mb-0">
+    <table class="table erp-table employee-lookup-table align-middle mb-0">
         <thead>
             <tr>
                 <th @onclick="() => Sort(nameof(SpecializationDto.Name))" class="sortable">
@@ -205,9 +205,9 @@
         </button>
 
     </div>
-        </div>
     </div>
-</div>
+    </AppCard>
+</main>
 
 <style>
     .employee-lookup-page { max-width: 1320px; }
