@@ -38,8 +38,7 @@
                    Tone="info" />
     </div>
 
-    <article class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3">
             <div class="erp-filter-bar row g-3 align-items-end">
                 <div class="col-12 col-md-4">
                     <label class="form-label">@Text("Search", "بحث")</label>
@@ -70,14 +69,12 @@
                     <button class="btn btn-primary w-100" type="button" @onclick="CreateNew"><i class="bi bi-plus-lg"></i> @Text("New", "جديد")</button>
                 </div>
             </div>
-        </div>
-    </article>
+    </AppCard>
 
     @if (isEditing)
     {
-        <article class="erp-card mb-3">
+        <AppCard CssClass="mb-3">
             <div class="erp-card-header"><strong>@(editingTeam.Id == Guid.Empty ? Text("New Team", "فريق جديد") : Text("Edit Team", "تعديل الفريق"))</strong></div>
-            <div class="erp-card-body">
                 <EditForm Model="editingTeam" OnValidSubmit="SaveTeamAsync">
                     <DataAnnotationsValidator />
                     <div class="row g-3">
@@ -116,11 +113,10 @@
                         <button class="btn btn-primary" type="submit"><i class="bi bi-save"></i> @Text("Save", "حفظ")</button>
                     </div>
                 </EditForm>
-            </div>
-        </article>
+        </AppCard>
     }
 
-    <article class="erp-card">
+    <AppCard BodyClass="p-0">
         <div class="erp-table-wrap">
             <table class="table erp-table align-middle mb-0">
                 <thead><tr><th>@Text("Name", "الاسم")</th><th>@Text("Category", "الفئة")</th><th>@Text("Members", "الأعضاء")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
@@ -153,7 +149,7 @@
                 </tbody>
             </table>
         </div>
-    </article>
+    </AppCard>
 </main>
 
 <style>

@@ -38,7 +38,7 @@
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 
-<div dir="@SharedDataService.PageDirection">
+<main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("HR Command Center", "مركز قيادة الموارد البشرية")"
                 Subtitle="@Text("Live HR workload and cross-module action queues composed from the current HR services.", "أحمال عمل الموارد البشرية وقوائم الإجراءات العابرة للوحدات من الخدمات الحالية.")"
                 Icon="bi-grid-1x2" />
@@ -179,7 +179,7 @@
             </div>
         </AppCard>
     }
-</div>
+</main>
 
 @code {
     private Guid companyId;

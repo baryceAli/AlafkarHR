@@ -18,9 +18,10 @@ database schema, or business rules.
 | Phase 1 | Customers + Organization | Complete | Customer and Organization admin pages migrated to shared ERP surfaces. |
 | Phase 2 | Attendance + Fleet + Maintenance | Complete | Replaced repeated raw-card surfaces with shared ERP wrappers. |
 | Phase 3 | ProjectManagement + RealEstate + Catering | Complete | Reports, dashboards, and domain panels migrated to shared ERP surfaces. |
-| Phase 4 | Inventory + Employees + TaskManagement | In Progress | Inventory and TaskManagement migrated; Employee cleanup deferred for encoding-safe follow-up. |
+| Phase 4 | Inventory + Employees + TaskManagement | Complete | Inventory, Employee admin cleanup, and TaskManagement migrated; special Employee public/protected surfaces documented as exceptions. |
 | Phase 5 | DocumentManagement + Auth management + remaining partial-debt pages | Complete | Admin surfaces migrated; wrappers/special surfaces documented as exceptions. |
-| Phase 6 | Final sweep, verification, and cleanup | Planned | Re-scan, build, and update deferred exceptions. |
+| Phase 6 | Final sweep, verification, and cleanup | Complete | Final scan, build, and deferred exceptions updated. |
+| Phase 7 | Residual exception hardening and scan governance | Complete | Avoidable final table-wrapper debt removed; remaining scan hits are allowlisted below. |
 
 ## Baseline Snapshot
 
@@ -195,11 +196,48 @@ To be completed during Phase 6.
 
 | Metric | Count |
 |---|---:|
-| AdminLayout routed feature pages | TBD |
-| Pages missing `erp-page` | TBD |
-| Pages missing `AppCard` | TBD |
-| Pages with raw Bootstrap `card` usage | TBD |
-| Pages with `table-responsive` usage | TBD |
+| AdminLayout routed feature pages | 233 |
+| Pages missing `erp-page` | 7 |
+| Pages missing `AppCard` | 16 |
+| Pages with raw Bootstrap `card` usage | 0 |
+| Pages with `table-responsive` usage | 1 |
+
+Remaining scan hits are intentional exceptions or class-name false positives:
+
+- DocumentManagement route wrapper pages delegate to `DocumentLibraryView`, which owns the shared ERP shell.
+- `EmployeeViewProtected` and other protected/public employee surfaces keep their special employee-view route behavior.
+- SalesOrder POS and StoreFront POS keep cashier/POS-specific layouts.
+- Guided employee workspace, TaskManagement kanban, inventory operational workbenches, and stats-only dashboards keep custom operational layouts where forcing an `AppCard` would reduce usability.
+
+## Phase 7: Residual Exception Hardening and Scan Governance
+
+Goal: keep the completed migration maintainable by separating approved custom surfaces from new page-pattern debt.
+
+- Remove the final avoidable `table-responsive` wrapper where a shared ERP table wrapper fits without changing the POS/cashier shell.
+- Keep delegated wrappers, POS shells, protected/public employee views, and custom operational workbenches as documented exceptions.
+- Treat future page-pattern scan output as actionable only when a hit is not covered by the exception table below.
+
+### Residual Exception Table
+
+| Category | Files / surfaces | Reason | Expected scan hits |
+|---|---|---|---|
+| Delegated document shell | DocumentManagement route wrapper pages such as `DocumentList`, `MyDocuments`, `SharedWithMe`, and `SourceDocuments` | The route pages delegate to `DocumentLibraryView`, which owns the shared `erp-page` shell and document list surface. | Missing `erp-page`, missing `AppCard` on wrappers only |
+| POS/cashier shell | SalesOrder POS and StoreFront POS | Cashier-first flows intentionally use `pos-page` to preserve dense transactional layout and permissions. | Missing `erp-page` |
+| Protected/public employee view | `EmployeeViewProtected` and related public employee surfaces | Special employee route behavior is separate from normal AdminLayout business pages. | Missing `erp-page`, missing `AppCard` |
+| Custom operational layout | Guided employee workspace, TaskManagement kanban, inventory workbenches, stock movement/transfer operations, project stats dashboards, attendance request-card flows | These pages use specialized boards, workbenches, or stats layouts where forcing an `AppCard` wrapper would reduce usability. | Missing `AppCard` only |
+| Class-name false positives and embedded item cards | Existing metric, status, setup, request, catalog, and workbench item surfaces whose page shell already uses the shared ERP pattern or is covered by a custom-shell exception | Broad regex scans can match names such as `stat-card`, `metric-card`, or cashier item cards; these are not raw Bootstrap page-shell debt. | Raw-card regex review hits |
+
+### Phase 7 Snapshot
+
+| Metric | Count |
+|---|---:|
+| AdminLayout routed feature pages | 233 |
+| Pages missing `erp-page` | 7 |
+| Pages missing `AppCard` | 16 |
+| Pages with raw Bootstrap `card` usage | 0 |
+| Pages with `table-responsive` usage | 0 |
+| Broad raw-card/class-name review hits | 30 |
+| Unapproved residual page-pattern hits | 0 |
 
 ## Tracking Notes
 
@@ -215,3 +253,5 @@ To be completed during Phase 6.
 - 2026-07-09: Phase 3 completed for ProjectManagement, RealEstate, and Catering. Migrated report filters, forms, domain panels, detail sections, dashboards, and tables to `AppCard`, `erp-table-toolbar`, `erp-table-wrap`, `erp-table`, and `StatusChip` where applicable while preserving routes, services, DTO bindings, event handlers, report filters, workflow actions, localization, and toasts. `ProjectDashboard` was left as a stats-only dashboard because it already uses `PageHeader` and `StatsCard` without raw card/table debt. Verification: focused Phase 3 scan found no avoidable `erp-card`, `table-responsive`, non-ERP table, or Bootstrap status-badge hits; design static scan found only existing tokenized `border-radius: var(--erp-radius-lg)` rules in phase-local CSS; `git diff --check` passed; `dotnet build UI/AlAfkarERP/AlAfkarERP.Web/AlAfkarERP.Web.csproj` passed with existing warnings.
 - 2026-07-09: Phase 4 partially completed for Inventory and TaskManagement. Migrated inventory stock operation shells to `erp-page` plus overflow-safe `AppCard`, converted inventory barcode/picking/warehouse status pills to `StatusChip`, and normalized TaskManagement list, reports, notifications, dashboard, kanban, KPI, task detail, and my-task status surfaces away from raw Bootstrap cards/badges where practical. Employee public/protected/QR views remain intentional exceptions, and the broader Employee enhancement cleanup is deferred for a dedicated encoding-safe pass to avoid damaging existing localized strings. Verification: `dotnet build UI/AlAfkarERP/AlAfkarERP.Web/AlAfkarERP.Web.csproj` passed with existing warnings.
 - 2026-07-09: Phase 5 completed for DocumentManagement, Auth management, and remaining admin surfaces. Migrated Auth role list/form/user placeholder surfaces to `erp-page`, `PageHeader`, `AppCard`, `erp-table-wrap`, and `erp-table`; normalized `UserAssignRoles` table and chip styling while preserving role, branch, and StoreFront branch-role workflows. Document route wrappers remain intentional false positives because they delegate to `DocumentLibraryView`, which renders the shared ERP shell; document detail/library/upload policy badges were tokenized. SalesOrder admin pages gained the `erp-page` shell and workflow statuses moved to `StatusChip`; POS/cashier and quotation print surfaces remain exceptions. GeneralSettings, Payroll, Catalog, and StoreFront admin cleanup removed avoidable Bootstrap badges, raw table wrappers, and a dead commented raw-card block. Focused scan now leaves only documented wrapper/special-surface exceptions and class-name false positives; `git diff --check` passed with line-ending warnings only; design static scans produced broad existing/token/generated CSS hits plus allowed data-driven inline style hits; `dotnet build UI/AlAfkarERP/AlAfkarERP.Web/AlAfkarERP.Web.csproj` passed with existing warnings.
+- 2026-07-09: Phase 6 completed. Closed the deferred Employee admin cleanup by moving academic institution, specialization, position, HR command center, payroll structure, payslip, Saudi payroll, performance, training, reports, work-entry, leave-policy, team, and guided workspace admin surfaces toward the shared `erp-page`, `AppCard`, `erp-table-wrap`, and `erp-table` patterns without changing routes, services, DTO bindings, permissions, localization, modals, toasts, paging, sorting, or workflow handlers. Low-risk Accounting list table wrappers were also normalized. Final scan: 233 AdminLayout routed feature pages, 7 missing `erp-page`, 16 missing `AppCard`, 0 raw Bootstrap card hits, and 1 `table-responsive` hit; remaining hits are documented exceptions or custom operational false positives. Verification: `git diff --check` passed with line-ending warnings only; design static scan produced broad existing/tokenized CSS and generated/global hits; inline-style scan found existing data-driven custom-property usage plus pre-existing narrow width/tree-depth styles; `dotnet build UI/AlAfkarERP/AlAfkarERP.Web/AlAfkarERP.Web.csproj` passed with existing warnings.
+- 2026-07-09: Phase 7 completed. Removed the final avoidable StoreFront POS `table-responsive` wrappers by converting cashier session and cash-account tables to `erp-table-wrap` and `erp-table` while preserving the `pos-page` cashier shell, permissions, modals, selectors, toasts, and checkout/session behavior. Added residual scan governance for delegated document wrappers, POS shells, protected/public employee views, custom operational layouts, and class-name false positives. Final Phase 7 scan: 233 AdminLayout routed feature pages by the established roadmap snapshot, 7 missing `erp-page`, 16 missing `AppCard`, 0 raw Bootstrap page-shell card hits, 0 `table-responsive` hits, 30 broad raw-card/class-name review hits, and 0 unapproved residual page-pattern hits. Verification: `git diff --check` passed with line-ending warnings only; page-pattern scan confirmed no `table-responsive` hits; design static scan produced broad existing/tokenized CSS and generated/global hits; inline-style scan found existing data-driven custom-property usage; `dotnet build UI/AlAfkarERP/AlAfkarERP.Web/AlAfkarERP.Web.csproj` passed with 0 warnings and 0 errors.

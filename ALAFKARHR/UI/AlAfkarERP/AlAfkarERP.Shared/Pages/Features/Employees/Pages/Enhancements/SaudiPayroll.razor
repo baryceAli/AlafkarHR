@@ -16,7 +16,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject SharedDataService SharedDataService
 
-<div dir="@SharedDataService.PageDirection">
+<main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Saudi Payroll", "رواتب السعودية")"
                 Subtitle="@Text("Manage GOSI/WPS data, WPS batches, EOS provision snapshots, and imported payroll work entries.", "إدارة بيانات التأمينات وحماية الأجور ومخصصات نهاية الخدمة ومدخلات العمل للرواتب.")"
                 Icon="bi-bank" />
@@ -74,8 +74,8 @@
                         <h6 class="mb-0">@Text("Saudi Payroll Records", "سجلات رواتب السعودية")</h6>
                         <button class="btn btn-outline-secondary btn-sm" @onclick="LoadData"><i class="bi bi-arrow-clockwise"></i></button>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
+                    <div class="erp-table-wrap">
+                        <table class="table table-sm erp-table align-middle">
                             <thead><tr><th>@Text("Employee", "الموظف")</th><th>IBAN</th><th>@Text("GOSI", "التأمينات")</th><th>@Text("WPS", "حماية الأجور")</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var item in saudiInfos)
@@ -138,8 +138,8 @@
             <div class="col-xl-8">
                 <AppCard>
                     <h6 class="mb-3">@Text("WPS Batches", "دفعات حماية الأجور")</h6>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
+                    <div class="erp-table-wrap">
+                        <table class="table table-sm erp-table align-middle">
                             <thead><tr><th>@Text("Batch", "الدفعة")</th><th>@Text("Employees", "الموظفون")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
                             <tbody>
                                 @foreach (var batch in wpsBatches)
@@ -189,8 +189,8 @@
             <div class="col-xl-8">
                 <AppCard>
                     <h6 class="mb-3">@Text("EOS Snapshots and Work Entries", "لقطات نهاية الخدمة ومدخلات العمل")</h6>
-                    <div class="table-responsive mb-3">
-                        <table class="table table-sm align-middle">
+                    <div class="erp-table-wrap mb-3">
+                        <table class="table table-sm erp-table align-middle">
                             <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Basis", "الأساس")</th><th>@Text("Provision", "المخصص")</th><th>@Text("Service End", "نهاية الخدمة")</th></tr></thead>
                             <tbody>
                                 @foreach (var snapshot in eosSnapshots)
@@ -200,8 +200,8 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="table-responsive">
-                        <table class="table table-sm align-middle">
+                    <div class="erp-table-wrap">
+                        <table class="table table-sm erp-table align-middle">
                             <thead><tr><th>@Text("Employee", "الموظف")</th><th>@Text("Date", "التاريخ")</th><th>@Text("Type", "النوع")</th><th>@Text("Amount", "المبلغ")</th></tr></thead>
                             <tbody>
                                 @foreach (var item in workEntries)
@@ -215,7 +215,7 @@
             </div>
         </div>
     }
-</div>
+</main>
 
 @code {
     private Guid companyId;
