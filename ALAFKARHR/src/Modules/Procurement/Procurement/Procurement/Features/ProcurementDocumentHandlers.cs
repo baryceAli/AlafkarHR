@@ -6,11 +6,23 @@ public record UpdateProcurementDocumentCommand(Guid Id, ProcurementDocumentKind 
 public record RemoveProcurementDocumentCommand(Guid Id, ProcurementDocumentKind Kind) : ICommand;
 public record GetProcurementDocumentByIdQuery(Guid Id, ProcurementDocumentKind Kind) : IQuery<GetProcurementDocumentByIdResult>;
 public record GetProcurementDocumentByIdResult(ProcurementDocumentDto Document);
-public record GetProcurementDocumentsQuery(ProcurementDocumentKind Kind, Guid? CompanyId, int PageIndex, int PageSize, string? SearchText) : IQuery<GetProcurementDocumentsResult>;
+public record GetProcurementDocumentsQuery(
+    ProcurementDocumentKind Kind,
+    Guid? CompanyId,
+    int PageIndex,
+    int PageSize,
+    string? SearchText,
+    Guid? SupplierId = null,
+    Guid? ProductId = null,
+    Guid? ProductSkuId = null) : IQuery<GetProcurementDocumentsResult>;
 public record GetProcurementDocumentsResult(PaginatedResult<ProcurementDocumentDto> Documents);
 public record GetProcurementDashboardQuery(Guid? CompanyId) : IQuery<GetProcurementDashboardResult>;
 public record GetProcurementDashboardResult(ProcurementDashboardDto Dashboard);
+public record GetProcurementSmartLinksQuery(Guid CompanyId, Guid? SupplierId = null, Guid? ProductId = null, Guid? ProductSkuId = null)
+    : IQuery<GetProcurementSmartLinksResult>;
+public record GetProcurementSmartLinksResult(PartnerSmartLinkSummaryDto PartnerLinks, ProductSmartLinkSummaryDto ProductLinks);
 public record ChangeProcurementDocumentStatusCommand(Guid Id, ProcurementDocumentKind Kind, string Action) : ICommand;
+public record RecomputePurchaseControlsCommand(Guid CompanyId) : ICommand<ProcurementRecomputeResultDto>;
 
 public class CreateProcurementDocumentCommandValidator : AbstractValidator<CreateProcurementDocumentCommand>
 {
@@ -44,6 +56,7 @@ public class CreateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
         var userId = GetUserId(httpContextAccessor);
         await EnsureCanMutateBranchAsync(sender, command.Document.CompanyId, command.Document.BranchId, cancellationToken);
         await EnsureWarehousesMatchBranchAsync(sender, command.Document, cancellationToken);
+        await EnsureValidProcurementAgreementLinksAsync(dbContext, sender, command.Kind, command.Document, cancellationToken);
         var sourceDocument = await EnsureValidSourceDocumentAsync(dbContext, sender, command.Kind, command.Document, cancellationToken);
         command.Document.Kind = command.Kind;
         if (command.Kind == ProcurementDocumentKind.PurchaseRequest)
@@ -265,6 +278,71 @@ public class CreateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
         foreach (var warehouseId in document.Lines.Select(x => x.WarehouseId).Where(x => x.HasValue).Select(x => x!.Value).Distinct())
             await sender.Send(new EnsureWarehouseBranchScopeQuery(document.CompanyId, warehouseId, document.BranchId.Value), cancellationToken);
     }
+
+    internal static async Task EnsureValidProcurementAgreementLinksAsync(
+        ProcurementDbContext dbContext,
+        ISender sender,
+        ProcurementDocumentKind kind,
+        ProcurementDocumentDto document,
+        CancellationToken cancellationToken)
+    {
+        if (document.PurchaseTemplateId.HasValue)
+        {
+            if (kind is not (ProcurementDocumentKind.RequestForQuotation or ProcurementDocumentKind.PurchaseOrder))
+                throw new BadRequestException("Purchase templates can only be linked to RFQs or purchase orders.");
+
+            await EnsureAgreementAsync(dbContext, sender, document, document.PurchaseTemplateId.Value, ProcurementAgreementType.PurchaseTemplate, cancellationToken);
+        }
+
+        if (document.TenderId.HasValue)
+        {
+            if (kind is not (ProcurementDocumentKind.RequestForQuotation or ProcurementDocumentKind.PurchaseOrder))
+                throw new BadRequestException("Calls for tender can only be linked to RFQs or purchase orders.");
+
+            await EnsureAgreementAsync(dbContext, sender, document, document.TenderId.Value, ProcurementAgreementType.CallForTender, cancellationToken);
+        }
+
+        if (document.BlanketOrderId.HasValue)
+        {
+            if (kind != ProcurementDocumentKind.PurchaseOrder)
+                throw new BadRequestException("Blanket orders can only be linked to purchase orders.");
+
+            await EnsureAgreementAsync(dbContext, sender, document, document.BlanketOrderId.Value, ProcurementAgreementType.BlanketOrder, cancellationToken);
+        }
+    }
+
+    private static async Task EnsureAgreementAsync(
+        ProcurementDbContext dbContext,
+        ISender sender,
+        ProcurementDocumentDto document,
+        Guid agreementId,
+        ProcurementAgreementType expectedType,
+        CancellationToken cancellationToken)
+    {
+        var agreement = await dbContext.ProcurementAgreements.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == agreementId && !x.IsDeleted, cancellationToken)
+            ?? throw new NotFoundException("Purchase agreement", agreementId);
+
+        if (agreement.Type != expectedType)
+            throw new BadRequestException($"Selected purchase agreement must be a {expectedType}.");
+
+        if (agreement.CompanyId != document.CompanyId)
+            throw new BadRequestException("Selected purchase agreement must belong to the same company.");
+
+        if (agreement.Status is ProcurementAgreementStatus.Closed or ProcurementAgreementStatus.Cancelled)
+            throw new BadRequestException("Closed or cancelled purchase agreements cannot be linked to procurement documents.");
+
+        await EnsureCanReadBranchAsync(sender, agreement.CompanyId, agreement.BranchId, cancellationToken);
+
+        if (agreement.BranchId.HasValue && agreement.BranchId != document.BranchId)
+            throw new BadRequestException("Selected purchase agreement must belong to the same branch scope as the procurement document.");
+
+        if (expectedType == ProcurementAgreementType.BlanketOrder && !document.SupplierId.HasValue)
+            throw new BadRequestException("Purchase orders linked to a blanket order must have a supplier.");
+
+        if (agreement.SupplierId.HasValue && document.SupplierId.HasValue && agreement.SupplierId != document.SupplierId)
+            throw new BadRequestException("Selected purchase agreement supplier does not match the procurement document supplier.");
+    }
 }
 
 public class UpdateProcurementDocumentHandler(ProcurementDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
@@ -281,6 +359,7 @@ public class UpdateProcurementDocumentHandler(ProcurementDbContext dbContext, IH
         await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, document.CompanyId, document.BranchId, cancellationToken);
         await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, command.Document.CompanyId, command.Document.BranchId, cancellationToken);
         await CreateProcurementDocumentHandler.EnsureWarehousesMatchBranchAsync(sender, command.Document, cancellationToken);
+        await CreateProcurementDocumentHandler.EnsureValidProcurementAgreementLinksAsync(dbContext, sender, command.Kind, command.Document, cancellationToken);
         var sourceDocument = await CreateProcurementDocumentHandler.EnsureValidSourceDocumentAsync(dbContext, sender, command.Kind, command.Document, cancellationToken);
 
         command.Document.Kind = command.Kind;
@@ -353,6 +432,15 @@ public class GetProcurementDocumentsHandler(ProcurementDbContext dbContext, ISen
         if (!string.IsNullOrWhiteSpace(query.SearchText))
             documents = documents.Where(x => x.Number.Contains(query.SearchText) || (x.SupplierName != null && x.SupplierName.Contains(query.SearchText)));
 
+        if (query.SupplierId.HasValue)
+            documents = documents.Where(x => x.SupplierId == query.SupplierId.Value);
+
+        if (query.ProductId.HasValue)
+            documents = documents.Where(x => x.Lines.Any(line => line.ProductId == query.ProductId.Value));
+
+        if (query.ProductSkuId.HasValue)
+            documents = documents.Where(x => x.Lines.Any(line => line.ProductSkuId == query.ProductSkuId.Value));
+
         var count = await documents.LongCountAsync(cancellationToken);
         var pageIndex = query.PageIndex <= 0 ? 1 : query.PageIndex;
         var pageSize = query.PageSize <= 0 ? 20 : query.PageSize;
@@ -366,16 +454,56 @@ public class GetProcurementDocumentsHandler(ProcurementDbContext dbContext, ISen
     }
 }
 
+public class GetProcurementSmartLinksHandler(ProcurementDbContext dbContext, ISender sender)
+    : IQueryHandler<GetProcurementSmartLinksQuery, GetProcurementSmartLinksResult>
+{
+    public async Task<GetProcurementSmartLinksResult> Handle(GetProcurementSmartLinksQuery request, CancellationToken cancellationToken)
+    {
+        var documents = dbContext.ProcurementDocuments.AsNoTracking().Where(x => x.CompanyId == request.CompanyId);
+        documents = await CreateProcurementDocumentHandler.ApplyBranchAccessAsync(sender, documents, request.CompanyId, null, cancellationToken);
+
+        var partnerLinks = new PartnerSmartLinkSummaryDto();
+        if (request.SupplierId.HasValue)
+        {
+            partnerLinks.RequestsForQuotation = await documents.CountAsync(x => x.SupplierId == request.SupplierId.Value && x.Kind == ProcurementDocumentKind.RequestForQuotation, cancellationToken);
+            partnerLinks.PurchaseOrders = await documents.CountAsync(x => x.SupplierId == request.SupplierId.Value && x.Kind == ProcurementDocumentKind.PurchaseOrder, cancellationToken);
+            partnerLinks.Receipts = await documents.CountAsync(x => x.SupplierId == request.SupplierId.Value && x.Kind == ProcurementDocumentKind.GoodsReceipt, cancellationToken);
+            partnerLinks.Bills = await documents.CountAsync(x => x.SupplierId == request.SupplierId.Value && x.Kind == ProcurementDocumentKind.SupplierInvoice, cancellationToken);
+            partnerLinks.Returns = await documents.CountAsync(x => x.SupplierId == request.SupplierId.Value && x.Kind == ProcurementDocumentKind.PurchaseReturn, cancellationToken);
+        }
+
+        var productLinks = new ProductSmartLinkSummaryDto();
+        if (request.ProductId.HasValue || request.ProductSkuId.HasValue)
+        {
+            productLinks.PurchaseLines = await documents
+                .SelectMany(x => x.Lines)
+                .CountAsync(line =>
+                    (!request.ProductId.HasValue || line.ProductId == request.ProductId.Value)
+                    && (!request.ProductSkuId.HasValue || line.ProductSkuId == request.ProductSkuId.Value),
+                    cancellationToken);
+        }
+
+        return new GetProcurementSmartLinksResult(partnerLinks, productLinks);
+    }
+}
+
 public class GetProcurementDashboardHandler(ProcurementDbContext dbContext, ISender sender)
     : IQueryHandler<GetProcurementDashboardQuery, GetProcurementDashboardResult>
 {
     public async Task<GetProcurementDashboardResult> Handle(GetProcurementDashboardQuery query, CancellationToken cancellationToken)
     {
         var documents = dbContext.ProcurementDocuments.AsNoTracking();
+        var agreements = dbContext.ProcurementAgreements.AsNoTracking().Where(x => !x.IsDeleted);
         if (query.CompanyId.HasValue)
         {
             documents = documents.Where(x => x.CompanyId == query.CompanyId.Value);
             documents = await CreateProcurementDocumentHandler.ApplyBranchAccessAsync(sender, documents, query.CompanyId.Value, null, cancellationToken);
+
+            agreements = agreements.Where(x => x.CompanyId == query.CompanyId.Value);
+            var access = await sender.Send(new GetCurrentUserBranchAccessQuery(query.CompanyId.Value), cancellationToken);
+            agreements = access.CanViewAllBranches
+                ? agreements
+                : agreements.Where(x => x.BranchId == null || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
         }
 
         return new GetProcurementDashboardResult(new ProcurementDashboardDto
@@ -386,7 +514,50 @@ public class GetProcurementDashboardHandler(ProcurementDbContext dbContext, ISen
             PurchaseOrders = await documents.CountAsync(x => x.Kind == ProcurementDocumentKind.PurchaseOrder, cancellationToken),
             GoodsReceipts = await documents.CountAsync(x => x.Kind == ProcurementDocumentKind.GoodsReceipt, cancellationToken),
             PurchaseReturns = await documents.CountAsync(x => x.Kind == ProcurementDocumentKind.PurchaseReturn, cancellationToken),
-            SupplierInvoices = await documents.CountAsync(x => x.Kind == ProcurementDocumentKind.SupplierInvoice, cancellationToken)
+            SupplierInvoices = await documents.CountAsync(x => x.Kind == ProcurementDocumentKind.SupplierInvoice, cancellationToken),
+            SentRequestsForQuotation = await documents.CountAsync(x =>
+                x.Kind == ProcurementDocumentKind.RequestForQuotation
+                && (x.SentAt.HasValue || x.Status == RequestForQuotationStatus.Sent.ToString()),
+                cancellationToken),
+            PurchaseOrdersAwaitingReceipt = await documents.CountAsync(x =>
+                x.Kind == ProcurementDocumentKind.PurchaseOrder
+                && (x.Status == PurchaseOrderStatus.Approved.ToString()
+                    || x.Status == PurchaseOrderStatus.Sent.ToString()
+                    || x.Status == PurchaseOrderStatus.PartiallyReceived.ToString()),
+                cancellationToken),
+            BillablePurchaseDocuments = await documents.CountAsync(x =>
+                x.IsBillable
+                && (x.Kind == ProcurementDocumentKind.PurchaseOrder || x.Kind == ProcurementDocumentKind.GoodsReceipt),
+                cancellationToken),
+            BillableReceipts = await documents.CountAsync(x =>
+                x.IsBillable && x.Kind == ProcurementDocumentKind.GoodsReceipt,
+                cancellationToken),
+            ThreeWayMatchExceptions = await documents.CountAsync(x =>
+                x.ThreeWayMatchStatus == ThreeWayMatchStatus.Exception,
+                cancellationToken),
+            ActiveTenders = await agreements.CountAsync(x =>
+                x.Type == ProcurementAgreementType.CallForTender
+                && x.Status != ProcurementAgreementStatus.Closed
+                && x.Status != ProcurementAgreementStatus.Cancelled,
+                cancellationToken),
+            ActiveBlanketOrders = await agreements.CountAsync(x =>
+                x.Type == ProcurementAgreementType.BlanketOrder
+                && x.Status != ProcurementAgreementStatus.Closed
+                && x.Status != ProcurementAgreementStatus.Cancelled,
+                cancellationToken),
+            TopSuppliers = await documents
+                .Where(x => x.Kind == ProcurementDocumentKind.PurchaseOrder && x.SupplierId.HasValue)
+                .GroupBy(x => new { x.SupplierId, x.SupplierName })
+                .Select(x => new ProcurementDashboardSupplierDto
+                {
+                    SupplierId = x.Key.SupplierId,
+                    SupplierName = x.Key.SupplierName ?? x.Key.SupplierId.ToString() ?? string.Empty,
+                    PurchaseOrders = x.Count(),
+                    PurchasedValue = x.Sum(o => o.TotalAmount)
+                })
+                .OrderByDescending(x => x.PurchasedValue)
+                .Take(5)
+                .ToListAsync(cancellationToken)
         });
     }
 }
@@ -413,6 +584,8 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
             await PostSupplierInvoiceAccountingAsync(document, cancellationToken);
 
         document.ChangeStatus(status, userId);
+        if (IsSendTraceAction(command.Kind, command.Action, status))
+            document.MarkSent(userId);
 
         if (command.Kind == ProcurementDocumentKind.GoodsReceipt && status == PostedDocumentStatus.Posted.ToString())
             await UpdateSourcePurchaseOrderReceiptStatusAsync(document, userId, cancellationToken);
@@ -421,34 +594,76 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
         return Unit.Value;
     }
 
+    private static bool IsSendTraceAction(ProcurementDocumentKind kind, string action, string status) =>
+        string.Equals(action, "send", StringComparison.OrdinalIgnoreCase)
+        && string.Equals(status, "Sent", StringComparison.OrdinalIgnoreCase)
+        && kind is ProcurementDocumentKind.RequestForQuotation or ProcurementDocumentKind.PurchaseOrder;
+
     private async Task PostGoodsReceiptAsync(ProcurementDocument document, CancellationToken cancellationToken)
     {
+        var currencyId = document.CurrencyId ?? throw new Exception("Currency is required for goods receipt.");
+        var preparedLines = new List<(ProcurementDocumentLine Line, Guid WarehouseId, decimal InventoryQuantity)>();
+
         foreach (var line in document.Lines)
         {
             var warehouseId = line.WarehouseId ?? document.WarehouseId ?? throw new Exception("Warehouse is required for goods receipt lines.");
             if (document.BranchId.HasValue)
                 await sender.Send(new EnsureWarehouseBranchScopeQuery(document.CompanyId, warehouseId, document.BranchId.Value), cancellationToken);
-            var batchId = line.BatchId ?? throw new Exception("Batch is required for goods receipt lines.");
-            var currencyId = document.CurrencyId ?? throw new Exception("Currency is required for goods receipt.");
+            _ = line.BatchId ?? throw new Exception("Batch is required for goods receipt lines.");
             await EnsureInventoryPostableAsync(document.CompanyId, line.ProductSkuId, cancellationToken);
-            var inventoryQuantity = await ResolveInventoryPackageEnteredQuantityAsync(line, cancellationToken);
-            await sender.Send(new PostInventoryStockInCommand(
-                ProductId: line.ProductId,
-                ProductSkuId: line.ProductSkuId,
-                ProductPackageId: line.ProductPackageId,
-                WarehouseId: warehouseId,
-                BatchId: batchId,
-                Quantity: inventoryQuantity,
-                UnitCost: line.UnitCost,
-                TotalCost: line.TotalAmount,
-                CurrencyId: currencyId,
-                CompanyId: document.CompanyId,
-                Notes: $"Goods receipt {document.Number}",
-                ReferenceNumber: document.Number,
-                SourceDocumentType: "PurchaseReceipt",
-                UnitId: line.UnitOfMeasureId,
-                SourceDocumentId: document.Id,
-                SourceDocumentLineId: line.Id), cancellationToken);
+            preparedLines.Add((line, warehouseId, await ResolveInventoryPackageEnteredQuantityAsync(line, cancellationToken)));
+        }
+
+        foreach (var group in preparedLines.GroupBy(x => x.WarehouseId))
+        {
+            var flow = await sender.Send(new GetWarehouseOperationFlowQuery(document.CompanyId, group.Key), cancellationToken);
+            var operationLines = group.Select(x => new InventoryOperationChainLine(
+                x.Line.ProductId,
+                x.Line.ProductSkuId,
+                x.Line.ProductPackageId,
+                x.Line.UnitOfMeasureId,
+                x.Line.BatchId!.Value,
+                x.InventoryQuantity,
+                x.Line.UnitCost,
+                x.Line.TotalAmount,
+                currencyId,
+                x.Line.Notes ?? $"Goods receipt {document.Number}",
+                x.Line.Id)).ToList();
+
+            if (flow.InboundFlow == 1)
+            {
+                foreach (var item in group)
+                {
+                    await sender.Send(new PostInventoryStockInCommand(
+                        ProductId: item.Line.ProductId,
+                        ProductSkuId: item.Line.ProductSkuId,
+                        ProductPackageId: item.Line.ProductPackageId,
+                        WarehouseId: group.Key,
+                        BatchId: item.Line.BatchId!.Value,
+                        Quantity: item.InventoryQuantity,
+                        UnitCost: item.Line.UnitCost,
+                        TotalCost: item.Line.TotalAmount,
+                        CurrencyId: currencyId,
+                        CompanyId: document.CompanyId,
+                        Notes: $"Goods receipt {document.Number}",
+                        ReferenceNumber: document.Number,
+                        SourceDocumentType: "PurchaseReceipt",
+                        UnitId: item.Line.UnitOfMeasureId,
+                        SourceDocumentId: document.Id,
+                        SourceDocumentLineId: item.Line.Id), cancellationToken);
+                }
+            }
+
+            await sender.Send(new EnsureInventoryReceiptOperationChainCommand(
+                document.CompanyId,
+                document.BranchId,
+                group.Key,
+                "PurchaseReceipt",
+                document.Id,
+                document.Number,
+                operationLines,
+                MarkCompleted: flow.InboundFlow == 1,
+                MarkFirstStepCompleted: flow.InboundFlow != 1), cancellationToken);
         }
     }
 
@@ -628,6 +843,270 @@ public class ChangeProcurementDocumentStatusHandler(ProcurementDbContext dbConte
             allLinesReceived ? PurchaseOrderStatus.Received.ToString() : PurchaseOrderStatus.PartiallyReceived.ToString(),
             userId);
     }
+}
+
+public class RecomputePurchaseControlsHandler(ProcurementDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
+    : ICommandHandler<RecomputePurchaseControlsCommand, ProcurementRecomputeResultDto>
+{
+    public async Task<ProcurementRecomputeResultDto> Handle(RecomputePurchaseControlsCommand request, CancellationToken cancellationToken)
+    {
+        var userId = CreateProcurementDocumentHandler.GetUserId(httpContextAccessor);
+        var documents = await LoadAccessibleDocumentsAsync(request.CompanyId, cancellationToken);
+        var purchaseOrders = documents.Where(x => x.Kind == ProcurementDocumentKind.PurchaseOrder).ToList();
+        var goodsReceipts = documents.Where(x => x.Kind == ProcurementDocumentKind.GoodsReceipt).ToList();
+        var supplierInvoices = documents.Where(x => x.Kind == ProcurementDocumentKind.SupplierInvoice).ToList();
+        var updated = 0;
+        var exceptions = 0;
+
+        foreach (var purchaseOrder in purchaseOrders)
+        {
+            var result = RecomputePurchaseOrder(purchaseOrder, goodsReceipts, supplierInvoices, userId);
+            if (result.Changed)
+                updated++;
+            if (result.HasException)
+                exceptions++;
+        }
+
+        foreach (var receipt in goodsReceipts)
+        {
+            var result = RecomputeGoodsReceipt(receipt, supplierInvoices, userId);
+            if (result.Changed)
+                updated++;
+            if (result.HasException)
+                exceptions++;
+        }
+
+        foreach (var invoice in supplierInvoices)
+        {
+            var result = RecomputeSupplierInvoice(invoice, purchaseOrders, goodsReceipts, userId);
+            if (result.Changed)
+                updated++;
+            if (result.HasException)
+                exceptions++;
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new ProcurementRecomputeResultDto
+        {
+            UpdatedDocuments = updated,
+            ExceptionDocuments = exceptions
+        };
+    }
+
+    private async Task<List<ProcurementDocument>> LoadAccessibleDocumentsAsync(Guid companyId, CancellationToken cancellationToken)
+    {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(companyId), cancellationToken);
+        var query = dbContext.ProcurementDocuments
+            .Include(x => x.Lines)
+            .Where(x => x.CompanyId == companyId
+                && (x.Kind == ProcurementDocumentKind.PurchaseOrder
+                    || x.Kind == ProcurementDocumentKind.GoodsReceipt
+                    || x.Kind == ProcurementDocumentKind.SupplierInvoice));
+
+        if (!access.CanViewAllBranches)
+            query = query.Where(x => x.BranchId == null || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
+
+        return await query.ToListAsync(cancellationToken);
+    }
+
+    private static RecomputeDocumentResult RecomputePurchaseOrder(
+        ProcurementDocument purchaseOrder,
+        List<ProcurementDocument> goodsReceipts,
+        List<ProcurementDocument> supplierInvoices,
+        string userId)
+    {
+        var postedReceipts = goodsReceipts
+            .Where(x => x.SourceDocumentId == purchaseOrder.Id && x.Status == PostedDocumentStatus.Posted.ToString())
+            .ToList();
+        var receiptIds = postedReceipts.Select(x => x.Id).ToHashSet();
+        var invoices = supplierInvoices
+            .Where(x => x.Status != SupplierInvoiceStatus.Cancelled.ToString()
+                && (x.SourceDocumentId == purchaseOrder.Id || (x.SourceDocumentId.HasValue && receiptIds.Contains(x.SourceDocumentId.Value))))
+            .ToList();
+
+        var receivedBySku = SumBySku(postedReceipts);
+        var billedBySku = SumBySku(invoices);
+        var statuses = new List<ThreeWayMatchStatus>();
+        var isBillable = false;
+        var changed = false;
+
+        foreach (var line in purchaseOrder.Lines)
+        {
+            receivedBySku.TryGetValue(line.ProductSkuId, out var received);
+            billedBySku.TryGetValue(line.ProductSkuId, out var billed);
+            var policy = line.BillControlPolicy ?? purchaseOrder.BillControlPolicy;
+            var status = ResolvePurchaseMatchStatus(line.Quantity, received, billed, policy, IsConfirmedPurchaseOrder(purchaseOrder.Status));
+            statuses.Add(status);
+            isBillable |= ResolveInvoiceableQuantity(line.Quantity, received, billed, policy, IsConfirmedPurchaseOrder(purchaseOrder.Status)) > 0;
+            changed |= ApplyLineIfChanged(purchaseOrder, line, received, billed, status, userId);
+        }
+
+        var documentStatus = AggregateStatus(statuses);
+        changed |= ApplyDocumentIfChanged(purchaseOrder, isBillable, documentStatus, userId);
+        return new RecomputeDocumentResult(changed, documentStatus == ThreeWayMatchStatus.Exception);
+    }
+
+    private static RecomputeDocumentResult RecomputeGoodsReceipt(
+        ProcurementDocument receipt,
+        List<ProcurementDocument> supplierInvoices,
+        string userId)
+    {
+        var invoices = supplierInvoices
+            .Where(x => x.Status != SupplierInvoiceStatus.Cancelled.ToString() && x.SourceDocumentId == receipt.Id)
+            .ToList();
+        var billedBySku = SumBySku(invoices);
+        var statuses = new List<ThreeWayMatchStatus>();
+        var isPosted = receipt.Status == PostedDocumentStatus.Posted.ToString();
+        var isBillable = false;
+        var changed = false;
+
+        foreach (var line in receipt.Lines)
+        {
+            billedBySku.TryGetValue(line.ProductSkuId, out var billed);
+            var status = ResolveReceiptMatchStatus(line.Quantity, billed, isPosted);
+            statuses.Add(status);
+            isBillable |= isPosted && line.Quantity > billed;
+            changed |= ApplyLineIfChanged(receipt, line, line.Quantity, billed, status, userId);
+        }
+
+        var documentStatus = AggregateStatus(statuses);
+        changed |= ApplyDocumentIfChanged(receipt, isBillable, documentStatus, userId);
+        return new RecomputeDocumentResult(changed, documentStatus == ThreeWayMatchStatus.Exception);
+    }
+
+    private static RecomputeDocumentResult RecomputeSupplierInvoice(
+        ProcurementDocument invoice,
+        List<ProcurementDocument> purchaseOrders,
+        List<ProcurementDocument> goodsReceipts,
+        string userId)
+    {
+        var source = invoice.SourceDocumentId.HasValue
+            ? goodsReceipts.Concat(purchaseOrders).FirstOrDefault(x => x.Id == invoice.SourceDocumentId.Value)
+            : null;
+        var allowedBySku = source is null
+            ? new Dictionary<Guid, decimal>()
+            : source.Kind == ProcurementDocumentKind.GoodsReceipt
+                ? source.Lines.GroupBy(x => x.ProductSkuId).ToDictionary(x => x.Key, x => x.Sum(line => line.Quantity))
+                : source.Lines.GroupBy(x => x.ProductSkuId).ToDictionary(x => x.Key, x => x.Sum(line => line.Quantity));
+        var statuses = new List<ThreeWayMatchStatus>();
+        var changed = false;
+
+        foreach (var line in invoice.Lines)
+        {
+            allowedBySku.TryGetValue(line.ProductSkuId, out var allowed);
+            var status = allowed <= 0
+                ? ThreeWayMatchStatus.PendingReceipt
+                : line.Quantity > allowed
+                    ? ThreeWayMatchStatus.Exception
+                    : ThreeWayMatchStatus.Matched;
+            statuses.Add(status);
+            changed |= ApplyLineIfChanged(invoice, line, allowed, line.Quantity, status, userId);
+        }
+
+        var documentStatus = AggregateStatus(statuses);
+        changed |= ApplyDocumentIfChanged(invoice, false, documentStatus, userId);
+        return new RecomputeDocumentResult(changed, documentStatus == ThreeWayMatchStatus.Exception);
+    }
+
+    private static Dictionary<Guid, decimal> SumBySku(IEnumerable<ProcurementDocument> documents) =>
+        documents
+            .SelectMany(x => x.Lines)
+            .GroupBy(x => x.ProductSkuId)
+            .ToDictionary(x => x.Key, x => x.Sum(line => line.Quantity));
+
+    private static ThreeWayMatchStatus ResolvePurchaseMatchStatus(
+        decimal ordered,
+        decimal received,
+        decimal billed,
+        PurchaseBillControlPolicy policy,
+        bool isConfirmed)
+    {
+        var billBasis = policy == PurchaseBillControlPolicy.ReceivedQuantities ? received : ordered;
+
+        if (billed > billBasis)
+            return ThreeWayMatchStatus.Exception;
+        if (billBasis > 0 && billed >= billBasis)
+            return ThreeWayMatchStatus.Matched;
+        if (ResolveInvoiceableQuantity(ordered, received, billed, policy, isConfirmed) > 0)
+            return ThreeWayMatchStatus.ReadyToBill;
+        if (policy == PurchaseBillControlPolicy.ReceivedQuantities)
+            return ThreeWayMatchStatus.PendingReceipt;
+
+        return ThreeWayMatchStatus.NotRequired;
+    }
+
+    private static ThreeWayMatchStatus ResolveReceiptMatchStatus(decimal received, decimal billed, bool isPosted)
+    {
+        if (billed > received)
+            return ThreeWayMatchStatus.Exception;
+        if (received > 0 && billed >= received)
+            return ThreeWayMatchStatus.Matched;
+        return isPosted ? ThreeWayMatchStatus.ReadyToBill : ThreeWayMatchStatus.PendingReceipt;
+    }
+
+    private static decimal ResolveInvoiceableQuantity(
+        decimal ordered,
+        decimal received,
+        decimal billed,
+        PurchaseBillControlPolicy policy,
+        bool isConfirmed)
+    {
+        if (!isConfirmed)
+            return 0;
+
+        var billBasis = policy == PurchaseBillControlPolicy.ReceivedQuantities ? received : ordered;
+        return Math.Max(0, billBasis - billed);
+    }
+
+    private static ThreeWayMatchStatus AggregateStatus(List<ThreeWayMatchStatus> statuses)
+    {
+        if (statuses.Count == 0)
+            return ThreeWayMatchStatus.NotRequired;
+        if (statuses.Contains(ThreeWayMatchStatus.Exception))
+            return ThreeWayMatchStatus.Exception;
+        if (statuses.Contains(ThreeWayMatchStatus.ReadyToBill))
+            return ThreeWayMatchStatus.ReadyToBill;
+        if (statuses.Contains(ThreeWayMatchStatus.PendingReceipt))
+            return ThreeWayMatchStatus.PendingReceipt;
+        if (statuses.All(x => x == ThreeWayMatchStatus.Matched))
+            return ThreeWayMatchStatus.Matched;
+        return ThreeWayMatchStatus.NotRequired;
+    }
+
+    private static bool ApplyLineIfChanged(
+        ProcurementDocument document,
+        ProcurementDocumentLine line,
+        decimal received,
+        decimal billed,
+        ThreeWayMatchStatus status,
+        string userId)
+    {
+        if (line.ReceivedQuantity == received
+            && line.BilledQuantity == billed
+            && line.ThreeWayMatchStatus == status)
+            return false;
+
+        document.ApplyLinePurchaseControlState(line.Id, received, billed, status, userId);
+        return true;
+    }
+
+    private static bool ApplyDocumentIfChanged(
+        ProcurementDocument document,
+        bool isBillable,
+        ThreeWayMatchStatus status,
+        string userId)
+    {
+        if (document.IsBillable == isBillable && document.ThreeWayMatchStatus == status)
+            return false;
+
+        document.ApplyPurchaseControlState(isBillable, status, userId);
+        return true;
+    }
+
+    private static bool IsConfirmedPurchaseOrder(string status) =>
+        status is "Approved" or "Sent" or "PartiallyReceived" or "Received" or "Closed";
+
+    private readonly record struct RecomputeDocumentResult(bool Changed, bool HasException);
 }
 
 internal static class ProcurementDocumentFactory

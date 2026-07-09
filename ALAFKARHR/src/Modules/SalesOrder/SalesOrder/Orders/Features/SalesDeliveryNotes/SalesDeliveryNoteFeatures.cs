@@ -5,8 +5,17 @@ using Shared.Pagination;
 
 namespace SalesOrder.Orders.Features.SalesDeliveryNotes;
 
-public record GetSalesDeliveryNotesQuery(Guid CompanyId, PaginationRequest PaginationRequest, SalesDeliveryNoteStatus? Status = null) : IQuery<GetSalesDeliveryNotesResult>;
+public record GetSalesDeliveryNotesQuery(
+    Guid CompanyId,
+    PaginationRequest PaginationRequest,
+    SalesDeliveryNoteStatus? Status = null,
+    Guid? CustomerId = null,
+    Guid? ProductId = null,
+    Guid? ProductSkuId = null) : IQuery<GetSalesDeliveryNotesResult>;
 public record GetSalesDeliveryNotesResult(PaginatedResult<SalesDeliveryNoteDto> DeliveryNotes);
+public record GetSalesDeliveryNoteSmartLinksQuery(Guid CompanyId, Guid? CustomerId = null, Guid? ProductId = null, Guid? ProductSkuId = null)
+    : IQuery<GetSalesDeliveryNoteSmartLinksResult>;
+public record GetSalesDeliveryNoteSmartLinksResult(PartnerSmartLinkSummaryDto PartnerLinks, ProductSmartLinkSummaryDto ProductLinks);
 public record GetSalesDeliveryNoteByIdQuery(Guid Id) : IQuery<GetSalesDeliveryNoteByIdResult>;
 public record GetSalesDeliveryNoteByIdResult(SalesDeliveryNoteDto DeliveryNote);
 public record CreateSalesDeliveryNoteCommand(SalesDeliveryNoteDto DeliveryNote) : ICommand<CreateSalesDeliveryNoteResult>;
@@ -27,6 +36,15 @@ public class GetSalesDeliveryNotesHandler(SalesOrderDbContext dbContext)
         if (request.Status.HasValue)
             query = query.Where(x => x.Status == request.Status.Value);
 
+        if (request.CustomerId.HasValue)
+            query = query.Where(x => x.CustomerId == request.CustomerId.Value);
+
+        if (request.ProductId.HasValue)
+            query = query.Where(x => x.Lines.Any(line => line.ProductId == request.ProductId.Value));
+
+        if (request.ProductSkuId.HasValue)
+            query = query.Where(x => x.Lines.Any(line => line.ProductSkuId == request.ProductSkuId.Value));
+
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {
             var search = request.PaginationRequest.SearchText;
@@ -40,6 +58,33 @@ public class GetSalesDeliveryNotesHandler(SalesOrderDbContext dbContext)
             .ToListAsync(cancellationToken);
 
         return new GetSalesDeliveryNotesResult(SalesDocumentFeatureHelpers.Page(data.Select(x => x.ToDto()).ToList(), request.PaginationRequest, count));
+    }
+}
+
+public class GetSalesDeliveryNoteSmartLinksHandler(SalesOrderDbContext dbContext)
+    : IQueryHandler<GetSalesDeliveryNoteSmartLinksQuery, GetSalesDeliveryNoteSmartLinksResult>
+{
+    public async Task<GetSalesDeliveryNoteSmartLinksResult> Handle(GetSalesDeliveryNoteSmartLinksQuery request, CancellationToken cancellationToken)
+    {
+        var deliveryNotes = dbContext.SalesDeliveryNotes.AsNoTracking().Where(x => x.CompanyId == request.CompanyId);
+
+        var partnerLinks = new PartnerSmartLinkSummaryDto();
+        if (request.CustomerId.HasValue)
+            partnerLinks.Deliveries = await deliveryNotes.CountAsync(x => x.CustomerId == request.CustomerId.Value, cancellationToken);
+
+        var productLinks = new ProductSmartLinkSummaryDto();
+        if (request.ProductId.HasValue || request.ProductSkuId.HasValue)
+        {
+            productLinks.InventoryRecords = await dbContext.SalesDeliveryNotes.AsNoTracking()
+                .Where(x => x.CompanyId == request.CompanyId)
+                .SelectMany(x => x.Lines)
+                .CountAsync(line =>
+                    (!request.ProductId.HasValue || line.ProductId == request.ProductId.Value)
+                    && (!request.ProductSkuId.HasValue || line.ProductSkuId == request.ProductSkuId.Value),
+                    cancellationToken);
+        }
+
+        return new GetSalesDeliveryNoteSmartLinksResult(partnerLinks, productLinks);
     }
 }
 
@@ -105,6 +150,9 @@ public class PostSalesDeliveryNoteHandler(SalesOrderDbContext dbContext, IHttpCo
             .FirstOrDefaultAsync(x => x.Id == note.SalesOrderId, cancellationToken)
             ?? throw new NotFoundException($"Sales order not found: {note.SalesOrderId}");
 
+        var flow = await sender.Send(new GetWarehouseOperationFlowQuery(note.CompanyId, note.WarehouseId), cancellationToken);
+        var isOneStepDelivery = flow.OutboundFlow == 1;
+        var operationLines = new List<InventoryOperationChainLine>();
         var deliveredLines = note.Post(userId);
         foreach (var line in note.Lines)
         {
@@ -141,26 +189,56 @@ public class PostSalesDeliveryNoteHandler(SalesOrderDbContext dbContext, IHttpCo
                 continue;
             }
 
-            await sender.Send(new PostInventoryStockOutCommand(
+            operationLines.Add(new InventoryOperationChainLine(
                 line.ProductId,
                 line.ProductSkuId,
                 null,
-                note.WarehouseId,
+                line.UnitOfMeasureId,
                 line.BatchId,
                 line.Quantity,
                 line.UnitCost,
                 line.TotalCost,
                 line.CurrencyId,
-                note.CompanyId,
                 line.Notes,
-                note.Number,
-                "SalesDeliveryNote",
-                true,
-                line.UnitOfMeasureId,
-                note.Id,
-                line.Id), cancellationToken);
+                line.Id,
+                true));
+
+            if (isOneStepDelivery)
+            {
+                await sender.Send(new PostInventoryStockOutCommand(
+                    line.ProductId,
+                    line.ProductSkuId,
+                    null,
+                    note.WarehouseId,
+                    line.BatchId,
+                    line.Quantity,
+                    line.UnitCost,
+                    line.TotalCost,
+                    line.CurrencyId,
+                    note.CompanyId,
+                    line.Notes,
+                    note.Number,
+                    "SalesDeliveryNote",
+                    true,
+                    line.UnitOfMeasureId,
+                    note.Id,
+                    line.Id), cancellationToken);
+            }
 
             order.ConsumeLineReservation(orderLine.Id, line.Quantity);
+        }
+
+        if (operationLines.Count > 0 || isOneStepDelivery)
+        {
+            await sender.Send(new EnsureInventoryDeliveryOperationChainCommand(
+                note.CompanyId,
+                order.BranchId,
+                note.WarehouseId,
+                "SalesDeliveryNote",
+                note.Id,
+                note.Number,
+                operationLines,
+                MarkCompleted: isOneStepDelivery), cancellationToken);
         }
 
         order.Deliver(deliveredLines);
@@ -199,13 +277,30 @@ public class SalesDeliveryNoteEndpoints : ICarterModule
             int PageSize,
             string? searchText,
             SalesDeliveryNoteStatus? status,
+            Guid? customerId,
+            Guid? productId,
+            Guid? productSkuId,
             ISender sender) =>
         {
-            var result = await sender.Send(new GetSalesDeliveryNotesQuery(companyId, new PaginationRequest(PageIndex, PageSize, searchText), status));
+            var result = await sender.Send(new GetSalesDeliveryNotesQuery(companyId, new PaginationRequest(PageIndex, PageSize, searchText), status, customerId, productId, productSkuId));
             return Results.Ok(result);
         })
         .WithName("GetSalesDeliveryNotes")
         .Produces<GetSalesDeliveryNotesResult>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.SalesDeliveryNotePermissions.View);
+
+        app.MapGet("/api/v1/sales/delivery-notes/smart-links/company/{companyId}", async (
+            Guid companyId,
+            Guid? customerId,
+            Guid? productId,
+            Guid? productSkuId,
+            ISender sender) =>
+        {
+            var result = await sender.Send(new GetSalesDeliveryNoteSmartLinksQuery(companyId, customerId, productId, productSkuId));
+            return Results.Ok(new { partnerLinks = result.PartnerLinks, productLinks = result.ProductLinks });
+        })
+        .WithName("GetSalesDeliveryNoteSmartLinks")
+        .Produces<GetSalesDeliveryNoteSmartLinksResult>(StatusCodes.Status200OK)
         .RequireAuthorization(PermissionList.SalesDeliveryNotePermissions.View);
 
         app.MapGet("/api/v1/sales/delivery-notes/{id:guid}", async (Guid id, ISender sender) =>

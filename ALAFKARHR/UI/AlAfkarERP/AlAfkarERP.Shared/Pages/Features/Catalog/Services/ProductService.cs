@@ -2,6 +2,7 @@
 using AlAfkarERP.Shared.Dtos;
 using AlAfkarERP.Shared.Services;
 using SharedWithUI.Catalog.Dtos;
+using SharedWithUI.SharedDtos;
 using System.Globalization;
 using System.Net.Http.Json;
 
@@ -59,6 +60,12 @@ public class ProductService : BaseApiService, IProductService
     {
         var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/catalog/products/{productId}");
         return await SendAsync<ProductDto>(request, "product");
+    }
+
+    public async Task<ApiResult<ProductSmartLinkSummaryDto>> GetSmartLinksAsync(Guid productId)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/catalog/products/{productId}/smart-links");
+        return await SendAsync<ProductSmartLinkSummaryDto>(request, "links");
     }
 
     public async Task<ApiResult<List<ProductDto>>> GetBySKUIds(List<Guid> skuIds)

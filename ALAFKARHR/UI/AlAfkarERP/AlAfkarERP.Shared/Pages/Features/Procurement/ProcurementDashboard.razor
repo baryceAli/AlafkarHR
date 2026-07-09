@@ -24,9 +24,16 @@
     {
         <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
     }
+    else if (isLoading)
+    {
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="mt-2">@SharedDataService.SelectViewLang("Loading procurement dashboard...", "Loading procurement dashboard...")</div>
+        </div>
+    }
     else
     {
-        <div class="row g-3">
+        <div class="row g-3 mb-3">
             @foreach (var card in Cards)
             {
                 <div class="col-12 col-sm-6 col-xl-3">
@@ -39,6 +46,83 @@
                 </div>
             }
         </div>
+
+        <AppCard Title="@SharedDataService.SelectViewLang("Action Required", "Action Required")"
+                 Subtitle="@SharedDataService.SelectViewLang("Operational counts that need buyer, receiver, or accounting attention.", "Operational counts that need buyer, receiver, or accounting attention.")"
+                 CssClass="mb-3">
+            <div class="row g-3">
+                @foreach (var card in ActionCards)
+                {
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <StatsCard Title="@SharedDataService.SelectViewLang(card.TitleEn, card.TitleAr)"
+                                   Value="@card.Count.ToString("N0")"
+                                   Subtitle="@SharedDataService.SelectViewLang(card.SubtitleEn, card.SubtitleAr)"
+                                   Icon="@card.Icon"
+                                   Tone="@card.Tone"
+                                   CssClass="h-100"
+                                   OnClick="@(() => NavigateRoute(card.Route))" />
+                    </div>
+                }
+            </div>
+        </AppCard>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Strategic Purchasing", "Strategic Purchasing")"
+                         Subtitle="@SharedDataService.SelectViewLang("Tender and blanket order workload.", "Tender and blanket order workload.")"
+                         CssClass="h-100">
+                    <div class="row g-3">
+                        @foreach (var card in AgreementCards)
+                        {
+                            <div class="col-12 col-sm-6">
+                                <StatsCard Title="@SharedDataService.SelectViewLang(card.TitleEn, card.TitleAr)"
+                                           Value="@card.Count.ToString("N0")"
+                                           Icon="@card.Icon"
+                                           Tone="@card.Tone"
+                                           CssClass="h-100"
+                                           OnClick="@(() => NavigateRoute("/Procurement/PurchaseAgreements"))" />
+                            </div>
+                        }
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-lg-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Top Suppliers", "Top Suppliers")"
+                         Subtitle="@SharedDataService.SelectViewLang("Purchase order value by supplier.", "Purchase order value by supplier.")"
+                         CssClass="h-100">
+                    @if (dashboard.TopSuppliers.Count == 0)
+                    {
+                        <EmptyState Title="@SharedDataService.SelectViewLang("No supplier activity", "No supplier activity")"
+                                    Message="@SharedDataService.SelectViewLang("Purchase order activity will appear here when available.", "Purchase order activity will appear here when available.")"
+                                    Icon="bi-truck" />
+                    }
+                    else
+                    {
+                        <div class="erp-table-wrap">
+                            <table class="table erp-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>@SharedDataService.SelectViewLang("Supplier", "Supplier")</th>
+                                        <th class="text-end">@SharedDataService.SelectViewLang("Orders", "Orders")</th>
+                                        <th class="text-end">@SharedDataService.SelectViewLang("Value", "Value")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var supplier in dashboard.TopSuppliers)
+                                    {
+                                        <tr>
+                                            <td>@(string.IsNullOrWhiteSpace(supplier.SupplierName) ? "-" : supplier.SupplierName)</td>
+                                            <td class="text-end">@supplier.PurchaseOrders.ToString("N0")</td>
+                                            <td class="text-end">@supplier.PurchasedValue.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
     }
 </div>
 
@@ -46,6 +130,7 @@
     private ProcurementDashboardDto dashboard = new();
     private Guid? companyId;
     private AuthenticationState? authState;
+    private bool isLoading;
     private bool CanView => authState?.User.Claims.Any(c => c.Value == PermissionList.PurchaseOrderPermissions.Select || c.Value == PermissionList.PurchaseRequestPermissions.Select) == true;
 
     private IEnumerable<(ProcurementDocumentKind Kind, string TitleEn, string TitleAr, string Icon, string Tone, int Count)> Cards =>
@@ -59,6 +144,20 @@
         (ProcurementDocumentKind.SupplierInvoice, "Supplier Invoices", "فواتير الموردين", "bi-receipt", "primary", dashboard.SupplierInvoices)
     ];
 
+    private IEnumerable<(string Route, string TitleEn, string TitleAr, string SubtitleEn, string SubtitleAr, string Icon, string Tone, int Count)> ActionCards =>
+    [
+        ("/Procurement/requests-for-quotation", "RFQs Sent", "RFQs Sent", "Sent to suppliers", "Sent to suppliers", "bi-send-check", "info", dashboard.SentRequestsForQuotation),
+        ("/Procurement/purchase-orders", "Awaiting Receipt", "Awaiting Receipt", "Approved or sent POs", "Approved or sent POs", "bi-hourglass-split", "warning", dashboard.PurchaseOrdersAwaitingReceipt),
+        ("/Procurement/goods-receipts", "Billable Receipts", "Billable Receipts", "Ready for vendor bill", "Ready for vendor bill", "bi-receipt-cutoff", "success", dashboard.BillableReceipts),
+        ("/Procurement/supplier-invoices", "Match Exceptions", "Match Exceptions", "Needs 3-way review", "Needs 3-way review", "bi-exclamation-triangle", "danger", dashboard.ThreeWayMatchExceptions)
+    ];
+
+    private IEnumerable<(string TitleEn, string TitleAr, string Icon, string Tone, int Count)> AgreementCards =>
+    [
+        ("Active Tenders", "Active Tenders", "bi-megaphone", "primary", dashboard.ActiveTenders),
+        ("Active Blanket Orders", "Active Blanket Orders", "bi-journal-bookmark", "success", dashboard.ActiveBlanketOrders)
+    ];
+
     protected override async Task OnInitializedAsync()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
@@ -67,13 +166,20 @@
         if (Guid.TryParse(claim, out var parsedCompanyId))
             companyId = parsedCompanyId;
 
+        if (!CanView)
+            return;
+
+        isLoading = true;
         var response = await ProcurementService.GetDashboardAsync(companyId);
         if (response.IsSuccess && response.Data is not null)
             dashboard = response.Data;
+        isLoading = false;
     }
 
     private void Navigate(ProcurementDocumentKind kind) =>
         NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}");
+
+    private void NavigateRoute(string route) => NavigationManager.NavigateTo(route);
 
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
 

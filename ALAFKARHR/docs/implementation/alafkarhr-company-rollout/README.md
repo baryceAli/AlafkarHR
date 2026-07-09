@@ -40,6 +40,7 @@ Confirmed system areas include organization setup, security roles and users, HR 
 | `30-cross-module-configuration-guide.md` | Cross-module master data and configuration workbook for full ERP rollout. |
 | `31-full-system-roles-and-permissions.md` | Full-system role and permission guide by workspace and module. |
 | `32-user-guide-erp-functional-roles.md` | User guide for finance, sales, procurement, warehouse, POS, business-line, project, fleet, maintenance, document, media, and executive users. |
+| `33-parent-company-onboarding-reference.md` | Practical parent-company onboarding checklist from company creation through employee readiness. |
 
 ## Confirmed Application Entry Points
 

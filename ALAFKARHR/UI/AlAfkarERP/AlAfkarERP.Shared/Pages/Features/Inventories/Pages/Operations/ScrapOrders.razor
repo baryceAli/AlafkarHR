@@ -1,0 +1,607 @@
+@layout AdminLayout
+@page "/Inventory/Operations/Scrap"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Inventory.Enums
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+
+@inject IInventoryService InventoryService
+@inject IWarehouseService WarehouseService
+@inject IBranchService BranchService
+@inject IBatchService BatchService
+@inject IProductService ProductService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState?.User?.Identity?.IsAuthenticated == true && !AuthState.User.Claims.Any(c => c.Value == PermissionList.InventoryPermissions.View))
+{
+    <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Scrap Orders", "أوامر الإتلاف")"
+                Overline="@T("Inventory Operations", "عمليات المخزون")"
+                Subtitle="@T("Create and validate traceable inventory losses into virtual scrap locations.", "إنشاء واعتماد إتلاف مخزون قابل للتتبع إلى مواقع إتلاف افتراضية.")" />
+
+    <div class="erp-card mb-3 allow-overflow">
+        <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">@T("Create Scrap Order", "إنشاء أمر إتلاف")</h5>
+            <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="ResetForm">
+                <i class="bi bi-arrow-counterclockwise"></i>
+                @T("Reset", "إعادة تعيين")
+            </button>
+        </div>
+        <div class="erp-card-body">
+            <EditForm Model="draft" OnValidSubmit="CreateAsync">
+                <DataAnnotationsValidator />
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">@T("Warehouse", "المستودع")</label>
+                        <AutoCompleteComponent TItem="WarehouseDto"
+                                               Items="warehouses"
+                                               Value="selectedWarehouse"
+                                               ItemText="WarehouseText"
+                                               PlaceHolder="@T("Select warehouse", "اختر المستودع")"
+                                               ValueChanged="OnWarehouseChanged" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@T("Product", "المنتج")</label>
+                        <AutoCompleteComponent TItem="ProductDto"
+                                               Items="products"
+                                               Value="selectedProduct"
+                                               ItemText="ProductText"
+                                               PlaceHolder="@T("Select product", "اختر المنتج")"
+                                               ValueChanged="OnProductChanged" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@T("SKU", "الصنف المخزني")</label>
+                        <AutoCompleteComponent TItem="ProductSkuDto"
+                                               Items="productSkus"
+                                               Value="selectedSku"
+                                               ItemText="SkuText"
+                                               PlaceHolder="@T("Select SKU", "اختر الصنف")"
+                                               ValueChanged="OnSkuChanged" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@T("Batch", "الدفعة")</label>
+                        <AutoCompleteComponent TItem="BatchDto"
+                                               Items="batches"
+                                               Value="selectedBatch"
+                                               ItemText="@(x => x.BatchNumber)"
+                                               PlaceHolder="@T("Select batch", "اختر الدفعة")"
+                                               ValueChanged="OnBatchChanged" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@T("Source Location", "موقع المصدر")</label>
+                        <InputSelect class="form-select" @bind-Value="line.SourceLocationId">
+                            <option value="">@T("Auto-select available location", "اختيار تلقائي للموقع المتاح")</option>
+                            @foreach (var location in SourceLocations())
+                            {
+                                <option value="@location.Id">@LocationText(location)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@T("Scrap Location", "موقع الإتلاف")</label>
+                        <InputSelect class="form-select" @bind-Value="draft.ScrapLocationId">
+                            <option value="">@T("Default virtual scrap location", "موقع الإتلاف الافتراضي")</option>
+                            @foreach (var location in ScrapLocations())
+                            {
+                                <option value="@location.Id">@LocationText(location)</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@T("Quantity", "الكمية")</label>
+                        <InputNumber class="form-control" @bind-Value="line.Quantity" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@T("Unit Cost", "تكلفة الوحدة")</label>
+                        <InputNumber class="form-control" @bind-Value="line.UnitCost" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">@T("Currency ID", "معرف العملة")</label>
+                        <InputText class="form-control" @bind-Value="currencyIdText" />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <div class="form-check">
+                            <InputCheckbox class="form-check-input" @bind-Value="draft.ReplenishQuantity" />
+                            <label class="form-check-label">@T("Replenish quantity", "تعويض الكمية")</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@T("Reason", "السبب")</label>
+                        <InputText class="form-control" @bind-Value="draft.Reason" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">@T("Serial Numbers", "الأرقام التسلسلية")</label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="serialNumbersText" />
+                        <div class="form-text">@T("One serial per line or comma separated.", "رقم تسلسلي في كل سطر أو مفصول بفاصلة.")</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">@T("Notes", "ملاحظات")</label>
+                        <InputTextArea class="form-control" rows="2" @bind-Value="draft.Notes" />
+                    </div>
+                    @if (draft.SourceInventoryOperationId.HasValue)
+                    {
+                        <div class="col-12">
+                            <div class="alert alert-info mb-0">
+                                @T("This scrap order is linked to an inventory operation.", "أمر الإتلاف هذا مرتبط بعملية مخزون.")
+                                @draft.SourceDocumentNumber
+                            </div>
+                        </div>
+                    }
+                    <div class="col-12 d-flex justify-content-end gap-2">
+                        <button class="btn btn-primary" type="submit" disabled="@isSaving">
+                            <i class="bi bi-save"></i>
+                            @T("Create Draft", "إنشاء مسودة")
+                        </button>
+                    </div>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+
+    <div class="erp-card mb-3">
+        <div class="erp-card-header">
+            <h5 class="mb-0">@T("Filters", "الفلاتر")</h5>
+        </div>
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">@T("Warehouse", "المستودع")</label>
+                    <InputSelect class="form-select" @bind-Value="filterWarehouseId">
+                        <option value="">@T("All warehouses", "كل المستودعات")</option>
+                        @foreach (var warehouse in warehouses)
+                        {
+                            <option value="@warehouse.Id">@WarehouseText(warehouse)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">@T("Status", "الحالة")</label>
+                    <InputSelect class="form-select" @bind-Value="filterStatus">
+                        <option value="">@T("All", "الكل")</option>
+                        @foreach (var value in Enum.GetValues<ScrapOrderStatus>())
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-outline-primary" type="button" @onclick="LoadScrapOrdersAsync" disabled="@isLoading">
+                        <i class="bi bi-search"></i>
+                        @T("Apply", "تطبيق")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="erp-card">
+        <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">@T("Scrap Orders", "أوامر الإتلاف")</h5>
+            <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="LoadScrapOrdersAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+        <div class="erp-card-body">
+            @if (isLoading)
+            {
+                <div class="erp-loading">@T("Loading scrap orders...", "جاري تحميل أوامر الإتلاف...")</div>
+            }
+            else if (scrapOrders.Count == 0)
+            {
+                <div class="text-muted text-center py-4">@T("No scrap orders found", "لا توجد أوامر إتلاف")</div>
+            }
+            else
+            {
+                <div class="erp-table-wrap">
+                    <table class="erp-table table">
+                        <thead>
+                            <tr>
+                                <th>@T("Number", "الرقم")</th>
+                                <th>@T("Warehouse", "المستودع")</th>
+                                <th>@T("Source", "المصدر")</th>
+                                <th>@T("Status", "الحالة")</th>
+                                <th>@T("Quantity", "الكمية")</th>
+                                <th>@T("Replenish", "تعويض")</th>
+                                <th>@T("Actions", "الإجراءات")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var order in scrapOrders)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@order.ScrapOrderNumber</div>
+                                        <div class="text-muted small">@order.Reason</div>
+                                    </td>
+                                    <td>@WarehouseName(order.WarehouseId)</td>
+                                    <td>
+                                        <div>@(order.SourceDocumentNumber ?? "-")</div>
+                                        <div class="text-muted small">@order.SourceDocumentType</div>
+                                    </td>
+                                    <td><span class="@StatusClass(order.Status)">@order.Status</span></td>
+                                    <td>@order.TotalQuantity</td>
+                                    <td>@(order.ReplenishQuantity ? T("Yes", "نعم") : T("No", "لا"))</td>
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <button class="btn btn-sm btn-primary" type="button" disabled="@(order.Status != ScrapOrderStatus.Draft || isSaving)" @onclick="() => ValidateAsync(order.Id)">
+                                                <i class="bi bi-check2-circle"></i>
+                                                @T("Validate", "اعتماد")
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" type="button" disabled="@(order.Status != ScrapOrderStatus.Draft || isSaving)" @onclick="() => CancelAsync(order.Id)">
+                                                <i class="bi bi-x-circle"></i>
+                                                @T("Cancel", "إلغاء")
+                                            </button>
+                                            @if (order.Lines.Select(x => x.StockMovementId).FirstOrDefault(x => x.HasValue) is Guid movementId)
+                                            {
+                                                <button class="btn btn-sm btn-outline-secondary" type="button" @onclick="() => GoToMovement(order)">
+                                                    <i class="bi bi-clock-history"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private List<ScrapOrderDto> scrapOrders = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<BranchDto> branches = [];
+    private List<ProductDto> products = [];
+    private List<ProductSkuDto> productSkus = [];
+    private List<BatchDto> batches = [];
+    private List<WarehouseLocationDto> locations = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
+    private WarehouseDto? selectedWarehouse;
+    private ProductDto? selectedProduct;
+    private ProductSkuDto? selectedSku;
+    private BatchDto? selectedBatch;
+    private CreateScrapOrderDto draft = NewDraft();
+    private CreateScrapOrderLineDto line = NewLine();
+    private Guid? filterWarehouseId;
+    private ScrapOrderStatus? filterStatus;
+    private string? currencyIdText;
+    private string? serialNumbersText;
+    private bool isLoading;
+    private bool isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        draft.CompanyId = companyId;
+        ApplyQuery();
+        await LoadLookupsAsync();
+        ApplyPrefillSelections();
+        await LoadScrapOrdersAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var access = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = access.IsSuccess ? access.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        branches = branchResponse.IsSuccess ? branchResponse.Data?.Data?.ToList() ?? [] : [];
+
+        var warehouseResponse = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResponse.IsSuccess)
+        {
+            var loaded = warehouseResponse.Data?.Data?.ToList() ?? [];
+            warehouses = branchAccess.CanViewAllBranches
+                ? loaded
+                : loaded.Where(x => x.BranchId == null || (x.BranchId.HasValue && branchAccess.BranchIds.Contains(x.BranchId.Value))).ToList();
+        }
+
+        var productResponse = await ProductService.GetByCompanyAsync(companyId, 0, 1000, includeInactive: false);
+        products = productResponse.IsSuccess ? productResponse.Data?.Data?.ToList() ?? [] : [];
+
+        var batchResponse = await BatchService.GetAsync(companyId, 0, 1000);
+        batches = batchResponse.IsSuccess ? batchResponse.Data?.Data?.ToList() ?? [] : [];
+
+        var locationResponse = await InventoryService.GetWarehouseLocationsAsync(companyId);
+        locations = locationResponse.IsSuccess ? locationResponse.Data ?? [] : [];
+    }
+
+    private async Task LoadScrapOrdersAsync()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await InventoryService.GetScrapOrdersAsync(new ScrapOrderFilterDto
+            {
+                CompanyId = companyId,
+                WarehouseId = filterWarehouseId,
+                Status = filterStatus
+            });
+            scrapOrders = result.IsSuccess ? result.Data ?? [] : [];
+            if (!result.IsSuccess)
+                ShowToast(false, "Could not load scrap orders", "تعذر تحميل أوامر الإتلاف");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task CreateAsync()
+    {
+        if (!BuildDraft())
+            return;
+
+        isSaving = true;
+        try
+        {
+            var result = draft.SourceInventoryOperationId.HasValue
+                ? await InventoryService.CreateScrapOrderFromOperationAsync(draft)
+                : await InventoryService.CreateScrapOrderAsync(draft);
+
+            if (result.IsSuccess)
+            {
+                ShowToast(true, "Scrap order draft created", "تم إنشاء مسودة أمر الإتلاف");
+                ResetForm();
+                await LoadScrapOrdersAsync();
+            }
+            else
+            {
+                ShowToast(false, "Could not create scrap order", "تعذر إنشاء أمر الإتلاف");
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ValidateAsync(Guid id)
+    {
+        isSaving = true;
+        try
+        {
+            var result = await InventoryService.ValidateScrapOrderAsync(id);
+            ShowToast(result.IsSuccess, "Scrap order validated", "تم اعتماد أمر الإتلاف");
+            await LoadScrapOrdersAsync();
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task CancelAsync(Guid id)
+    {
+        isSaving = true;
+        try
+        {
+            var result = await InventoryService.CancelScrapOrderAsync(id);
+            ShowToast(result.IsSuccess, "Scrap order cancelled", "تم إلغاء أمر الإتلاف");
+            await LoadScrapOrdersAsync();
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private bool BuildDraft()
+    {
+        if (selectedWarehouse is null || selectedProduct is null || selectedSku is null || selectedBatch is null)
+        {
+            ShowToast(false, "Warehouse, product, SKU, and batch are required", "المستودع والمنتج والصنف والدفعة مطلوبة");
+            return false;
+        }
+
+        if (!Guid.TryParse(currencyIdText, out var currencyId))
+        {
+            ShowToast(false, "Currency ID is required", "معرف العملة مطلوب");
+            return false;
+        }
+
+        draft.CompanyId = companyId;
+        draft.WarehouseId = selectedWarehouse.Id;
+        draft.BranchId = selectedWarehouse.BranchId;
+        draft.SourceLocationId = line.SourceLocationId;
+        line.ProductId = selectedProduct.Id;
+        line.ProductSkuId = selectedSku.Id;
+        line.BatchId = selectedBatch.Id;
+        line.CurrencyId = currencyId;
+        line.TotalCost = Math.Round(line.Quantity * line.UnitCost, 2);
+        line.SerialNumbers = ParseSerials();
+        draft.Lines = [line];
+        return true;
+    }
+
+    private List<InventorySerialSelectionDto> ParseSerials() =>
+        (serialNumbersText ?? string.Empty)
+            .Split([',', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(x => new InventorySerialSelectionDto
+            {
+                SerialNumber = x,
+                BatchId = selectedBatch?.Id,
+                WarehouseId = selectedWarehouse?.Id,
+                WarehouseLocationId = line.SourceLocationId
+            })
+            .ToList();
+
+    private void ResetForm()
+    {
+        var sourceOperationId = draft.SourceInventoryOperationId;
+        var sourceOperationLineId = draft.SourceInventoryOperationLineId;
+        var sourceDocumentType = draft.SourceDocumentType;
+        var sourceDocumentId = draft.SourceDocumentId;
+        var sourceDocumentNumber = draft.SourceDocumentNumber;
+        draft = NewDraft();
+        draft.CompanyId = companyId;
+        draft.SourceInventoryOperationId = sourceOperationId;
+        draft.SourceInventoryOperationLineId = sourceOperationLineId;
+        draft.SourceDocumentType = sourceDocumentType;
+        draft.SourceDocumentId = sourceDocumentId;
+        draft.SourceDocumentNumber = sourceDocumentNumber;
+        line = NewLine();
+        selectedWarehouse = null;
+        selectedProduct = null;
+        selectedSku = null;
+        selectedBatch = null;
+        productSkus = [];
+        currencyIdText = null;
+        serialNumbersText = null;
+    }
+
+    private void ApplyQuery()
+    {
+        var query = NavigationManager.ToAbsoluteUri(NavigationManager.Uri).Query.TrimStart('?');
+        if (string.IsNullOrWhiteSpace(query))
+            return;
+
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var pieces = part.Split('=', 2);
+            if (pieces.Length != 2)
+                continue;
+
+            var key = Uri.UnescapeDataString(pieces[0]);
+            var value = Uri.UnescapeDataString(pieces[1]);
+            if (key.Equals("operationId", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value, out var operationId))
+                draft.SourceInventoryOperationId = operationId;
+            if (key.Equals("operationLineId", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value, out var operationLineId))
+            {
+                draft.SourceInventoryOperationLineId = operationLineId;
+                line.SourceInventoryOperationLineId = operationLineId;
+            }
+            if (key.Equals("sourceDocumentType", StringComparison.OrdinalIgnoreCase))
+                draft.SourceDocumentType = value;
+            if (key.Equals("sourceDocumentId", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value, out var sourceDocumentId))
+                draft.SourceDocumentId = sourceDocumentId;
+            if (key.Equals("sourceDocumentNumber", StringComparison.OrdinalIgnoreCase))
+                draft.SourceDocumentNumber = value;
+            if (key.Equals("warehouseId", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value, out var warehouseId))
+                draft.WarehouseId = warehouseId;
+            if (key.Equals("productId", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value, out var productId))
+                line.ProductId = productId;
+            if (key.Equals("productSkuId", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value, out var productSkuId))
+                line.ProductSkuId = productSkuId;
+            if (key.Equals("batchId", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value, out var batchId))
+                line.BatchId = batchId;
+            if (key.Equals("sourceLocationId", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value, out var locationId))
+                line.SourceLocationId = locationId;
+            if (key.Equals("quantity", StringComparison.OrdinalIgnoreCase) && decimal.TryParse(value, out var quantity))
+                line.Quantity = quantity;
+            if (key.Equals("unitCost", StringComparison.OrdinalIgnoreCase) && decimal.TryParse(value, out var unitCost))
+                line.UnitCost = unitCost;
+            if (key.Equals("currencyId", StringComparison.OrdinalIgnoreCase))
+                currencyIdText = value;
+        }
+    }
+
+    private void ApplyPrefillSelections()
+    {
+        selectedWarehouse = warehouses.FirstOrDefault(x => x.Id == draft.WarehouseId);
+        selectedProduct = products.FirstOrDefault(x => x.Id == line.ProductId);
+        productSkus = selectedProduct?.Skus ?? [];
+        selectedSku = productSkus.FirstOrDefault(x => x.Id == line.ProductSkuId);
+        selectedBatch = batches.FirstOrDefault(x => x.Id == line.BatchId);
+    }
+
+    private void OnWarehouseChanged(WarehouseDto? value)
+    {
+        selectedWarehouse = value;
+        draft.WarehouseId = value?.Id ?? Guid.Empty;
+        draft.BranchId = value?.BranchId;
+        line.SourceLocationId = null;
+        draft.ScrapLocationId = null;
+    }
+
+    private void OnProductChanged(ProductDto? value)
+    {
+        selectedProduct = value;
+        productSkus = value?.Skus ?? [];
+        selectedSku = null;
+        selectedBatch = null;
+    }
+
+    private void OnSkuChanged(ProductSkuDto? value)
+    {
+        selectedSku = value;
+        selectedBatch = null;
+    }
+
+    private void OnBatchChanged(BatchDto? value) => selectedBatch = value;
+
+    private IEnumerable<WarehouseLocationDto> SourceLocations() =>
+        locations.Where(x => selectedWarehouse is not null
+            && x.WarehouseId == selectedWarehouse.Id
+            && x.IsActive
+            && x.LocationUsage != WarehouseLocationUsage.VirtualScrap);
+
+    private IEnumerable<WarehouseLocationDto> ScrapLocations() =>
+        locations.Where(x => selectedWarehouse is not null
+            && x.WarehouseId == selectedWarehouse.Id
+            && x.IsActive
+            && x.LocationUsage == WarehouseLocationUsage.VirtualScrap);
+
+    private void GoToMovement(ScrapOrderDto order) =>
+        NavigationManager.NavigateTo($"/Inventory/Movements?sourceDocumentType=InventoryScrapOrder&sourceDocumentId={order.Id}");
+
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string WarehouseText(WarehouseDto warehouse) => SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+    private string ProductText(ProductDto product) => SharedDataService.SelectViewLang(product.NameEng, product.Name);
+    private string SkuText(ProductSkuDto sku) => SharedDataService.SelectViewLang(sku.NameEng, sku.Name);
+    private string LocationText(WarehouseLocationDto location) => $"{location.Code} - {SharedDataService.SelectViewLang(location.NameEng, location.Name)}";
+    private string WarehouseName(Guid id) => warehouses.FirstOrDefault(x => x.Id == id) is { } warehouse ? WarehouseText(warehouse) : id.ToString("N")[..8];
+    private static CreateScrapOrderDto NewDraft() => new() { Lines = [] };
+    private static CreateScrapOrderLineDto NewLine() => new() { Quantity = 1 };
+
+    private void ShowToast(bool success, string en, string ar) =>
+        ToastService.Show(new ToastMessage { Message = T(success ? en : en, success ? ar : ar), Type = success ? "success" : "error" });
+
+    private static string StatusClass(ScrapOrderStatus status) => status switch
+    {
+        ScrapOrderStatus.Validated => "badge bg-success",
+        ScrapOrderStatus.Cancelled => "badge bg-danger",
+        _ => "badge bg-secondary"
+    };
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

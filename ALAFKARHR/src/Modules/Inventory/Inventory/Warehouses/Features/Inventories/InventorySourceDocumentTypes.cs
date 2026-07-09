@@ -15,6 +15,7 @@ internal static class InventorySourceDocumentTypes
     public const string InventoryRelease = "InventoryRelease";
     public const string SalesOrderReservation = "SalesOrderReservation";
     public const string SalesOrderReservationRelease = "SalesOrderReservationRelease";
+    public const string InventoryScrapOrder = "InventoryScrapOrder";
 
     private static readonly HashSet<string> Allowed = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -31,6 +32,7 @@ internal static class InventorySourceDocumentTypes
         InventoryRelease,
         SalesOrderReservation,
         SalesOrderReservationRelease,
+        InventoryScrapOrder,
         "Integration",
         "PurchaseReceipt",
         "SupplierReturn",

@@ -42,12 +42,10 @@
 
         @if (isLoading)
         {
-            <div class="card border-0 shadow-sm">
-                <div class="card-body py-5 text-center">
+            <AppCard BodyClass="py-5 text-center">
                     <div class="spinner-border text-primary mb-3" role="status"></div>
                     <div class="fw-semibold">@Text("Loading business lines...", "جاري تحميل خطوط الأعمال...")</div>
-                </div>
-            </div>
+            </AppCard>
         }
         else if (!string.IsNullOrWhiteSpace(errorMessage))
         {
@@ -58,9 +56,9 @@
         }
         else
         {
-            <div class="card border-0 shadow-sm">
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
+            <AppCard>
+                <div class="erp-table-wrap">
+                    <table class="erp-table">
                         <thead>
                             <tr>
                                 <th>@Text("Business Line", "خط الأعمال")</th>
@@ -101,7 +99,7 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </AppCard>
         }
     }
 </div>

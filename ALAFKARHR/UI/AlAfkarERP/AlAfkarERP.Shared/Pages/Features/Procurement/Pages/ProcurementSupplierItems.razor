@@ -7,6 +7,7 @@
 @using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components
 @using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.Permissions
 @using SharedWithUI.Procurement.Dtos
@@ -133,6 +134,16 @@
                             </button>
                         </Actions>
                     </FilterBar>
+                    @if (HasSmartFilter)
+                    {
+                        <div class="erp-chip-row mb-3">
+                            <StatusChip Tone="info" Text="@SmartFilterText()" />
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearSmartFilter">
+                                <i class="bi bi-x-lg"></i>
+                                @Text("Clear", "مسح")
+                            </button>
+                        </div>
+                    }
                     <div class="erp-table-wrap">
                         <table class="table erp-table mb-0">
                             <thead>
@@ -198,6 +209,11 @@
     private ProductDto? selectedProduct;
     private ProductSkuDto? selectedSku;
 
+    [SupplyParameterFromQuery] public Guid? SupplierId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductSkuId { get; set; }
+    private bool HasSmartFilter => SupplierId.HasValue || ProductId.HasValue || ProductSkuId.HasValue;
+
     private bool CanView => HasPermission(PermissionList.PurchaseOrderPermissions.View);
     private bool CanSave => HasPermission(PermissionList.PurchaseOrderPermissions.Create);
     private bool CanDelete => HasPermission(PermissionList.PurchaseOrderPermissions.Delete);
@@ -244,7 +260,7 @@
 
     private async Task LoadItemsAsync()
     {
-        var result = await ProcurementService.GetSupplierItemsAsync(companyId);
+        var result = await ProcurementService.GetSupplierItemsAsync(companyId, SupplierId, ProductId, ProductSkuId);
         if (result.IsSuccess)
             items = result.Data ?? [];
         else
@@ -358,6 +374,16 @@
     }
 
     private void Back() => NavigationManager.NavigateTo("/Procurement/Enhancements");
+    private string SmartFilterText()
+    {
+        if (SupplierId.HasValue)
+            return Text("Filtered by supplier", "مصفي حسب المورد");
+        if (ProductSkuId.HasValue)
+            return Text("Filtered by SKU", "مصفي حسب وحدة المنتج");
+        return Text("Filtered by product", "مصفي حسب المنتج");
+    }
+
+    private void ClearSmartFilter() => NavigationManager.NavigateTo("/Procurement/SupplierItems");
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;

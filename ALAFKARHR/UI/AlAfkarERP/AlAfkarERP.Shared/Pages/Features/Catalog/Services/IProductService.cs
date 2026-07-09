@@ -1,6 +1,7 @@
 ﻿
 using AlAfkarERP.Shared.Dtos;
 using SharedWithUI.Catalog.Dtos;
+using SharedWithUI.SharedDtos;
 
 namespace AlAfkarERP.Shared.Pages.Features.Catalog.Services;
 
@@ -11,6 +12,7 @@ public interface IProductService
     public Task<ApiResult<PaginatedResult<ProductDto>>> GetPricedByCompanyAsync(Guid companyId, Guid? customerId, int PageIndex, int PageSize, Guid? priceListId = null);
     public Task<ApiResult<PaginatedResult<ProductDto>>> GetAsync( int PageIndex, int PageSize);
     public Task<ApiResult<ProductDto>> GetByIdAsync(Guid productId);
+    public Task<ApiResult<ProductSmartLinkSummaryDto>> GetSmartLinksAsync(Guid productId);
     public Task<ApiResult<ProductSkuDto>> GetProductSkuByIdAsync(Guid productSkuId);
     public Task<ApiResult<PaginatedResult<ProductSkuDto>>> GetPublicStoreProductSkusAsync(int pageIndex, int pageSize);
     public Task<ApiResult<PaginatedResult<ProductSkuDto>>> GetPublicStoreProductSkusAsync(PublicStoreProductSkuRequest request);

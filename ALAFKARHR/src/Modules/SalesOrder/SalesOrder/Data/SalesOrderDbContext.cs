@@ -21,6 +21,8 @@ public class SalesOrderDbContext:DbContext
     public DbSet<SalesReturn> SalesReturns => Set<SalesReturn>();
     public DbSet<SalesReturnLine> SalesReturnLines => Set<SalesReturnLine>();
     public DbSet<SalesSettings> SalesSettings => Set<SalesSettings>();
+    public DbSet<SalesQuotationTemplate> SalesQuotationTemplates => Set<SalesQuotationTemplate>();
+    public DbSet<SalesQuotationTemplateLine> SalesQuotationTemplateLines => Set<SalesQuotationTemplateLine>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("SalesOrder");

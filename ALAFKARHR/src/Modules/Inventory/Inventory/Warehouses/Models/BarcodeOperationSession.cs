@@ -12,6 +12,7 @@ public class BarcodeOperationSession : Aggregate<Guid>
     public Guid? WarehouseId { get; private set; }
     public Guid? SourceLocationId { get; private set; }
     public Guid? DestinationLocationId { get; private set; }
+    public Guid? InventoryOperationId { get; private set; }
     public string? SourceDocumentType { get; private set; }
     public Guid? SourceDocumentId { get; private set; }
     public string? ReferenceNumber { get; private set; }
@@ -35,6 +36,7 @@ public class BarcodeOperationSession : Aggregate<Guid>
             WarehouseId = dto.WarehouseId,
             SourceLocationId = dto.SourceLocationId,
             DestinationLocationId = dto.DestinationLocationId,
+            InventoryOperationId = dto.InventoryOperationId,
             SourceDocumentType = dto.SourceDocumentType,
             SourceDocumentId = dto.SourceDocumentId,
             ReferenceNumber = string.IsNullOrWhiteSpace(dto.ReferenceNumber)
@@ -118,6 +120,7 @@ public class BarcodeOperationSession : Aggregate<Guid>
         WarehouseId = WarehouseId,
         SourceLocationId = SourceLocationId,
         DestinationLocationId = DestinationLocationId,
+        InventoryOperationId = InventoryOperationId,
         SourceDocumentType = SourceDocumentType,
         SourceDocumentId = SourceDocumentId,
         ReferenceNumber = ReferenceNumber,
@@ -157,6 +160,7 @@ public class BarcodeOperationLine : Entity<Guid>
     public Guid? WarehouseId { get; private set; }
     public Guid? SourceLocationId { get; private set; }
     public Guid? DestinationLocationId { get; private set; }
+    public Guid? InventoryOperationLineId { get; private set; }
     public decimal EnteredQuantity { get; private set; }
     public decimal PackageMultiplier { get; private set; }
     public decimal UnitMultiplier { get; private set; }
@@ -191,6 +195,7 @@ public class BarcodeOperationLine : Entity<Guid>
             WarehouseId = dto.WarehouseId,
             SourceLocationId = dto.SourceLocationId,
             DestinationLocationId = dto.DestinationLocationId,
+            InventoryOperationLineId = dto.InventoryOperationLineId,
             EnteredQuantity = dto.EnteredQuantity <= 0 ? 1m : dto.EnteredQuantity,
             PackageMultiplier = dto.PackageMultiplier <= 0 ? 1m : dto.PackageMultiplier,
             UnitMultiplier = dto.UnitMultiplier <= 0 ? 1m : dto.UnitMultiplier,
@@ -222,6 +227,7 @@ public class BarcodeOperationLine : Entity<Guid>
         WarehouseId = WarehouseId,
         SourceLocationId = SourceLocationId,
         DestinationLocationId = DestinationLocationId,
+        InventoryOperationLineId = InventoryOperationLineId,
         EnteredQuantity = EnteredQuantity,
         PackageMultiplier = PackageMultiplier,
         UnitMultiplier = UnitMultiplier,

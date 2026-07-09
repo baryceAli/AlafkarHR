@@ -462,6 +462,27 @@ public class CreateBarcodeSessionHandler(InventoryDbContext dbContext, IHttpCont
 {
     public async Task<CreateInventoryControlResult> Handle(CreateBarcodeSessionCommand request, CancellationToken cancellationToken)
     {
+        if (request.Session.InventoryOperationId.HasValue)
+        {
+            var operation = await dbContext.InventoryOperations.Include(x => x.Lines)
+                .FirstOrDefaultAsync(x => x.Id == request.Session.InventoryOperationId.Value && x.CompanyId == request.Session.CompanyId, cancellationToken)
+                ?? throw new NotFoundException("Inventory operation", request.Session.InventoryOperationId.Value);
+
+            await global::Inventory.Warehouses.Features.Inventories.InventoryBranchScope.EnsureCanMutateWarehouseAsync(
+                dbContext, sender, operation.CompanyId, operation.WarehouseId, cancellationToken);
+            if (operation.Status is InventoryOperationStatus.Done or InventoryOperationStatus.Cancelled)
+                throw new BadRequestException("Closed inventory operations cannot be processed by barcode session.");
+
+            request.Session.WarehouseId = operation.WarehouseId;
+            request.Session.SourceDocumentType = operation.SourceDocumentType;
+            request.Session.SourceDocumentId = operation.SourceDocumentId;
+            request.Session.ReferenceNumber = string.IsNullOrWhiteSpace(request.Session.ReferenceNumber)
+                ? $"BAR-{operation.SourceDocumentNumber}"
+                : request.Session.ReferenceNumber;
+            request.Session.SourceLocationId ??= operation.Lines.Select(x => x.SourceLocationId).FirstOrDefault(x => x.HasValue);
+            request.Session.DestinationLocationId ??= operation.Lines.Select(x => x.DestinationLocationId).FirstOrDefault(x => x.HasValue);
+        }
+
         if (request.Session.WarehouseId.HasValue)
         {
             await global::Inventory.Warehouses.Features.Inventories.InventoryBranchScope.EnsureCanMutateWarehouseAsync(
@@ -500,6 +521,9 @@ public class ScanBarcodeSessionHandler(InventoryDbContext dbContext, IHttpContex
         session.UpdateContextFromScan(scan, userId);
 
         var quantity = scan.Quantity ?? 1m;
+        var operationLineId = session.InventoryOperationId.HasValue && !scan.IsRejected
+            ? await BarcodeHelpers.ResolveOperationLineAsync(dbContext, session, scan, quantity, cancellationToken)
+            : null;
         var status = scan.IsRejected
             ? BarcodeLineStatus.Rejected
             : scan.Warnings.Count > 0 ? BarcodeLineStatus.Warning : BarcodeLineStatus.Accepted;
@@ -524,6 +548,7 @@ public class ScanBarcodeSessionHandler(InventoryDbContext dbContext, IHttpContex
             WarehouseId = scan.WarehouseId ?? session.WarehouseId,
             SourceLocationId = sourceLocationId,
             DestinationLocationId = destinationLocationId,
+            InventoryOperationLineId = operationLineId,
             EnteredQuantity = quantity,
             PackageMultiplier = scan.ProductPackageId.HasValue ? quantity : 1m,
             UnitMultiplier = 1m,
@@ -567,7 +592,48 @@ public class ApplyBarcodeSessionHandler(InventoryDbContext dbContext, IHttpConte
         string? createdDocumentType = null;
         string message = "Barcode session validated and marked as applied. Use existing operation posting screens for financial stock posting.";
 
-        if (session.OperationType == BarcodeOperationType.CycleCount)
+        if (session.InventoryOperationId.HasValue)
+        {
+            var operation = await dbContext.InventoryOperations.Include(x => x.Lines).AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == session.InventoryOperationId.Value && x.CompanyId == session.CompanyId, cancellationToken)
+                ?? throw new NotFoundException("Inventory operation", session.InventoryOperationId.Value);
+
+            await global::Inventory.Warehouses.Features.Inventories.InventoryBranchScope.EnsureCanMutateWarehouseAsync(
+                dbContext, sender, operation.CompanyId, operation.WarehouseId, cancellationToken);
+            if (operation.Status is InventoryOperationStatus.Done or InventoryOperationStatus.Cancelled)
+                throw new BadRequestException("Closed inventory operations cannot be processed by barcode session.");
+
+            var scannedByLine = session.Lines
+                .Where(x => x.Status != BarcodeLineStatus.Rejected && x.InventoryOperationLineId.HasValue)
+                .GroupBy(x => x.InventoryOperationLineId!.Value)
+                .ToDictionary(x => x.Key, x => x.Sum(line => line.NormalizedQuantity));
+
+            if (scannedByLine.Count == 0)
+                throw new BadRequestException("Barcode session has no accepted operation line scans.");
+
+            var validation = new ValidateInventoryOperationDto
+            {
+                Lines = operation.Lines.Select(line =>
+                {
+                    scannedByLine.TryGetValue(line.Id, out var scannedQuantity);
+                    var doneQuantity = line.DoneQuantity + scannedQuantity;
+                    if (doneQuantity > line.PlannedQuantity)
+                        throw new BadRequestException("Scanned quantity exceeds the planned operation quantity.");
+
+                    return new ValidateInventoryOperationLineDto
+                    {
+                        LineId = line.Id,
+                        DoneQuantity = doneQuantity
+                    };
+                }).ToList()
+            };
+
+            await sender.Send(new global::Inventory.Warehouses.Features.InventoryOperations.ValidateInventoryOperationCommand(operation.Id, validation), cancellationToken);
+            createdDocumentId = operation.Id;
+            createdDocumentType = "InventoryOperation";
+            message = $"Barcode session applied to inventory operation {operation.SourceDocumentNumber}.";
+        }
+        else if (session.OperationType == BarcodeOperationType.CycleCount)
         {
             var locationId = session.DestinationLocationId ?? session.SourceLocationId;
             if (!session.WarehouseId.HasValue || !locationId.HasValue)
@@ -685,4 +751,53 @@ file static class BarcodeHelpers
     public static string GetUserId(IHttpContextAccessor accessor) =>
         accessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
         ?? throw new UnauthorizedAccessException("User is not authenticated");
+
+    public static async Task<Guid?> ResolveOperationLineAsync(
+        InventoryDbContext dbContext,
+        BarcodeOperationSession session,
+        BarcodeScanResultDto scan,
+        decimal quantity,
+        CancellationToken cancellationToken)
+    {
+        if (!scan.ProductSkuId.HasValue)
+            return null;
+
+        var operation = await dbContext.InventoryOperations.Include(x => x.Lines).AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == session.InventoryOperationId!.Value && x.CompanyId == session.CompanyId, cancellationToken)
+            ?? throw new NotFoundException("Inventory operation", session.InventoryOperationId.Value);
+
+        if (operation.Status is InventoryOperationStatus.Done or InventoryOperationStatus.Cancelled)
+            throw new BadRequestException("Closed inventory operations cannot receive barcode scans.");
+        if (session.WarehouseId.HasValue && operation.WarehouseId != session.WarehouseId.Value)
+            throw new BadRequestException("Barcode session warehouse does not match the selected inventory operation.");
+
+        var candidates = operation.Lines
+            .Where(x => x.ProductSkuId == scan.ProductSkuId.Value)
+            .Where(x => !scan.BatchId.HasValue || x.BatchId == scan.BatchId.Value)
+            .Where(x => LocationMatches(operation, x, scan.WarehouseLocationId))
+            .OrderBy(x => x.LineNumber)
+            .ToList();
+
+        foreach (var candidate in candidates)
+        {
+            var alreadyScanned = session.Lines
+                .Where(x => x.Status != BarcodeLineStatus.Rejected && x.InventoryOperationLineId == candidate.Id)
+                .Sum(x => x.NormalizedQuantity);
+            var remaining = candidate.PlannedQuantity - candidate.DoneQuantity - alreadyScanned;
+            if (quantity <= remaining)
+                return candidate.Id;
+        }
+
+        throw new BadRequestException("Scanned SKU, batch, location, or quantity does not match an open line on the selected inventory operation.");
+    }
+
+    private static bool LocationMatches(InventoryOperation operation, InventoryOperationLine line, Guid? scannedLocationId)
+    {
+        if (!scannedLocationId.HasValue)
+            return true;
+
+        return operation.FlowDirection == InventoryOperationFlowDirection.Delivery
+            ? !line.SourceLocationId.HasValue || line.SourceLocationId == scannedLocationId.Value
+            : !line.DestinationLocationId.HasValue || line.DestinationLocationId == scannedLocationId.Value;
+    }
 }

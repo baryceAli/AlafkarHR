@@ -25,13 +25,11 @@
 
 @if (isLoading)
 {
-    <div class="branches-page" dir="@SharedDataService.PageDirection">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body py-5 text-center">
+    <div class="erp-page" dir="@SharedDataService.PageDirection">
+        <AppCard CssClass="allow-overflow" BodyClass="py-5 text-center">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
                 <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading customer groups...", "جاري تحميل فئات العملاء...")</div>
-            </div>
-        </div>
+        </AppCard>
     </div>
 }
 else if (!CanView)
@@ -42,8 +40,8 @@ else if (!CanView)
 }
 else
 {
-    <div class="branches-page">
-    <div class="branches-header mb-4">
+    <div class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="erp-page-header">
         <div>
             <div class="text-uppercase text-primary fw-semibold small mb-1">@SharedDataService.SelectViewLang("Customers", "العملاء")</div>
             <h3 class="mb-1">@SharedDataService.SelectViewLang("Customer Groups Management", "ادارة فئات العملاء")</h3>
@@ -98,8 +96,7 @@ else
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
             <div class="branch-toolbar mb-3">
                 <div class="branch-search">
                     <i class="bi bi-search"></i>
@@ -121,12 +118,12 @@ else
                 </div>
             </div>
 
-            <div class="table-responsive branch-table-wrap">
+            <div class="erp-table-wrap">
                         <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
 
-                <table class="table branch-table align-middle mb-0">
+                <table class="erp-table">
                     <thead>
                         <tr>
                             <th class="sortable" @onclick='() => Sort(SharedDataService.Language=="Ar"? nameof(CustomerGroupDto.Name) : nameof(CustomerGroupDto.NameEng))'>
@@ -262,14 +259,13 @@ else
                     </button>
                 </div>
             </div>
-        </div>
-    </div>
+    </AppCard>
     </div>
 }
 
 <style>
     .branches-page { max-width: 1400px; }
-    .branches-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    .erp-page-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
     .branch-stat { align-items: center; background: var(--erp-surface); border-inline-start: 4px solid; border-radius: var(--erp-radius-lg); box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
     .branch-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: var(--erp-radius-lg); display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
     .branch-stat-value { color: var(--erp-text); font-size: 1.35rem; font-weight: 700; line-height: 1.15; }

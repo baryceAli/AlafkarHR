@@ -8,6 +8,9 @@ public class GetSalesDashboardHandler(SalesOrderDbContext dbContext)
 {
     public async Task<GetSalesDashboardResult> Handle(GetSalesDashboardQuery request, CancellationToken cancellationToken)
     {
+        var today = DateTime.UtcNow.Date;
+        var soon = today.AddDays(7);
+        var soonExclusive = soon.AddDays(1);
         var query = dbContext.SalesOrders.AsNoTracking().Where(x => x.CompanyId == request.CompanyId);
         var quotations = dbContext.SalesQuotations.AsNoTracking().Where(x => x.CompanyId == request.CompanyId);
         var returns = dbContext.SalesReturns.AsNoTracking().Where(x => x.CompanyId == request.CompanyId);
@@ -20,6 +23,23 @@ public class GetSalesDashboardHandler(SalesOrderDbContext dbContext)
             DraftQuotations = await quotations.CountAsync(x => x.Status == SalesQuotationStatus.Draft, cancellationToken),
             SentQuotations = await quotations.CountAsync(x => x.Status == SalesQuotationStatus.Sent, cancellationToken),
             ConvertedQuotations = convertedQuotationCount,
+            QuotationsExpiringSoon = await quotations.CountAsync(x =>
+                x.ValidUntil.HasValue
+                && x.ValidUntil.Value >= today
+                && x.ValidUntil.Value < soonExclusive
+                && (x.Status == SalesQuotationStatus.Draft || x.Status == SalesQuotationStatus.Sent),
+                cancellationToken),
+            ExpiredQuotations = await quotations.CountAsync(x =>
+                x.Status == SalesQuotationStatus.Expired
+                || (x.ValidUntil.HasValue
+                    && x.ValidUntil.Value < today
+                    && (x.Status == SalesQuotationStatus.Draft || x.Status == SalesQuotationStatus.Sent)),
+                cancellationToken),
+            OptionalLineQuotations = await quotations.CountAsync(x => x.Lines.Any(line => line.IsOptional), cancellationToken),
+            OptionalLineAdoptions = await quotations.CountAsync(x => x.Lines.Any(line => line.IsOptional && line.Quantity > 0), cancellationToken),
+            DownPaymentQuotations = await quotations.CountAsync(x => x.DownPaymentAmount > 0 || x.DownPaymentPercent > 0, cancellationToken),
+            DownPaymentValue = await quotations.SumAsync(x => x.DownPaymentAmount + (x.TotalAmount * x.DownPaymentPercent / 100m), cancellationToken),
+            ProFormaQuotations = await quotations.CountAsync(x => x.IsProForma, cancellationToken),
             OpenQuotationValue = await quotations
                 .Where(x => x.Status == SalesQuotationStatus.Draft || x.Status == SalesQuotationStatus.Sent)
                 .SumAsync(x => x.TotalAmount, cancellationToken),

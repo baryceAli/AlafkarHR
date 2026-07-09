@@ -2,27 +2,28 @@
 @page "/Customers/Customer/Dashboard"
 @implements IDisposable
 @using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Customers.Dtos
 @using SharedWithUI.Customers.Enums
 @using SharedWithUI.Permissions
+@using SharedWithUI.SharedDtos
 
 @inject ICustomerService CustomerService
 @inject ICustomerGroupService CustomerGroupService
+@inject ISalesService SalesService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
 @if (isLoading)
 {
-    <div class="branches-page" dir="@SharedDataService.PageDirection">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body py-5 text-center">
+    <div class="erp-page" dir="@SharedDataService.PageDirection">
+        <AppCard BodyClass="py-5 text-center">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
                 <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading customer dashboard...", "جاري تحميل لوحة العملاء...")</div>
-            </div>
-        </div>
+        </AppCard>
     </div>
 }
 else if (!CanSelect)
@@ -33,8 +34,8 @@ else if (!CanSelect)
 }
 else
 {
-    <div class="branches-page">
-    <div class="branches-header mb-4">
+    <div class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="erp-page-header">
         <div>
             <div class="text-uppercase text-primary fw-semibold small mb-1">@SharedDataService.SelectViewLang("Customers", "العملاء")</div>
             <h3 class="mb-1">@SharedDataService.SelectViewLang("Customers Dashboard", "لوحة العملاء")</h3>
@@ -88,8 +89,38 @@ else
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <StatsCard Title="@SharedDataService.SelectViewLang("Fiscal Defaults", "Fiscal Defaults")"
+                       Value="@customersWithFiscalDefaults.ToString("N0")"
+                       Subtitle="@SharedDataService.SelectViewLang("Fiscal position configured", "Fiscal position configured")"
+                       Icon="bi-receipt-cutoff"
+                       Tone="info" />
+        </div>
+        <div class="col-md-3">
+            <StatsCard Title="@SharedDataService.SelectViewLang("Payment References", "Payment References")"
+                       Value="@customersWithPaymentReference.ToString("N0")"
+                       Subtitle="@SharedDataService.SelectViewLang("Customer reference configured", "Customer reference configured")"
+                       Icon="bi-credit-card-2-front"
+                       Tone="primary" />
+        </div>
+        <div class="col-md-3">
+            <StatsCard Title="@SharedDataService.SelectViewLang("Receivable Accounts", "Receivable Accounts")"
+                       Value="@customersWithReceivableAccount.ToString("N0")"
+                       Subtitle="@SharedDataService.SelectViewLang("Account mapping configured", "Account mapping configured")"
+                       Icon="bi-journal-check"
+                       Tone="success" />
+        </div>
+        <div class="col-md-3">
+            <StatsCard Title="@SharedDataService.SelectViewLang("Default Currency", "Default Currency")"
+                       Value="@customersWithDefaultCurrency.ToString("N0")"
+                       Subtitle="@SharedDataService.SelectViewLang("Currency configured", "Currency configured")"
+                       Icon="bi-currency-exchange"
+                       Tone="warning" />
+        </div>
+    </div>
+
+    <AppCard CssClass="mb-3">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5 class="mb-0">@SharedDataService.SelectViewLang("Recent Customers", "احدث العملاء")</h5>
             </div>
@@ -104,12 +135,12 @@ else
         }
         else
         {
-            <div class="table-responsive branch-table-wrap">
+            <div class="erp-table-wrap">
                         <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
 
-                <table class="table branch-table align-middle mb-0">
+                <table class="erp-table">
                     <thead>
                         <tr>
                             <th>@SharedDataService.SelectViewLang("Name", "الاسم")</th>
@@ -117,31 +148,37 @@ else
                             <th>@SharedDataService.SelectViewLang("Group", "الفئة")</th>
                             <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                             <th>@SharedDataService.SelectViewLang("Credit Limit", "حد الائتمان")</th>
+                            <th>@SharedDataService.SelectViewLang("Quotes", "Quotes")</th>
+                            <th>@SharedDataService.SelectViewLang("Orders", "Orders")</th>
+                            <th>@SharedDataService.SelectViewLang("Deliveries", "Deliveries")</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach (var customer in recentCustomers)
                         {
+                            var links = GetRecentCustomerLinks(customer.Id);
                             <tr>
                                 <td>@customer.Name</td>
                                 <td>@customer.CommercialName</td>
                                 <td>@GetCustomerGroupName(customer.CustomerGroupId)</td>
                                 <td>@customer.Status</td>
                                 <td>@customer.CreditLimit.ToString("N2")</td>
+                                <td>@links.Quotations.ToString("N0")</td>
+                                <td>@links.SalesOrders.ToString("N0")</td>
+                                <td>@links.Deliveries.ToString("N0")</td>
                             </tr>
                         }
                     </tbody>
                 </table>
             </div>
         }
-        </div>
-    </div>
+    </AppCard>
     </div>
 }
 
 <style>
     .branches-page { max-width: 1400px; }
-    .branches-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    .erp-page-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
     .branch-stat { align-items: center; background: var(--erp-surface); border-inline-start: 4px solid; border-radius: var(--erp-radius-lg); box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
     .branch-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: var(--erp-radius-lg); display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
     .branch-stat-value { color: var(--erp-text); font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
@@ -159,10 +196,15 @@ else
     private List<CustomerDto> recentCustomers = new();
     private List<CustomerDto> allCustomers = new();
     private List<CustomerGroupDto> customerGroups = new();
+    private readonly Dictionary<Guid, PartnerSmartLinkSummaryDto> recentCustomerLinks = new();
     private long totalCustomers;
     private int activeCustomers;
     private int taxExemptCustomers;
     private int blockedOrSuspendedCustomers;
+    private int customersWithFiscalDefaults;
+    private int customersWithPaymentReference;
+    private int customersWithReceivableAccount;
+    private int customersWithDefaultCurrency;
 
     private bool CanSelect => AuthState?.User.Claims.Any(c => c.Value == PermissionList.CustomerPermissions.Select) == true;
 
@@ -206,12 +248,17 @@ else
                 taxExemptCustomers = allCustomers.Count(c => c.IsTaxExempt);
                 blockedOrSuspendedCustomers = allCustomers.Count(c =>
                     c.Status is CustomerStatus.Blocked or CustomerStatus.Suspended);
+                customersWithFiscalDefaults = allCustomers.Count(c => !string.IsNullOrWhiteSpace(c.FiscalPosition));
+                customersWithPaymentReference = allCustomers.Count(c => !string.IsNullOrWhiteSpace(c.CustomerPaymentReference));
+                customersWithReceivableAccount = allCustomers.Count(c => c.ReceivableAccountId.HasValue);
+                customersWithDefaultCurrency = allCustomers.Count(c => c.DefaultCurrencyId.HasValue);
             }
 
             var response = await CustomerService.GetByCompany(companyId, 0, 5);
             if (response.IsSuccess && response.Data is not null)
             {
                 recentCustomers = response.Data.Data.ToList();
+                await LoadRecentCustomerActivityAsync(companyId);
             }
         }
 
@@ -226,6 +273,42 @@ else
         var group = customerGroups.FirstOrDefault(g => g.Id == customerGroupId.Value);
         return group is null ? "" : SharedDataService.SelectViewLang(group.NameEng, group.Name);
     }
+
+    private async Task LoadRecentCustomerActivityAsync(Guid companyId)
+    {
+        recentCustomerLinks.Clear();
+
+        foreach (var customer in recentCustomers)
+        {
+            var links = customer.SmartLinks ?? new();
+
+            if (AuthState?.User.Claims.Any(c => c.Value == PermissionList.SalesQuotationPermissions.View) == true)
+            {
+                var quoteLinks = await SalesService.GetQuotationSmartLinksAsync(companyId, customerId: customer.Id);
+                if (quoteLinks.IsSuccess && quoteLinks.Data is not null)
+                    links.Quotations = quoteLinks.Data.PartnerLinks.Quotations;
+            }
+
+            if (AuthState?.User.Claims.Any(c => c.Value == PermissionList.SalesOrderPermissions.View) == true)
+            {
+                var orderLinks = await SalesService.GetOrderSmartLinksAsync(companyId, customerId: customer.Id);
+                if (orderLinks.IsSuccess && orderLinks.Data is not null)
+                    links.SalesOrders = orderLinks.Data.PartnerLinks.SalesOrders;
+            }
+
+            if (AuthState?.User.Claims.Any(c => c.Value == PermissionList.SalesDeliveryNotePermissions.View) == true)
+            {
+                var deliveryLinks = await SalesService.GetDeliveryNoteSmartLinksAsync(companyId, customerId: customer.Id);
+                if (deliveryLinks.IsSuccess && deliveryLinks.Data is not null)
+                    links.Deliveries = deliveryLinks.Data.PartnerLinks.Deliveries;
+            }
+
+            recentCustomerLinks[customer.Id] = links;
+        }
+    }
+
+    private PartnerSmartLinkSummaryDto GetRecentCustomerLinks(Guid customerId) =>
+        recentCustomerLinks.TryGetValue(customerId, out var links) ? links : new();
 
     private async Task HandleChangeAsync()
     {

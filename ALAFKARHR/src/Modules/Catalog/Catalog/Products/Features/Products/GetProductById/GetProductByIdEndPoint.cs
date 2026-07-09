@@ -25,5 +25,14 @@ public class GetProductByIdEndPoint : ICarterModule
             .WithSummary("Get Product")
             .WithDescription("Get Product")
             .RequireAuthorization(PermissionList.ProductPermissions.Select); 
+
+        app.MapGet("/api/v1/catalog/products/{id}/smart-links", async (Guid id, ISender sender) =>
+        {
+            var result = await sender.Send(new GetProductSmartLinksQuery(id));
+            return Results.Ok(new { links = result.Links });
+        })
+            .WithName("GetProductSmartLinks")
+            .Produces<GetProductSmartLinksResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.ProductPermissions.Select);
     }
 }

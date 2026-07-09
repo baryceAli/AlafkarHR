@@ -4,6 +4,7 @@
 
 @using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components
 @using SharedWithUI.Permissions
 @using SharedWithUI.SalesOrder.Dtos
 @using SharedWithUI.SalesOrder.Enums
@@ -27,6 +28,17 @@
                 Icon="bi-truck" />
 
     <AppCard Title="@Text("Delivery Notes", "إشعارات التسليم")">
+        @if (HasSmartFilter)
+        {
+            <div class="erp-chip-row mb-3">
+                <StatusChip Tone="info" Text="@SmartFilterText()" />
+                <button class="btn btn-sm btn-outline-secondary" @onclick="ClearSmartFilter">
+                    <i class="bi bi-x-lg"></i>
+                    @Text("Clear", "مسح")
+                </button>
+            </div>
+        }
+
         @if (isLoading)
         {
             <div class="erp-loading py-4"><div class="spinner-border text-primary" role="status"></div></div>
@@ -60,9 +72,12 @@
                                 <td><span class="badge rounded-pill @StatusBadge(note.Status)">@note.Status</span></td>
                                 <td>@note.DeliveryDate.ToString("yyyy-MM-dd")</td>
                                 <td>@note.Lines.Count</td>
-                                <td class="text-end">
-                                    @if (note.Status == SalesDeliveryNoteStatus.Draft && CanPost)
-                                    {
+                          <td class="text-end">
+                              <a class="btn btn-sm btn-outline-secondary" href="@OperationLink(note.Id)">
+                                  <i class="bi bi-list-check"></i>
+                              </a>
+                              @if (note.Status == SalesDeliveryNoteStatus.Draft && CanPost)
+                              {
                                         <button class="btn btn-sm btn-primary" @onclick="() => PostAsync(note.Id)">
                                             <i class="bi bi-check2-circle"></i> @Text("Post", "ترحيل")
                                         </button>
@@ -91,6 +106,11 @@
     private Guid companyId;
     private List<SalesDeliveryNoteDto> deliveryNotes = [];
 
+    [SupplyParameterFromQuery] public Guid? CustomerId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductSkuId { get; set; }
+    private bool HasSmartFilter => CustomerId.HasValue || ProductId.HasValue || ProductSkuId.HasValue;
+
     protected override async Task OnInitializedAsync()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
@@ -116,7 +136,7 @@
     private async Task LoadAsync()
     {
         isLoading = true;
-        var result = await SalesService.GetDeliveryNotesByCompanyAsync(companyId, 0, 50);
+        var result = await SalesService.GetDeliveryNotesByCompanyAsync(companyId, 0, 50, CustomerId, ProductId, ProductSkuId);
         deliveryNotes = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
         isLoading = false;
     }
@@ -153,6 +173,18 @@
     };
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string SmartFilterText()
+    {
+        if (CustomerId.HasValue)
+            return Text("Filtered by customer", "مصفي حسب العميل");
+        if (ProductSkuId.HasValue)
+            return Text("Filtered by SKU", "مصفي حسب وحدة المنتج");
+        return Text("Filtered by product", "مصفي حسب المنتج");
+    }
+
+    private void ClearSmartFilter() => NavigationManager.NavigateTo("/Sales/DeliveryNotes");
+    private static string OperationLink(Guid sourceDocumentId) =>
+        $"/Inventory/Operations/Execution?sourceDocumentType=SalesDeliveryNote&sourceDocumentId={sourceDocumentId}";
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 }

@@ -23,4 +23,5 @@ global using Microsoft.AspNetCore.Authorization;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Routing;
 global using SharedWithUI.Permissions;
+global using SharedWithUI.SharedDtos;
 global using System.Security.Claims;

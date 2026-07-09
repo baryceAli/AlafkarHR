@@ -19,6 +19,7 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
             request.SalesOrder.Number,
             request.SalesOrder.CustomerId,
             request.SalesOrder.PriceListId,
+            request.SalesOrder.QuotationTemplateId,
             request.SalesOrder.CompanyId,
             request.SalesOrder.BranchId,
             request.SalesOrder.StoreFrontId,
@@ -33,8 +34,15 @@ public class CreateOrderHandler(SalesOrderDbContext dbContext, IHttpContextAcces
             request.SalesOrder.PaymentId,
             request.SalesOrder.DeliveryDate,
             request.SalesOrder.CustomerPurchaseOrderNumber,
+            request.SalesOrder.InvoiceAddressId,
+            request.SalesOrder.DeliveryAddressId,
             request.SalesOrder.Notes,
-            request.SalesOrder.Terms);
+            request.SalesOrder.Terms,
+            request.SalesOrder.RequiresCustomerSignature,
+            request.SalesOrder.RequiresOnlinePayment,
+            request.SalesOrder.DownPaymentAmount,
+            request.SalesOrder.DownPaymentPercent,
+            request.SalesOrder.IsProForma);
 
         if (request.SalesOrder.Lines.Any())
         {

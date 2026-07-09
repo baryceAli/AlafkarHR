@@ -28,5 +28,15 @@ public class WarehouseDto
     public Guid CompanyId { get; set; }
     public Guid? BranchId { get; set; }
     public WarehouseType WarehouseType { get; set; } = WarehouseType.Commercial;
+    public string? ShortCode { get; set; }
+    public WarehouseOperationFlow InboundFlow { get; set; } = WarehouseOperationFlow.OneStep;
+    public WarehouseOperationFlow OutboundFlow { get; set; } = WarehouseOperationFlow.OneStep;
+    public Guid? DefaultSourceLocationId { get; set; }
+    public Guid? DefaultDestinationLocationId { get; set; }
+    public Guid? DefaultQualityLocationId { get; set; }
+    public Guid? DefaultPackingLocationId { get; set; }
+    public Guid? DefaultOutputLocationId { get; set; }
+    public Guid? DefaultTransitLocationId { get; set; }
+    public List<Guid> ResupplyFromWarehouseIds { get; set; } = [];
 
 }

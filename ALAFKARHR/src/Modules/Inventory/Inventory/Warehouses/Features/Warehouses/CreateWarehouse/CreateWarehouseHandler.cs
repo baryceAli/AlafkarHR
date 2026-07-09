@@ -17,6 +17,7 @@ public class CreateWarehouseValidator : AbstractValidator<CreateWarehouseCommand
         RuleFor(x => x.Warehouse.Name).NotEmpty().MaximumLength(100).WithMessage("Name is required");
         RuleFor(x => x.Warehouse.NameEng).NotEmpty().MaximumLength(100).WithMessage("NameEng is required");
         RuleFor(x => x.Warehouse.Location).NotEmpty().MaximumLength(200).WithMessage("Location is required");
+        RuleFor(x => x.Warehouse.ShortCode).MaximumLength(20);
     }
 }
 public class CreateWarehouseHandler (InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender): ICommandHandler<CreateWarehouseCommand, CreateWarehouseResult>
@@ -33,8 +34,11 @@ public class CreateWarehouseHandler (InventoryDbContext dbContext, IHttpContextA
         if (!BranchScopePolicy.CanMutate(branchAccess, request.Warehouse.BranchId))
             throw new ForbiddenException("You do not have permission to create a warehouse in this branch scope.");
 
+        var warehouseId = Guid.NewGuid();
+        await WarehouseConfigurationHelper.PrepareWarehouseConfigurationAsync(dbContext, request.Warehouse, warehouseId, branchAccess, userId, cancellationToken);
+
         var warehouse= Warehouse.Create(
-            Guid.NewGuid(), 
+            warehouseId,
             request.Warehouse.Name, 
             request.Warehouse.NameEng,
             request.Warehouse.Location,
@@ -44,7 +48,17 @@ public class CreateWarehouseHandler (InventoryDbContext dbContext, IHttpContextA
             request.Warehouse.CompanyId,
             request.Warehouse.BranchId,
             request.Warehouse.WarehouseType,
+            request.Warehouse.ShortCode,
+            request.Warehouse.InboundFlow,
+            request.Warehouse.OutboundFlow,
+            request.Warehouse.DefaultSourceLocationId,
+            request.Warehouse.DefaultDestinationLocationId,
+            request.Warehouse.DefaultQualityLocationId,
+            request.Warehouse.DefaultPackingLocationId,
+            request.Warehouse.DefaultOutputLocationId,
+            request.Warehouse.DefaultTransitLocationId,
             userId);
+        warehouse.SetResupplyFrom(request.Warehouse.ResupplyFromWarehouseIds, userId);
 
         await dbContext.Warehouses.AddAsync(warehouse,cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);

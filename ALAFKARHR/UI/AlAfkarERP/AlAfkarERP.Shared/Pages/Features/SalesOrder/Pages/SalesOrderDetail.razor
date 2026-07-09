@@ -131,6 +131,39 @@
                     <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(order.TotalAmount)</strong></div>
                 </AppCard>
 
+                <AppCard Title="@Text("Quotation & Invoicing", "Quotation & Invoicing")" CssClass="mb-3">
+                    <div class="summary-row">
+                        <span>@Text("Source quotation", "Source quotation")</span>
+                        @if (order.SourceQuotationId.HasValue)
+                        {
+                            <a href="@($"/Sales/Quotations/{order.SourceQuotationId.Value}")">@SourceQuotationLabel()</a>
+                        }
+                        else
+                        {
+                            <strong>-</strong>
+                        }
+                    </div>
+                    <div class="summary-row"><span>@Text("Quotation template", "Quotation template")</span><strong>@TemplateLabel()</strong></div>
+                    <div class="summary-row"><span>@Text("Invoice address", "Invoice address")</span><strong>@AddressValue(order.InvoiceAddressId)</strong></div>
+                    <div class="summary-row"><span>@Text("Delivery address", "Delivery address")</span><strong>@AddressValue(order.DeliveryAddressId)</strong></div>
+                    <div class="summary-row"><span>@Text("Invoicing policy", "Invoicing policy")</span><strong>@InvoicingPolicyText(order.InvoicingPolicy)</strong></div>
+                    <div class="summary-row"><span>@Text("Down payment", "Down payment")</span><strong>@DownPaymentText()</strong></div>
+                    <div class="quote-control-chips mt-3">
+                        @if (order.RequiresCustomerSignature)
+                        {
+                            <span class="badge text-bg-secondary">@Text("Signature required", "Signature required")</span>
+                        }
+                        @if (order.RequiresOnlinePayment)
+                        {
+                            <span class="badge text-bg-primary">@Text("Online payment required", "Online payment required")</span>
+                        }
+                        @if (order.IsProForma)
+                        {
+                            <span class="badge text-bg-info">@Text("Pro-forma", "Pro-forma")</span>
+                        }
+                    </div>
+                </AppCard>
+
                 @if ((CanEdit || CanConfirm) && !order.IsCancelled && !order.IsCompleted)
                 {
                     <AppCard Title="@Text("Workflow", "سير العمل")">
@@ -359,6 +392,48 @@
 
     private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
 
+    private string SourceQuotationLabel()
+    {
+        if (order is null)
+            return "-";
+
+        return string.IsNullOrWhiteSpace(order.SourceDocumentNumber)
+            ? order.SourceQuotationId?.ToString("N")[..8] ?? "-"
+            : order.SourceDocumentNumber;
+    }
+
+    private string TemplateLabel()
+    {
+        if (order?.QuotationTemplateId is not Guid templateId)
+            return Text("Template storage planned in Phase 4", "Template storage planned in Phase 4");
+
+        return templateId.ToString("N")[..8];
+    }
+
+    private string AddressValue(Guid? addressId) =>
+        addressId.HasValue ? addressId.Value.ToString("N")[..8] : Text("Customer default", "Customer default");
+
+    private string InvoicingPolicyText(SalesInvoicingPolicy policy) => policy switch
+    {
+        SalesInvoicingPolicy.InvoiceOrderedQuantity => Text("Invoice ordered quantities", "Invoice ordered quantities"),
+        SalesInvoicingPolicy.InvoiceDeliveredQuantity => Text("Invoice delivered quantities", "Invoice delivered quantities"),
+        _ => policy.ToString()
+    };
+
+    private string DownPaymentText()
+    {
+        if (order is null || (order.DownPaymentAmount <= 0 && order.DownPaymentPercent <= 0))
+            return Text("None", "None");
+
+        var parts = new List<string>();
+        if (order.DownPaymentAmount > 0)
+            parts.Add(Money(order.DownPaymentAmount));
+        if (order.DownPaymentPercent > 0)
+            parts.Add($"{order.DownPaymentPercent:N2}%");
+
+        return string.Join(" / ", parts);
+    }
+
     private bool TryGetComboSku(Guid productSkuId, out ProductSkuDto sku)
     {
         sku = catalogSkus.FirstOrDefault(x => x.Id == productSkuId &&
@@ -436,5 +511,11 @@
         color: var(--erp-text-muted);
         font-size: .8rem;
         padding: .2rem .5rem;
+    }
+
+    .quote-control-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-1);
     }
 </style>

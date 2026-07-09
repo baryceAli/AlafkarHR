@@ -74,4 +74,20 @@ public class ProcurementDashboardDto
     public int GoodsReceipts { get; set; }
     public int PurchaseReturns { get; set; }
     public int SupplierInvoices { get; set; }
+    public int SentRequestsForQuotation { get; set; }
+    public int PurchaseOrdersAwaitingReceipt { get; set; }
+    public int BillablePurchaseDocuments { get; set; }
+    public int BillableReceipts { get; set; }
+    public int ThreeWayMatchExceptions { get; set; }
+    public int ActiveTenders { get; set; }
+    public int ActiveBlanketOrders { get; set; }
+    public List<ProcurementDashboardSupplierDto> TopSuppliers { get; set; } = [];
+}
+
+public class ProcurementDashboardSupplierDto
+{
+    public Guid? SupplierId { get; set; }
+    public string SupplierName { get; set; } = string.Empty;
+    public int PurchaseOrders { get; set; }
+    public decimal PurchasedValue { get; set; }
 }

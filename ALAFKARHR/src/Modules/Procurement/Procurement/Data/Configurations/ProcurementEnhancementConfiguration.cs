@@ -48,6 +48,12 @@ public class ReorderingRuleConfiguration : IEntityTypeConfiguration<ReorderingRu
         builder.Property(x => x.MinimumQuantity).HasPrecision(18, 4);
         builder.Property(x => x.MaximumQuantity).HasPrecision(18, 4);
         builder.Property(x => x.ReorderQuantity).HasPrecision(18, 4);
+        builder.Property(x => x.MultipleQuantity).HasPrecision(18, 4);
+        builder.Property(x => x.TriggerMode)
+            .HasConversion<string>()
+            .HasMaxLength(40)
+            .HasDefaultValue(ReplenishmentTriggerMode.Manual);
+        builder.Property(x => x.LastGeneratedDocumentNumber).HasMaxLength(100);
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
         builder.Property(x => x.DeletedBy).HasMaxLength(100);

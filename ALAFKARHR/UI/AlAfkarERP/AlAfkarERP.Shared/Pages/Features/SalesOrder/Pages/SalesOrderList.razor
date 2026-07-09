@@ -44,6 +44,16 @@
     </PageHeader>
 
     <AppCard Title="@Text("Orders", "الأوامر")">
+        @if (HasSmartFilter)
+        {
+            <div class="erp-chip-row mb-3">
+                <StatusChip Tone="info" Text="@SmartFilterText()" />
+                <button class="btn btn-outline-secondary btn-sm" @onclick='() => NavigationManager.NavigateTo("/Sales/Orders")'>
+                    <i class="bi bi-x-lg"></i>
+                    @Text("Clear filter", "مسح التصفية")
+                </button>
+            </div>
+        }
         @if (isLoading)
         {
             <div class="erp-loading py-4">
@@ -115,7 +125,11 @@
     private long totalCount;
     private List<SalesOrderDto> orders = [];
     private List<BranchDto> branches = [];
+    [SupplyParameterFromQuery] public Guid? CustomerId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductSkuId { get; set; }
     private bool HasNextPage => (pageIndex + 1) * PageSize < totalCount;
+    private bool HasSmartFilter => CustomerId.HasValue || ProductId.HasValue || ProductSkuId.HasValue;
 
     protected override async Task OnInitializedAsync()
     {
@@ -161,7 +175,7 @@
     private async Task LoadAsync()
     {
         isLoading = true;
-        var result = await SalesService.GetOrdersByCompanyAsync(companyId, pageIndex, PageSize);
+        var result = await SalesService.GetOrdersByCompanyAsync(companyId, pageIndex, PageSize, CustomerId, ProductId, ProductSkuId);
         if (result.IsSuccess && result.Data is not null)
         {
             orders = result.Data.Data.ToList();
@@ -184,6 +198,17 @@
             return;
         pageIndex++;
         await LoadAsync();
+    }
+
+    private string SmartFilterText()
+    {
+        if (CustomerId.HasValue)
+            return Text("Filtered by customer", "مصفى حسب العميل");
+        if (ProductSkuId.HasValue)
+            return Text("Filtered by SKU", "مصفى حسب وحدة المنتج");
+        if (ProductId.HasValue)
+            return Text("Filtered by product", "مصفى حسب المنتج");
+        return Text("Filtered", "مصفى");
     }
 
     private string StatusText(SalesOrderStatus status) => status switch

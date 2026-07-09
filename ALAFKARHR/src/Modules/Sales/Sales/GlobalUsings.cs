@@ -13,3 +13,4 @@ global using SharedWithUI.Permissions;
 global using SharedWithUI.Sales.Dtos;
 global using SharedWithUI.SalesOrder.Dtos;
 global using SharedWithUI.SalesOrder.Enums;
+global using SharedWithUI.SharedDtos;

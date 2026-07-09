@@ -11,6 +11,7 @@ public class UpdateWarehouseCommandValidator : AbstractValidator<UpdateWarehouse
         RuleFor(x => x.Warehouse.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x => x.Warehouse.NameEng).NotEmpty().WithMessage("NameEng is required");
         RuleFor(x => x.Warehouse.Location).NotEmpty().WithMessage("Location is required");
+        RuleFor(x => x.Warehouse.ShortCode).MaximumLength(20);
     }
 }
 public class UpdateWarehouseHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
@@ -18,7 +19,9 @@ public class UpdateWarehouseHandler(InventoryDbContext dbContext, IHttpContextAc
 {
     public async Task<UpdateWarehouseResult> Handle(UpdateWarehouseCommand request, CancellationToken cancellationToken)
     {
-        var warehouse = await dbContext.Warehouses.FindAsync(new object[] { request.Warehouse.Id }, cancellationToken);
+        var warehouse = await dbContext.Warehouses
+            .Include(x => x.ResupplyFromLinks)
+            .FirstOrDefaultAsync(x => x.Id == request.Warehouse.Id, cancellationToken);
         if (warehouse is null)
             throw new Exception($"Warehouse not found: {request.Warehouse.Id}");
 
@@ -34,6 +37,9 @@ public class UpdateWarehouseHandler(InventoryDbContext dbContext, IHttpContextAc
         if (string.IsNullOrWhiteSpace(userId))
             throw new UnauthorizedAccessException("User is not authenticated.");
 
+        request.Warehouse.CompanyId = warehouse.CompanyId;
+        await WarehouseConfigurationHelper.PrepareWarehouseConfigurationAsync(dbContext, request.Warehouse, warehouse.Id, branchAccess, userId, cancellationToken);
+
         warehouse.Update(
             request.Warehouse.Name, 
             request.Warehouse.NameEng,
@@ -43,8 +49,18 @@ public class UpdateWarehouseHandler(InventoryDbContext dbContext, IHttpContextAc
             request.Warehouse.Latitude,
             request.Warehouse.BranchId,
             request.Warehouse.WarehouseType,
+            request.Warehouse.ShortCode,
+            request.Warehouse.InboundFlow,
+            request.Warehouse.OutboundFlow,
+            request.Warehouse.DefaultSourceLocationId,
+            request.Warehouse.DefaultDestinationLocationId,
+            request.Warehouse.DefaultQualityLocationId,
+            request.Warehouse.DefaultPackingLocationId,
+            request.Warehouse.DefaultOutputLocationId,
+            request.Warehouse.DefaultTransitLocationId,
             userId);
-        await dbContext.SaveChangesAsync();
+        warehouse.SetResupplyFrom(request.Warehouse.ResupplyFromWarehouseIds, userId);
+        await dbContext.SaveChangesAsync(cancellationToken);
         return new UpdateWarehouseResult(true);
     }
 }

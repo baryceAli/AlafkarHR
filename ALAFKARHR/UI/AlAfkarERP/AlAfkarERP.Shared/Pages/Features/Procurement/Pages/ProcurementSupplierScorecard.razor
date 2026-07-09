@@ -4,6 +4,7 @@
 @using AlAfkarERP.Shared.Pages.Features.Procurement.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components
 @using SharedWithUI.Permissions
 @using SharedWithUI.Procurement.Dtos
 
@@ -57,6 +58,16 @@
                     </button>
                 </Actions>
             </FilterBar>
+            @if (HasSmartFilter)
+            {
+                <div class="erp-chip-row mb-3">
+                    <StatusChip Tone="info" Text="@Text("Filtered by supplier", "مصفي حسب المورد")" />
+                    <button class="btn btn-sm btn-outline-secondary" @onclick="ClearSmartFilter">
+                        <i class="bi bi-x-lg"></i>
+                        @Text("Clear", "مسح")
+                    </button>
+                </div>
+            }
             <div class="erp-table-wrap">
                 <table class="table erp-table mb-0">
                     <thead>
@@ -107,6 +118,9 @@
     private AuthenticationState? authState;
     private List<SupplierScorecardRowDto> rows = [];
 
+    [SupplyParameterFromQuery] public Guid? SupplierId { get; set; }
+    private bool HasSmartFilter => SupplierId.HasValue;
+
     private bool CanView => HasPermission(PermissionList.PurchaseOrderPermissions.View);
     private List<SupplierScorecardRowDto> FilteredRows => string.IsNullOrWhiteSpace(searchText)
         ? rows
@@ -128,7 +142,7 @@
 
     private async Task LoadAsync()
     {
-        var result = await ProcurementService.GetSupplierScorecardAsync(companyId);
+        var result = await ProcurementService.GetSupplierScorecardAsync(companyId, SupplierId);
         if (result.IsSuccess)
             rows = result.Data ?? [];
         else
@@ -136,6 +150,7 @@
     }
 
     private void Back() => NavigationManager.NavigateTo("/Procurement/Enhancements");
+    private void ClearSmartFilter() => NavigationManager.NavigateTo("/Procurement/SupplierScorecard");
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private static string Percent(decimal value) => $"{value:N2}%";

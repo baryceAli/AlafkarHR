@@ -4,6 +4,7 @@
 
 @using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Customers.Enums
 @using SharedWithUI.Permissions
 @using SharedWithUI.Suppliers.Dtos
 @using SharedWithUI.Suppliers.Enums
@@ -108,6 +109,40 @@
                         <InputTextArea class="form-control" rows="2" @bind-Value="supplier.Notes" />
                     </div>
                 </div>
+                <div class="erp-subpanel mt-3">
+                    <div class="fw-semibold mb-3">@SharedDataService.SelectViewLang("Odoo Commercial Defaults", "إعدادات أودو التجارية")</div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Fiscal Position", "الوضع الضريبي")</label>
+                            <InputText class="form-control" @bind-Value="supplier.FiscalPosition" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Payment Reference", "مرجع الدفع")</label>
+                            <InputText class="form-control" @bind-Value="supplier.VendorPaymentReference" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Default Currency Id", "معرف العملة الافتراضية")</label>
+                            <input class="form-control"
+                                   value="@FormatGuid(supplier.DefaultCurrencyId)"
+                                   @onchange="args => supplier.DefaultCurrencyId = ParseNullableGuid(args.Value?.ToString())"
+                                   placeholder="00000000-0000-0000-0000-000000000000" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Payable Account Id", "معرف حساب الموردين")</label>
+                            <input class="form-control"
+                                   value="@FormatGuid(supplier.PayableAccountId)"
+                                   @onchange="args => supplier.PayableAccountId = ParseNullableGuid(args.Value?.ToString())"
+                                   placeholder="00000000-0000-0000-0000-000000000000" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Expense Account Id", "معرف حساب المصروف")</label>
+                            <input class="form-control"
+                                   value="@FormatGuid(supplier.ExpenseAccountId)"
+                                   @onchange="args => supplier.ExpenseAccountId = ParseNullableGuid(args.Value?.ToString())"
+                                   placeholder="00000000-0000-0000-0000-000000000000" />
+                        </div>
+                    </div>
+                </div>
             </AppCard>
 
             <AppCard Title="@SharedDataService.SelectViewLang("Contacts", "جهات الاتصال")" CssClass="mb-3">
@@ -140,6 +175,15 @@
                             <div class="col-md-2">
                                 <label class="form-label">@SharedDataService.SelectViewLang("Phone", "الهاتف")</label>
                                 <InputText class="form-control" @bind-Value="contact.PhoneNumber" />
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Contact Type", "نوع جهة الاتصال")</label>
+                                <InputSelect class="form-select" @bind-Value="contact.ContactType">
+                                    @foreach (var type in Enum.GetValues<PartnerContactType>())
+                                    {
+                                        <option value="@type">@GetContactTypeLabel(type)</option>
+                                    }
+                                </InputSelect>
                             </div>
                             <div class="col-md-1">
                                 <div class="form-check">
@@ -205,6 +249,15 @@
                                 <InputText class="form-control"
                                            @bind-Value="address.Title"
                                            placeholder="@SharedDataService.SelectViewLang("Main office", "المكتب الرئيسي")" />
+                            </div>
+                            <div class="col-md-4 col-lg-3">
+                                <label class="form-label">@SharedDataService.SelectViewLang("Address Type", "نوع العنوان")</label>
+                                <InputSelect class="form-select" @bind-Value="address.AddressType">
+                                    @foreach (var type in Enum.GetValues<PartnerAddressType>())
+                                    {
+                                        <option value="@type">@GetAddressTypeLabel(type)</option>
+                                    }
+                                </InputSelect>
                             </div>
                             <div class="col-md-4 col-lg-3">
                                 <div class="form-check mb-2">
@@ -397,6 +450,30 @@
             ? SharedDataService.SelectViewLang("New supplier address", "عنوان مورد جديد")
             : summary;
     }
+
+    private static Guid? ParseNullableGuid(string? value)
+        => Guid.TryParse(value, out var id) ? id : null;
+
+    private static string FormatGuid(Guid? value)
+        => value?.ToString() ?? string.Empty;
+
+    private string GetAddressTypeLabel(PartnerAddressType type) => type switch
+    {
+        PartnerAddressType.Invoice => SharedDataService.SelectViewLang("Invoice", "فاتورة"),
+        PartnerAddressType.Delivery => SharedDataService.SelectViewLang("Delivery", "تسليم"),
+        PartnerAddressType.Other => SharedDataService.SelectViewLang("Other", "أخرى"),
+        PartnerAddressType.Private => SharedDataService.SelectViewLang("Private", "خاص"),
+        _ => SharedDataService.SelectViewLang("Contact", "اتصال")
+    };
+
+    private string GetContactTypeLabel(PartnerContactType type) => type switch
+    {
+        PartnerContactType.Sales => SharedDataService.SelectViewLang("Sales", "مبيعات"),
+        PartnerContactType.Purchase => SharedDataService.SelectViewLang("Purchase", "مشتريات"),
+        PartnerContactType.Accounting => SharedDataService.SelectViewLang("Accounting", "محاسبة"),
+        PartnerContactType.Operations => SharedDataService.SelectViewLang("Operations", "تشغيل"),
+        _ => SharedDataService.SelectViewLang("Contact", "اتصال")
+    };
 
     private void SetDefaultBilling(SupplierAddressDto selectedAddress, bool isDefault)
     {

@@ -61,3 +61,24 @@ public enum SupplierInvoiceStatus
     Posted = 3,
     Cancelled = 4
 }
+
+public enum ProcurementAgreementType
+{
+    PurchaseTemplate = 1,
+    BlanketOrder = 2,
+    CallForTender = 3
+}
+
+public enum ProcurementAgreementStatus
+{
+    Draft = 1,
+    Confirmed = 2,
+    Closed = 3,
+    Cancelled = 4
+}
+
+public enum ReplenishmentTriggerMode
+{
+    Manual = 0,
+    Automatic = 1
+}

@@ -17,6 +17,7 @@ public class BarcodeOperationSessionConfiguration : IEntityTypeConfiguration<Bar
         builder.Property(x => x.DeletedBy).HasMaxLength(100);
         builder.HasIndex(x => new { x.CompanyId, x.OperationType, x.Status });
         builder.HasIndex(x => new { x.CompanyId, x.ReferenceNumber });
+        builder.HasIndex(x => x.InventoryOperationId);
         builder.HasQueryFilter(x => !x.IsDeleted);
         builder.HasMany(x => x.Lines)
             .WithOne()
@@ -53,6 +54,7 @@ public class BarcodeOperationLineConfiguration : IEntityTypeConfiguration<Barcod
         builder.HasIndex(x => x.ProductSkuId);
         builder.HasIndex(x => x.BatchId);
         builder.HasIndex(x => x.InventorySerialNumberId);
+        builder.HasIndex(x => x.InventoryOperationLineId);
         builder.HasIndex(x => x.SerialNumber);
         builder.HasQueryFilter(x => !x.IsDeleted);
     }

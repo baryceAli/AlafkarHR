@@ -21,6 +21,8 @@ public class SalesQuotation : Aggregate<Guid>
     public DateTime? ValidUntil { get; private set; }
     public string? Notes { get; private set; }
     public string? Terms { get; private set; }
+    public Guid? InvoiceAddressId { get; private set; }
+    public Guid? DeliveryAddressId { get; private set; }
     public decimal Subtotal { get; private set; }
     public decimal TaxAmount { get; private set; }
     public decimal TotalAmount { get; private set; }
@@ -59,6 +61,8 @@ public class SalesQuotation : Aggregate<Guid>
             ValidUntil = dto.ValidUntil,
             Notes = dto.Notes,
             Terms = dto.Terms,
+            InvoiceAddressId = dto.InvoiceAddressId,
+            DeliveryAddressId = dto.DeliveryAddressId,
             RequiresCustomerSignature = dto.RequiresCustomerSignature,
             RequiresOnlinePayment = dto.RequiresOnlinePayment,
             DownPaymentAmount = dto.DownPaymentAmount,
@@ -85,6 +89,8 @@ public class SalesQuotation : Aggregate<Guid>
         ValidUntil = dto.ValidUntil;
         Notes = dto.Notes;
         Terms = dto.Terms;
+        InvoiceAddressId = dto.InvoiceAddressId;
+        DeliveryAddressId = dto.DeliveryAddressId;
         RequiresCustomerSignature = dto.RequiresCustomerSignature;
         RequiresOnlinePayment = dto.RequiresOnlinePayment;
         DownPaymentAmount = dto.DownPaymentAmount;
@@ -162,10 +168,18 @@ public class SalesQuotation : Aggregate<Guid>
         if (ValidUntil.HasValue && ValidUntil.Value.Date < DateTime.UtcNow.Date &&
             Status is SalesQuotationStatus.Draft or SalesQuotationStatus.Sent)
         {
-            Status = SalesQuotationStatus.Expired;
-            ModifiedBy = userId;
-            ModifiedAt = DateTime.UtcNow;
+            Expire(userId);
         }
+    }
+
+    public void Expire(string userId)
+    {
+        if (Status is not (SalesQuotationStatus.Draft or SalesQuotationStatus.Sent))
+            throw new Exception("Only draft or sent quotations can expire.");
+
+        Status = SalesQuotationStatus.Expired;
+        ModifiedBy = userId;
+        ModifiedAt = DateTime.UtcNow;
     }
 
     private void ReplaceLines(List<SalesQuotationLineDto> lines, string userId)

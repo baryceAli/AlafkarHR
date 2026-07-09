@@ -13,6 +13,7 @@ public class GetWarehouseByIdHandler (InventoryDbContext dbContext, ISender send
     {
         var warehouse= await dbContext.Warehouses
             .AsNoTracking()
+            .Include(x => x.ResupplyFromLinks)
             .FirstOrDefaultAsync(x => x.Id == request.Id && x.DeletedAt==null, cancellationToken);
 
         if (warehouse is null)
@@ -22,6 +23,6 @@ public class GetWarehouseByIdHandler (InventoryDbContext dbContext, ISender send
         if (!BranchScopePolicy.CanRead(branchAccess, warehouse.BranchId))
             throw new ForbiddenException("You do not have permission to view this warehouse.");
 
-        return new GetWarehouseByIdResult(warehouse.Adapt<WarehouseDto>());
+        return new GetWarehouseByIdResult(WarehouseConfigurationHelper.ToDto(warehouse));
     }
 }

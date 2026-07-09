@@ -10,6 +10,7 @@ public class InventoryDbContext:DbContext
         
     }
     public DbSet<Warehouse> Warehouses=> Set<Warehouse>();
+    public DbSet<WarehouseResupplyLink> WarehouseResupplyLinks => Set<WarehouseResupplyLink>();
     public DbSet<AssetInstance> AssetInstances => Set<AssetInstance>();
     public DbSet<Batch> Batches => Set<Batch>();
     public DbSet<BatchStock> BatchStocks => Set<BatchStock>();
@@ -21,6 +22,16 @@ public class InventoryDbContext:DbContext
     public DbSet<WarehouseTransfer> WarehouseTransfers => Set<WarehouseTransfer>();
     public DbSet<TransferItem> TransferItems => Set<TransferItem>();
     public DbSet<WarehouseLocation> WarehouseLocations => Set<WarehouseLocation>();
+    public DbSet<InventoryOperationType> InventoryOperationTypes => Set<InventoryOperationType>();
+    public DbSet<InventoryOperation> InventoryOperations => Set<InventoryOperation>();
+    public DbSet<InventoryOperationLine> InventoryOperationLines => Set<InventoryOperationLine>();
+    public DbSet<PickingGroup> PickingGroups => Set<PickingGroup>();
+    public DbSet<PickingGroupLine> PickingGroupLines => Set<PickingGroupLine>();
+    public DbSet<ScrapOrder> ScrapOrders => Set<ScrapOrder>();
+    public DbSet<ScrapOrderLine> ScrapOrderLines => Set<ScrapOrderLine>();
+    public DbSet<ScrapOrderLineSerial> ScrapOrderLineSerials => Set<ScrapOrderLineSerial>();
+    public DbSet<InventoryRoute> InventoryRoutes => Set<InventoryRoute>();
+    public DbSet<InventoryRouteRule> InventoryRouteRules => Set<InventoryRouteRule>();
     public DbSet<InventoryLocationBalance> InventoryLocationBalances => Set<InventoryLocationBalance>();
     public DbSet<CycleCount> CycleCounts => Set<CycleCount>();
     public DbSet<CycleCountLine> CycleCountLines => Set<CycleCountLine>();

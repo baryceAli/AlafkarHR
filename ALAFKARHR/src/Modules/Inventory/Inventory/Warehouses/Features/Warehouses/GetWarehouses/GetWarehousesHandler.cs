@@ -43,12 +43,13 @@ public class GetWarehousesHandler (InventoryDbContext dbContext, ISender sender)
 
         var warehouses = await query
             .AsNoTracking()
+            .Include(x => x.ResupplyFromLinks)
             .OrderBy(x=>x.Name)
             .Skip(pageIndex*pageSize)
             .Take(pageSize)
             .ToListAsync();
 
-        var warehouseDtos = warehouses.Adapt<List<WarehouseDto>>();
+        var warehouseDtos = warehouses.Select(WarehouseConfigurationHelper.ToDto).ToList();
         return new GetWarehousesResult(new PaginatedResult<WarehouseDto>(
             pageIndex: pageIndex,
             pageSize: pageSize,

@@ -65,6 +65,37 @@ public abstract class ProcurementDocument : Aggregate<Guid>
         ModifiedBy = userId;
     }
 
+    public void MarkSent(string userId)
+    {
+        SentAt = DateTime.UtcNow;
+        SentBy = userId;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void ApplyPurchaseControlState(bool isBillable, ThreeWayMatchStatus matchStatus, string userId)
+    {
+        IsBillable = isBillable;
+        ThreeWayMatchStatus = matchStatus;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
+    public void ApplyLinePurchaseControlState(
+        Guid lineId,
+        decimal receivedQuantity,
+        decimal billedQuantity,
+        ThreeWayMatchStatus matchStatus,
+        string userId)
+    {
+        var line = _lines.FirstOrDefault(x => x.Id == lineId && !x.IsDeleted)
+            ?? throw new Exception("Procurement document line was not found.");
+
+        line.ApplyPurchaseControlState(receivedQuantity, billedQuantity, matchStatus, userId);
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+
     public ProcurementDocumentDto ToDto() =>
         new()
         {
@@ -227,6 +258,19 @@ public class ProcurementDocumentLine : Entity<Guid>
         IsDeleted = true;
         DeletedAt = DateTime.UtcNow;
         DeletedBy = userId;
+    }
+
+    public void ApplyPurchaseControlState(
+        decimal receivedQuantity,
+        decimal billedQuantity,
+        ThreeWayMatchStatus matchStatus,
+        string userId)
+    {
+        ReceivedQuantity = receivedQuantity;
+        BilledQuantity = billedQuantity;
+        ThreeWayMatchStatus = matchStatus;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
     }
 
     public ProcurementDocumentLineDto ToDto() =>

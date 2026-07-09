@@ -48,6 +48,7 @@ public class BarcodeOperationSessionDto
     public Guid? WarehouseId { get; set; }
     public Guid? SourceLocationId { get; set; }
     public Guid? DestinationLocationId { get; set; }
+    public Guid? InventoryOperationId { get; set; }
     public string? SourceDocumentType { get; set; }
     public Guid? SourceDocumentId { get; set; }
     public string? ReferenceNumber { get; set; }
@@ -74,6 +75,7 @@ public class BarcodeOperationLineDto
     public Guid? WarehouseId { get; set; }
     public Guid? SourceLocationId { get; set; }
     public Guid? DestinationLocationId { get; set; }
+    public Guid? InventoryOperationLineId { get; set; }
     public decimal EnteredQuantity { get; set; } = 1;
     public decimal PackageMultiplier { get; set; } = 1;
     public decimal UnitMultiplier { get; set; } = 1;

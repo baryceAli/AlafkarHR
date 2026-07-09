@@ -18,6 +18,8 @@ public class SalesQuotationDto
     public DateTime? ValidUntil { get; set; }
     public string? Notes { get; set; }
     public string? Terms { get; set; }
+    public Guid? InvoiceAddressId { get; set; }
+    public Guid? DeliveryAddressId { get; set; }
     public decimal Subtotal { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
@@ -56,4 +58,9 @@ public class SalesQuotationLineDto
     public string? Notes { get; set; }
     public bool IsOptional { get; set; }
     public SalesPricingSnapshotDto Pricing { get; set; } = new();
+}
+
+public class SalesQuotationExpiryResultDto
+{
+    public int ExpiredCount { get; set; }
 }

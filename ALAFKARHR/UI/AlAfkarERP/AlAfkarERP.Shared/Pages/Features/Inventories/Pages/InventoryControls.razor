@@ -61,6 +61,20 @@
                                     <option value="@value">@value</option>
                                 }
                             </InputSelect>
+                            <InputSelect class="form-select" @bind-Value="location.LocationUsage">
+                                @foreach (var value in Enum.GetValues<WarehouseLocationUsage>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </InputSelect>
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="location.IsVirtual" />
+                                <label class="form-check-label">@SharedDataService.SelectViewLang("Virtual location", "موقع افتراضي")</label>
+                            </div>
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="location.ExcludeFromPhysicalStock" />
+                                <label class="form-check-label">@SharedDataService.SelectViewLang("Exclude from physical stock", "استبعاد من المخزون الفعلي")</label>
+                            </div>
                             <button class="btn btn-primary" type="submit">
                                 <i class="bi bi-save"></i>
                                 @SharedDataService.SelectViewLang("Save", "حفظ")
@@ -196,16 +210,16 @@
                 </AppCard>
             </div>
             <div class="col-12">
-                <AppCard Title="@SharedDataService.SelectViewLang("Recent Cycle Counts", "Recent Cycle Counts")">
+                <AppCard Title="@SharedDataService.SelectViewLang("Recent Cycle Counts", "عمليات الجرد الأخيرة")">
                     <div class="erp-table-wrap">
                         <table class="erp-table table">
                             <thead>
                                 <tr>
-                                    <th>@SharedDataService.SelectViewLang("Number", "Number")</th>
-                                    <th>@SharedDataService.SelectViewLang("Warehouse", "Warehouse")</th>
-                                    <th>@SharedDataService.SelectViewLang("Location", "Location")</th>
-                                    <th>@SharedDataService.SelectViewLang("Lines", "Lines")</th>
-                                    <th>@SharedDataService.SelectViewLang("Status", "Status")</th>
+                                    <th>@SharedDataService.SelectViewLang("Number", "الرقم")</th>
+                                    <th>@SharedDataService.SelectViewLang("Warehouse", "المستودع")</th>
+                                    <th>@SharedDataService.SelectViewLang("Location", "الموقع")</th>
+                                    <th>@SharedDataService.SelectViewLang("Lines", "البنود")</th>
+                                    <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -219,7 +233,7 @@
                                         <td>@count.Lines.Count</td>
                                         <td>
                                             <span class="badge @(count.IsPosted ? "bg-success" : "bg-warning text-dark")">
-                                                @(count.IsPosted ? SharedDataService.SelectViewLang("Posted", "Posted") : SharedDataService.SelectViewLang("Draft", "Draft"))
+                                                @(count.IsPosted ? SharedDataService.SelectViewLang("Posted", "مرحل") : SharedDataService.SelectViewLang("Draft", "مسودة"))
                                             </span>
                                         </td>
                                         <td class="text-end">
@@ -227,7 +241,7 @@
                                             {
                                                 <button class="btn btn-sm btn-primary" type="button" @onclick="() => PostCycleCountAsync(count.Id)">
                                                     <i class="bi bi-check2-circle"></i>
-                                                    @SharedDataService.SelectViewLang("Post", "Post")
+                                                @SharedDataService.SelectViewLang("Post", "ترحيل")
                                                 </button>
                                             }
                                         </td>
@@ -242,7 +256,223 @@
 
         <div class="row g-3 mt-1">
             <div class="col-xl-4">
-                <AppCard Title="@SharedDataService.SelectViewLang("Cycle Count", "Cycle Count")" CssClass="h-100 allow-overflow">
+                <AppCard Title="@SharedDataService.SelectViewLang("Operation Type", "نوع العملية")" CssClass="h-100 allow-overflow">
+                    <EditForm Model="operationType" OnValidSubmit="SaveOperationTypeAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <AutoCompleteComponent TItem="WarehouseDto"
+                                                   Items="warehouses"
+                                                   Value="selectedOperationWarehouse"
+                                                   ItemText="WarehouseText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse", "اختر المستودع")"
+                                                   ValueChanged="OnOperationWarehouseChanged" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Code", "الرمز")" @bind-Value="operationType.Code" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Arabic name", "الاسم العربي")" @bind-Value="operationType.Name" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("English name", "الاسم الإنجليزي")" @bind-Value="operationType.NameEng" />
+                            <InputSelect class="form-select" @bind-Value="operationType.OperationKind">
+                                @foreach (var value in Enum.GetValues<InventoryOperationKind>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </InputSelect>
+                            <AutoCompleteComponent TItem="WarehouseLocationDto"
+                                                   Items="operationLocations"
+                                                   Value="selectedOperationSourceLocation"
+                                                   ItemText="LocationText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Default source", "المصدر الافتراضي")"
+                                                   ValueChanged="OnOperationSourceLocationChanged" />
+                            <AutoCompleteComponent TItem="WarehouseLocationDto"
+                                                   Items="operationLocations"
+                                                   Value="selectedOperationDestinationLocation"
+                                                   ItemText="LocationText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Default destination", "الوجهة الافتراضية")"
+                                                   ValueChanged="OnOperationDestinationLocationChanged" />
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-save"></i>
+                                @SharedDataService.SelectViewLang("Save", "حفظ")
+                            </button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+
+            <div class="col-xl-4">
+                <AppCard Title="@SharedDataService.SelectViewLang("Route", "المسار")" CssClass="h-100 allow-overflow">
+                    <EditForm Model="inventoryRoute" OnValidSubmit="SaveRouteAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <AutoCompleteComponent TItem="WarehouseDto"
+                                                   Items="warehouses"
+                                                   Value="selectedRouteWarehouse"
+                                                   ItemText="WarehouseText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Optional warehouse", "مستودع اختياري")"
+                                                   ValueChanged="OnRouteWarehouseChanged" />
+                            <AutoCompleteComponent TItem="ProductDto"
+                                                   Items="products"
+                                                   Value="selectedRouteProduct"
+                                                   ItemText="ProductText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Optional product", "منتج اختياري")"
+                                                   ValueChanged="OnRouteProductChanged" />
+                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                   Items="routeSkus"
+                                                   Value="selectedRouteSku"
+                                                   ItemText="SkuText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Optional SKU", "وحدة منتج اختيارية")"
+                                                   ValueChanged="OnRouteSkuChanged" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Code", "الرمز")" @bind-Value="inventoryRoute.Code" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Arabic name", "الاسم العربي")" @bind-Value="inventoryRoute.Name" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("English name", "الاسم الإنجليزي")" @bind-Value="inventoryRoute.NameEng" />
+                            <InputSelect class="form-select" @bind-Value="inventoryRoute.ApplicationScope">
+                                @foreach (var value in Enum.GetValues<InventoryRouteApplicationScope>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </InputSelect>
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-save"></i>
+                                @SharedDataService.SelectViewLang("Save", "حفظ")
+                            </button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+
+            <div class="col-xl-4">
+                <AppCard Title="@SharedDataService.SelectViewLang("Route Rule", "قاعدة المسار")" CssClass="h-100 allow-overflow">
+                    <EditForm Model="routeRule" OnValidSubmit="SaveRouteRuleAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-2">
+                            <AutoCompleteComponent TItem="InventoryRouteDto"
+                                                   Items="inventoryRoutes"
+                                                   Value="selectedRouteRuleRoute"
+                                                   ItemText="RouteText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select route", "اختر المسار")"
+                                                   ValueChanged="OnRouteRuleRouteChanged" />
+                            <AutoCompleteComponent TItem="WarehouseDto"
+                                                   Items="warehouses"
+                                                   Value="selectedRouteRuleWarehouse"
+                                                   ItemText="WarehouseText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse", "اختر المستودع")"
+                                                   ValueChanged="OnRouteRuleWarehouseChanged" />
+                            <AutoCompleteComponent TItem="InventoryOperationTypeDto"
+                                                   Items="routeRuleOperationTypes"
+                                                   Value="selectedRouteRuleOperationType"
+                                                   ItemText="OperationTypeText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select operation type", "اختر نوع العملية")"
+                                                   ValueChanged="OnRouteRuleOperationTypeChanged" />
+                            <InputSelect class="form-select" @bind-Value="routeRule.Action">
+                                @foreach (var value in Enum.GetValues<InventoryRouteRuleAction>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </InputSelect>
+                            <AutoCompleteComponent TItem="WarehouseLocationDto"
+                                                   Items="routeRuleLocations"
+                                                   Value="selectedRouteRuleSourceLocation"
+                                                   ItemText="LocationText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Source location", "موقع المصدر")"
+                                                   ValueChanged="OnRouteRuleSourceLocationChanged" />
+                            <AutoCompleteComponent TItem="WarehouseLocationDto"
+                                                   Items="routeRuleLocations"
+                                                   Value="selectedRouteRuleDestinationLocation"
+                                                   ItemText="LocationText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Destination location", "موقع الوجهة")"
+                                                   ValueChanged="OnRouteRuleDestinationLocationChanged" />
+                            <AutoCompleteComponent TItem="ProductDto"
+                                                   Items="products"
+                                                   Value="selectedRouteRuleProduct"
+                                                   ItemText="ProductText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Optional product", "منتج اختياري")"
+                                                   ValueChanged="OnRouteRuleProductChanged" />
+                            <AutoCompleteComponent TItem="ProductSkuDto"
+                                                   Items="routeRuleSkus"
+                                                   Value="selectedRouteRuleSku"
+                                                   ItemText="SkuText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Optional SKU", "وحدة منتج اختيارية")"
+                                                   ValueChanged="OnRouteRuleSkuChanged" />
+                            <InputNumber class="form-control" @bind-Value="routeRule.Priority" placeholder="Priority" />
+                            <button class="btn btn-primary" type="submit">
+                                <i class="bi bi-save"></i>
+                                @SharedDataService.SelectViewLang("Save", "حفظ")
+                            </button>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+
+            <div class="col-12">
+                <AppCard Title="@SharedDataService.SelectViewLang("Route Proposals", "اقتراحات المسارات")" CssClass="allow-overflow">
+                    <div class="row g-2 align-items-end">
+                        <div class="col-md-3">
+                            <AutoCompleteComponent TItem="WarehouseDto"
+                                                   Items="warehouses"
+                                                   Value="selectedProposalWarehouse"
+                                                   ItemText="WarehouseText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Warehouse", "المستودع")"
+                                                   ValueChanged="OnProposalWarehouseChanged" />
+                        </div>
+                        <div class="col-md-3">
+                            <AutoCompleteComponent TItem="WarehouseLocationDto"
+                                                   Items="proposalLocations"
+                                                   Value="selectedProposalLocation"
+                                                   ItemText="LocationText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Location", "الموقع")"
+                                                   ValueChanged="OnProposalLocationChanged" />
+                        </div>
+                        <div class="col-md-3">
+                            <AutoCompleteComponent TItem="ProductDto"
+                                                   Items="products"
+                                                   Value="selectedProposalProduct"
+                                                   ItemText="ProductText"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Product", "المنتج")"
+                                                   ValueChanged="OnProposalProductChanged" />
+                        </div>
+                        <div class="col-md-2">
+                            <InputSelect class="form-select" @bind-Value="proposalAction">
+                                @foreach (var value in Enum.GetValues<InventoryRouteRuleAction>())
+                                {
+                                    <option value="@value">@value</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-1 d-grid">
+                            <button class="btn btn-outline-primary" type="button" @onclick="LoadRouteProposalsAsync">
+                                <i class="bi bi-arrow-repeat"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="erp-table-wrap mt-3">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th>@SharedDataService.SelectViewLang("Route", "المسار")</th>
+                                    <th>@SharedDataService.SelectViewLang("Operation", "العملية")</th>
+                                    <th>@SharedDataService.SelectViewLang("From", "من")</th>
+                                    <th>@SharedDataService.SelectViewLang("To", "إلى")</th>
+                                    <th>@SharedDataService.SelectViewLang("Priority", "الأولوية")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var proposal in routeProposals.Take(25))
+                                {
+                                    <tr>
+                                        <td>@SharedDataService.SelectViewLang(proposal.RouteNameEng ?? string.Empty, proposal.RouteName ?? string.Empty)</td>
+                                        <td>@OperationTypeText(proposal)</td>
+                                        <td>@($"{proposal.SourceLocationCode} - {SharedDataService.SelectViewLang(proposal.SourceLocationNameEng ?? string.Empty, proposal.SourceLocationName ?? string.Empty)}")</td>
+                                        <td>@($"{proposal.DestinationLocationCode} - {SharedDataService.SelectViewLang(proposal.DestinationLocationNameEng ?? string.Empty, proposal.DestinationLocationName ?? string.Empty)}")</td>
+                                        <td>@proposal.Priority</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-1">
+            <div class="col-xl-4">
+                <AppCard Title="@SharedDataService.SelectViewLang("Cycle Count", "الجرد الدوري")" CssClass="h-100 allow-overflow">
                     <EditForm Model="cycleCount" OnValidSubmit="SaveCycleCountAsync">
                         <DataAnnotationsValidator />
                         <div class="vstack gap-2">
@@ -250,42 +480,42 @@
                                                    Items="warehouses"
                                                    Value="selectedCycleWarehouse"
                                                    ItemText="WarehouseText"
-                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse", "Select warehouse")"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select warehouse", "اختر المستودع")"
                                                    ValueChanged="OnCycleWarehouseChanged" />
                             <AutoCompleteComponent TItem="WarehouseLocationDto"
                                                    Items="cycleLocations"
                                                    Value="selectedCycleLocation"
                                                    ItemText="LocationText"
-                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select location", "Select location")"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select location", "اختر الموقع")"
                                                    ValueChanged="OnCycleLocationChanged" />
                             <AutoCompleteComponent TItem="ProductDto"
                                                    Items="products"
                                                    Value="selectedCycleProduct"
                                                    ItemText="ProductText"
-                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select product", "Select product")"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select product", "اختر المنتج")"
                                                    ValueChanged="OnCycleProductChanged" />
                             <AutoCompleteComponent TItem="ProductSkuDto"
                                                    Items="cycleSkus"
                                                    Value="selectedCycleSku"
                                                    ItemText="SkuText"
-                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select SKU", "Select SKU")"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select SKU", "اختر وحدة المنتج")"
                                                    ValueChanged="OnCycleSkuChanged" />
                             <AutoCompleteComponent TItem="BatchDto"
                                                    Items="cycleBatches"
                                                    Value="selectedCycleBatch"
                                                    ItemText="BatchText"
-                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select batch", "Select batch")"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select batch", "اختر الدفعة")"
                                                    ValueChanged="OnCycleBatchChanged" />
-                            <InputNumber class="form-control" @bind-Value="cycleCountQuantity" placeholder="@SharedDataService.SelectViewLang("Counted quantity", "Counted quantity")" />
-                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Reason", "Reason")" @bind-Value="cycleCount.Reason" />
+                            <InputNumber class="form-control" @bind-Value="cycleCountQuantity" placeholder="@SharedDataService.SelectViewLang("Counted quantity", "الكمية المعدودة")" />
+                            <InputText class="form-control" placeholder="@SharedDataService.SelectViewLang("Reason", "السبب")" @bind-Value="cycleCount.Reason" />
                             <div class="d-flex gap-2 flex-wrap">
                                 <button class="btn btn-outline-secondary" type="button" @onclick="AddCycleCountLine">
                                     <i class="bi bi-plus"></i>
-                                    @SharedDataService.SelectViewLang("Add line", "Add line")
+                                    @SharedDataService.SelectViewLang("Add line", "إضافة بند")
                                 </button>
                                 <button class="btn btn-primary" type="submit">
                                     <i class="bi bi-save"></i>
-                                    @SharedDataService.SelectViewLang("Save count", "Save count")
+                                    @SharedDataService.SelectViewLang("Save count", "حفظ الجرد")
                                 </button>
                             </div>
                             @if (cycleCount.Lines.Any())
@@ -309,17 +539,17 @@
                 </AppCard>
             </div>
             <div class="col-xl-8">
-                <AppCard Title="@SharedDataService.SelectViewLang("Location Stock", "Location Stock")">
+                <AppCard Title="@SharedDataService.SelectViewLang("Location Stock", "مخزون المواقع")">
                     <div class="erp-table-wrap">
                         <table class="erp-table table">
                             <thead>
                                 <tr>
-                                    <th>@SharedDataService.SelectViewLang("Location", "Location")</th>
+                                    <th>@SharedDataService.SelectViewLang("Location", "الموقع")</th>
                                     <th>SKU</th>
-                                    <th>@SharedDataService.SelectViewLang("Batch", "Batch")</th>
-                                    <th>@SharedDataService.SelectViewLang("Qty", "Qty")</th>
-                                    <th>@SharedDataService.SelectViewLang("Reserved", "Reserved")</th>
-                                    <th>@SharedDataService.SelectViewLang("Available", "Available")</th>
+                                    <th>@SharedDataService.SelectViewLang("Batch", "الدفعة")</th>
+                                    <th>@SharedDataService.SelectViewLang("Qty", "الكمية")</th>
+                                    <th>@SharedDataService.SelectViewLang("Reserved", "محجوز")</th>
+                                    <th>@SharedDataService.SelectViewLang("Available", "متاح")</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -421,6 +651,9 @@
     private QualityInspectionDto inspection = new();
     private LandedCostVoucherDto landedCost = new();
     private CycleCountDto cycleCount = new();
+    private InventoryOperationTypeDto operationType = new();
+    private InventoryRouteDto inventoryRoute = new();
+    private InventoryRouteRuleDto routeRule = new();
     private decimal cycleCountQuantity = 1;
     private List<WarehouseDto> warehouses = [];
     private List<ProductDto> products = [];
@@ -431,6 +664,14 @@
     private List<WarehouseLocationDto> warehouseLocations = [];
     private List<WarehouseLocationDto> putawayLocations = [];
     private List<WarehouseLocationDto> cycleLocations = [];
+    private List<WarehouseLocationDto> operationLocations = [];
+    private List<WarehouseLocationDto> routeRuleLocations = [];
+    private List<WarehouseLocationDto> proposalLocations = [];
+    private List<InventoryOperationTypeDto> operationTypes = [];
+    private List<InventoryOperationTypeDto> routeRuleOperationTypes = [];
+    private List<InventoryRouteDto> inventoryRoutes = [];
+    private List<InventoryRouteRuleDto> routeRules = [];
+    private List<InventoryRouteProposalDto> routeProposals = [];
     private List<ProcurementDocumentDto> postedGoodsReceipts = [];
     private List<ProjectedStockRowDto> projectedStock = [];
     private List<InventoryValuationLayerDto> valuationLayers = [];
@@ -451,6 +692,25 @@
     private ProductDto? selectedCycleProduct;
     private ProductSkuDto? selectedCycleSku;
     private BatchDto? selectedCycleBatch;
+    private WarehouseDto? selectedOperationWarehouse;
+    private WarehouseLocationDto? selectedOperationSourceLocation;
+    private WarehouseLocationDto? selectedOperationDestinationLocation;
+    private WarehouseDto? selectedRouteWarehouse;
+    private ProductDto? selectedRouteProduct;
+    private ProductSkuDto? selectedRouteSku;
+    private InventoryRouteDto? selectedRouteRuleRoute;
+    private WarehouseDto? selectedRouteRuleWarehouse;
+    private InventoryOperationTypeDto? selectedRouteRuleOperationType;
+    private WarehouseLocationDto? selectedRouteRuleSourceLocation;
+    private WarehouseLocationDto? selectedRouteRuleDestinationLocation;
+    private ProductDto? selectedRouteRuleProduct;
+    private ProductSkuDto? selectedRouteRuleSku;
+    private WarehouseDto? selectedProposalWarehouse;
+    private WarehouseLocationDto? selectedProposalLocation;
+    private ProductDto? selectedProposalProduct;
+    private InventoryRouteRuleAction proposalAction = InventoryRouteRuleAction.Push;
+    private List<ProductSkuDto> routeSkus = [];
+    private List<ProductSkuDto> routeRuleSkus = [];
     private List<ProductSkuDto> cycleSkus = [];
     private List<BatchDto> cycleBatches = [];
 
@@ -487,18 +747,45 @@
         selectedCycleProduct = null;
         selectedCycleSku = null;
         selectedCycleBatch = null;
+        selectedOperationWarehouse = null;
+        selectedOperationSourceLocation = null;
+        selectedOperationDestinationLocation = null;
+        selectedRouteWarehouse = null;
+        selectedRouteProduct = null;
+        selectedRouteSku = null;
+        selectedRouteRuleRoute = null;
+        selectedRouteRuleWarehouse = null;
+        selectedRouteRuleOperationType = null;
+        selectedRouteRuleSourceLocation = null;
+        selectedRouteRuleDestinationLocation = null;
+        selectedRouteRuleProduct = null;
+        selectedRouteRuleSku = null;
+        selectedProposalWarehouse = null;
+        selectedProposalLocation = null;
+        selectedProposalProduct = null;
         putawaySkus = [];
         inspectionSkus = [];
         inspectionBatches = [];
         putawayLocations = [];
         cycleLocations = [];
+        operationLocations = [];
+        routeRuleLocations = [];
+        routeRuleOperationTypes = [];
+        proposalLocations = [];
+        routeSkus = [];
+        routeRuleSkus = [];
+        routeProposals = [];
         cycleSkus = [];
         cycleBatches = [];
-        location = new WarehouseLocationDto { CompanyId = companyId, IsActive = true };
+        location = new WarehouseLocationDto { CompanyId = companyId, IsActive = true, LocationUsage = WarehouseLocationUsage.Internal };
         putawayRule = new PutawayRuleDto { CompanyId = companyId, IsActive = true };
         inspection = new QualityInspectionDto { CompanyId = companyId, InspectionDate = DateTime.UtcNow, Quantity = 1 };
         landedCost = new LandedCostVoucherDto { CompanyId = companyId, VoucherDate = DateTime.UtcNow };
         cycleCount = new CycleCountDto { CompanyId = companyId, CountDate = DateTime.UtcNow };
+        operationType = new InventoryOperationTypeDto { CompanyId = companyId, IsActive = true };
+        inventoryRoute = new InventoryRouteDto { CompanyId = companyId, IsActive = true };
+        routeRule = new InventoryRouteRuleDto { CompanyId = companyId, IsActive = true };
+        proposalAction = InventoryRouteRuleAction.Push;
         cycleCountQuantity = 1;
     }
 
@@ -519,6 +806,18 @@
         var locationResponse = await InventoryService.GetWarehouseLocationsAsync(companyId);
         if (locationResponse.IsSuccess)
             warehouseLocations = locationResponse.Data ?? [];
+
+        var operationTypeResponse = await InventoryService.GetOperationTypesAsync(companyId);
+        if (operationTypeResponse.IsSuccess)
+            operationTypes = operationTypeResponse.Data ?? [];
+
+        var routeResponse = await InventoryService.GetRoutesAsync(companyId);
+        if (routeResponse.IsSuccess)
+            inventoryRoutes = routeResponse.Data ?? [];
+
+        var routeRuleResponse = await InventoryService.GetRouteRulesAsync(companyId);
+        if (routeRuleResponse.IsSuccess)
+            routeRules = routeRuleResponse.Data ?? [];
 
         var receiptResponse = await ProcurementService.GetAsync(ProcurementDocumentKind.GoodsReceipt, companyId, 1, 200, null);
         if (receiptResponse.IsSuccess)
@@ -553,6 +852,9 @@
     private async Task SaveInspectionAsync() => await SaveAsync(() => InventoryService.SaveQualityInspectionAsync(inspection));
     private async Task SaveLandedCostAsync() => await SaveAsync(() => InventoryService.SaveLandedCostVoucherAsync(landedCost));
     private async Task SaveCycleCountAsync() => await SaveAsync(() => InventoryService.SaveCycleCountAsync(cycleCount));
+    private async Task SaveOperationTypeAsync() => await SaveAsync(() => InventoryService.SaveOperationTypeAsync(operationType));
+    private async Task SaveRouteAsync() => await SaveAsync(() => InventoryService.SaveRouteAsync(inventoryRoute));
+    private async Task SaveRouteRuleAsync() => await SaveAsync(() => InventoryService.SaveRouteRuleAsync(routeRule));
 
     private async Task SaveAsync(Func<Task<ApiResult<CreateResponseDto>>> action)
     {
@@ -577,6 +879,123 @@
     {
         selectedLocationWarehouse = warehouse;
         location.WarehouseId = warehouse?.Id ?? Guid.Empty;
+    }
+
+    private void OnOperationWarehouseChanged(WarehouseDto? warehouse)
+    {
+        selectedOperationWarehouse = warehouse;
+        operationType.WarehouseId = warehouse?.Id ?? Guid.Empty;
+        operationLocations = warehouse is null
+            ? []
+            : warehouseLocations.Where(x => x.WarehouseId == warehouse.Id && x.IsActive).ToList();
+        OnOperationSourceLocationChanged(null);
+        OnOperationDestinationLocationChanged(null);
+    }
+
+    private void OnOperationSourceLocationChanged(WarehouseLocationDto? warehouseLocation)
+    {
+        selectedOperationSourceLocation = warehouseLocation;
+        operationType.DefaultSourceLocationId = warehouseLocation?.Id;
+    }
+
+    private void OnOperationDestinationLocationChanged(WarehouseLocationDto? warehouseLocation)
+    {
+        selectedOperationDestinationLocation = warehouseLocation;
+        operationType.DefaultDestinationLocationId = warehouseLocation?.Id;
+    }
+
+    private void OnRouteWarehouseChanged(WarehouseDto? warehouse)
+    {
+        selectedRouteWarehouse = warehouse;
+        inventoryRoute.WarehouseId = warehouse?.Id;
+    }
+
+    private void OnRouteProductChanged(ProductDto? product)
+    {
+        selectedRouteProduct = product;
+        inventoryRoute.ProductId = product?.Id;
+        inventoryRoute.ProductCategoryId = product?.CategoryId;
+        routeSkus = product?.Skus ?? [];
+        OnRouteSkuChanged(null);
+    }
+
+    private void OnRouteSkuChanged(ProductSkuDto? sku)
+    {
+        selectedRouteSku = sku;
+        inventoryRoute.ProductSkuId = sku?.Id;
+    }
+
+    private void OnRouteRuleRouteChanged(InventoryRouteDto? route)
+    {
+        selectedRouteRuleRoute = route;
+        routeRule.RouteId = route?.Id ?? Guid.Empty;
+    }
+
+    private void OnRouteRuleWarehouseChanged(WarehouseDto? warehouse)
+    {
+        selectedRouteRuleWarehouse = warehouse;
+        routeRule.WarehouseId = warehouse?.Id ?? Guid.Empty;
+        routeRuleLocations = warehouse is null
+            ? []
+            : warehouseLocations.Where(x => x.WarehouseId == warehouse.Id && x.IsActive).ToList();
+        routeRuleOperationTypes = warehouse is null
+            ? []
+            : operationTypes.Where(x => x.WarehouseId == warehouse.Id && x.IsActive).ToList();
+        OnRouteRuleOperationTypeChanged(null);
+        OnRouteRuleSourceLocationChanged(null);
+        OnRouteRuleDestinationLocationChanged(null);
+    }
+
+    private void OnRouteRuleOperationTypeChanged(InventoryOperationTypeDto? selectedOperationType)
+    {
+        selectedRouteRuleOperationType = selectedOperationType;
+        routeRule.OperationTypeId = selectedOperationType?.Id ?? Guid.Empty;
+    }
+
+    private void OnRouteRuleSourceLocationChanged(WarehouseLocationDto? warehouseLocation)
+    {
+        selectedRouteRuleSourceLocation = warehouseLocation;
+        routeRule.SourceLocationId = warehouseLocation?.Id ?? Guid.Empty;
+    }
+
+    private void OnRouteRuleDestinationLocationChanged(WarehouseLocationDto? warehouseLocation)
+    {
+        selectedRouteRuleDestinationLocation = warehouseLocation;
+        routeRule.DestinationLocationId = warehouseLocation?.Id ?? Guid.Empty;
+    }
+
+    private void OnRouteRuleProductChanged(ProductDto? product)
+    {
+        selectedRouteRuleProduct = product;
+        routeRule.ProductId = product?.Id;
+        routeRule.ProductCategoryId = product?.CategoryId;
+        routeRuleSkus = product?.Skus ?? [];
+        OnRouteRuleSkuChanged(null);
+    }
+
+    private void OnRouteRuleSkuChanged(ProductSkuDto? sku)
+    {
+        selectedRouteRuleSku = sku;
+        routeRule.ProductSkuId = sku?.Id;
+    }
+
+    private void OnProposalWarehouseChanged(WarehouseDto? warehouse)
+    {
+        selectedProposalWarehouse = warehouse;
+        proposalLocations = warehouse is null
+            ? []
+            : warehouseLocations.Where(x => x.WarehouseId == warehouse.Id && x.IsActive).ToList();
+        OnProposalLocationChanged(null);
+    }
+
+    private void OnProposalLocationChanged(WarehouseLocationDto? warehouseLocation)
+    {
+        selectedProposalLocation = warehouseLocation;
+    }
+
+    private void OnProposalProductChanged(ProductDto? product)
+    {
+        selectedProposalProduct = product;
     }
 
     private void OnPutawayWarehouseChanged(WarehouseDto? warehouse)
@@ -657,7 +1076,7 @@
         cycleCount.WarehouseId = warehouse?.Id ?? Guid.Empty;
         cycleLocations = warehouse is null
             ? []
-            : warehouseLocations.Where(x => x.WarehouseId == warehouse.Id && x.IsActive).ToList();
+            : warehouseLocations.Where(x => x.WarehouseId == warehouse.Id && x.IsActive && !x.ExcludeFromPhysicalStock).ToList();
         OnCycleLocationChanged(null);
     }
 
@@ -695,7 +1114,7 @@
             ToastService.Show(new ToastMessage
             {
                 Type = "error",
-                Message = SharedDataService.SelectViewLang("Select product, SKU, batch, and counted quantity.", "Select product, SKU, batch, and counted quantity.")
+                Message = SharedDataService.SelectViewLang("Select product, SKU, batch, and counted quantity.", "اختر المنتج ووحدة المنتج والدفعة والكمية المعدودة.")
             });
             return;
         }
@@ -721,12 +1140,46 @@
         {
             Type = result.IsSuccess ? "success" : "error",
             Message = result.IsSuccess
-                ? SharedDataService.SelectViewLang("Cycle count posted.", "Cycle count posted.")
-                : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Posting failed.", "Posting failed.")
+                ? SharedDataService.SelectViewLang("Cycle count posted.", "تم ترحيل الجرد الدوري.")
+                : result.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Posting failed.", "فشل الترحيل.")
         });
 
         if (result.IsSuccess)
             await LoadReportsAsync();
+    }
+
+    private async Task LoadRouteProposalsAsync()
+    {
+        if (selectedProposalWarehouse is null || selectedProposalLocation is null)
+        {
+            ToastService.Show(new ToastMessage
+            {
+                Type = "error",
+                Message = SharedDataService.SelectViewLang("Select warehouse and location.", "اختر المستودع والموقع.")
+            });
+            return;
+        }
+
+        var result = await InventoryService.GetRouteProposalsAsync(
+            companyId,
+            selectedProposalWarehouse.Id,
+            selectedProposalLocation.Id,
+            proposalAction,
+            selectedProposalProduct?.Id,
+            null,
+            selectedProposalProduct?.CategoryId);
+
+        if (result.IsSuccess)
+        {
+            routeProposals = result.Data ?? [];
+            return;
+        }
+
+        ToastService.Show(new ToastMessage
+        {
+            Type = "error",
+            Message = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Proposal lookup failed.", "فشل البحث عن الاقتراحات.")
+        });
     }
 
     private string WarehouseText(WarehouseDto warehouse) =>
@@ -746,6 +1199,15 @@
 
     private string LocationText(WarehouseLocationDto warehouseLocation) =>
         $"{warehouseLocation.Code} - {SharedDataService.SelectViewLang(warehouseLocation.NameEng, warehouseLocation.Name)}";
+
+    private string OperationTypeText(InventoryOperationTypeDto item) =>
+        $"{item.Code} - {SharedDataService.SelectViewLang(item.NameEng, item.Name)}";
+
+    private string OperationTypeText(InventoryRouteProposalDto item) =>
+        $"{item.OperationTypeCode} - {SharedDataService.SelectViewLang(item.OperationTypeNameEng ?? string.Empty, item.OperationTypeName ?? string.Empty)}";
+
+    private string RouteText(InventoryRouteDto item) =>
+        $"{item.Code} - {SharedDataService.SelectViewLang(item.NameEng, item.Name)}";
 
     private string ReceiptText(ProcurementDocumentDto receipt) =>
         $"{receipt.Number} - {receipt.SupplierName ?? SharedDataService.SelectViewLang("No supplier", "لا يوجد مورد")} - {receipt.DocumentDate:yyyy-MM-dd}";

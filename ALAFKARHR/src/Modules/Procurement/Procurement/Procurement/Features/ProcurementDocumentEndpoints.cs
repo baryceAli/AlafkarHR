@@ -24,15 +24,46 @@ public class ProcurementDocumentEndpoints : ICarterModule
             .WithName("GetProcurementDashboard")
             .Produces<ProcurementDashboardDto>(StatusCodes.Status200OK)
             .RequireAuthorization(PermissionList.PurchaseOrderPermissions.Select);
+
+        app.MapGet("/api/v1/procurement/smart-links/company/{companyId:guid}", async (
+            Guid companyId,
+            Guid? supplierId,
+            Guid? productId,
+            Guid? productSkuId,
+            ISender sender) =>
+        {
+            var result = await sender.Send(new GetProcurementSmartLinksQuery(companyId, supplierId, productId, productSkuId));
+            return Results.Ok(new { partnerLinks = result.PartnerLinks, productLinks = result.ProductLinks });
+        })
+            .WithName("GetProcurementSmartLinks")
+            .Produces<GetProcurementSmartLinksResult>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.PurchaseOrderPermissions.View);
+
+        app.MapPost("/api/v1/procurement/recompute-purchase-controls", async (Guid companyId, ISender sender) =>
+        {
+            var result = await sender.Send(new RecomputePurchaseControlsCommand(companyId));
+            return Results.Ok(new { recompute = result });
+        })
+            .WithName("RecomputePurchaseControls")
+            .Produces<ProcurementRecomputeResultDto>(StatusCodes.Status200OK)
+            .RequireAuthorization(PermissionList.PurchaseOrderPermissions.Edit);
     }
 
     private static void MapDocumentRoutes(IEndpointRouteBuilder app, string route, ProcurementDocumentKind kind, ProcurementPermissionSet permissions)
     {
         var baseRoute = $"/api/v1/procurement/{route}";
 
-        app.MapGet(baseRoute, async (Guid? companyId, int? pageIndex, int? pageSize, string? searchText, ISender sender) =>
+        app.MapGet(baseRoute, async (
+            Guid? companyId,
+            int? pageIndex,
+            int? pageSize,
+            string? searchText,
+            Guid? supplierId,
+            Guid? productId,
+            Guid? productSkuId,
+            ISender sender) =>
         {
-            var result = await sender.Send(new GetProcurementDocumentsQuery(kind, companyId, pageIndex ?? 1, pageSize ?? 20, searchText));
+            var result = await sender.Send(new GetProcurementDocumentsQuery(kind, companyId, pageIndex ?? 1, pageSize ?? 20, searchText, supplierId, productId, productSkuId));
             return Results.Ok(new { documents = result.Documents });
         })
             .WithName($"Get{kind}")

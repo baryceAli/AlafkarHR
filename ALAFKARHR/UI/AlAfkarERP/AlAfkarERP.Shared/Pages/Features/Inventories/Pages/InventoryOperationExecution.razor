@@ -1,0 +1,450 @@
+@layout AdminLayout
+@page "/Inventory/Operations/Execution"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Inventory.Enums
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+
+@inject IInventoryService InventoryService
+@inject IWarehouseService WarehouseService
+@inject IBranchService BranchService
+@inject ToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+
+@if (AuthState?.User?.Identity?.IsAuthenticated == true && !AuthState.User.Claims.Any(c => c.Value == PermissionList.InventoryPermissions.View))
+{
+    <div class="alert alert-warning">@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@SharedDataService.SelectViewLang("Operation Execution", "تنفيذ العمليات")"
+                Overline="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                Subtitle="@SharedDataService.SelectViewLang("Process multi-step receipts, quality moves, picking, packing, and shipping operations.", "تنفيذ الاستلام متعدد المراحل والجودة والالتقاط والتعبئة والشحن.")" />
+
+    <div class="d-flex flex-wrap gap-2 mb-3">
+        <a class="btn btn-outline-secondary" href="/Inventory/Barcode">
+            <i class="bi bi-upc-scan"></i>
+            @SharedDataService.SelectViewLang("Barcode", "الباركود")
+        </a>
+        <a class="btn btn-outline-secondary" href="/Inventory/Operations/PickingGroups">
+            <i class="bi bi-collection"></i>
+            @SharedDataService.SelectViewLang("Picking Groups", "مجموعات الالتقاط")
+        </a>
+    </div>
+
+    <div class="erp-card mb-3">
+        <div class="erp-card-header">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang("Filters", "الفلاتر")</h5>
+        </div>
+        <div class="erp-card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Warehouse", "المستودع")</label>
+                    <InputSelect class="form-select" @bind-Value="warehouseId">
+                        <option value="">@SharedDataService.SelectViewLang("All warehouses", "كل المستودعات")</option>
+                        @foreach (var warehouse in warehouses)
+                        {
+                            <option value="@warehouse.Id">@DisplayWarehouse(warehouse)</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Status", "الحالة")</label>
+                    <InputSelect class="form-select" @bind-Value="status">
+                        <option value="">@SharedDataService.SelectViewLang("All", "الكل")</option>
+                        @foreach (var value in Enum.GetValues<InventoryOperationStatus>())
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Type", "النوع")</label>
+                    <InputSelect class="form-select" @bind-Value="operationKind">
+                        <option value="">@SharedDataService.SelectViewLang("All", "الكل")</option>
+                        @foreach (var value in Enum.GetValues<InventoryOperationKind>())
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-2 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Flow", "المسار")</label>
+                    <InputSelect class="form-select" @bind-Value="flowDirection">
+                        <option value="">@SharedDataService.SelectViewLang("All", "الكل")</option>
+                        @foreach (var value in Enum.GetValues<InventoryOperationFlowDirection>())
+                        {
+                            <option value="@value">@value</option>
+                        }
+                    </InputSelect>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Source Type", "نوع المصدر")</label>
+                    <InputText class="form-control" @bind-Value="sourceDocumentType" />
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label">@SharedDataService.SelectViewLang("Source ID", "معرف المصدر")</label>
+                    <InputText class="form-control" @bind-Value="sourceDocumentIdText" />
+                </div>
+                <div class="col-lg-3 col-md-6 d-flex gap-2">
+                    <button class="btn btn-primary flex-fill" type="button" @onclick="LoadOperationsAsync">
+                        <i class="bi bi-search"></i>
+                        @SharedDataService.SelectViewLang("Apply", "تطبيق")
+                    </button>
+                    <button class="btn btn-outline-secondary" type="button" @onclick="ClearFiltersAsync">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="erp-card">
+        <div class="erp-card-header d-flex justify-content-between align-items-center gap-2">
+            <h5 class="mb-0">@SharedDataService.SelectViewLang("Operations To Process", "عمليات قيد التنفيذ")</h5>
+            <button class="btn btn-outline-secondary btn-sm" type="button" @onclick="LoadOperationsAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+        <div class="erp-card-body">
+            @if (isLoading)
+            {
+                <div class="erp-loading">@SharedDataService.SelectViewLang("Loading operations...", "جاري تحميل العمليات...")</div>
+            }
+            else if (operations.Count == 0)
+            {
+                <div class="text-muted text-center py-4">@SharedDataService.SelectViewLang("No operations found", "لا توجد عمليات")</div>
+            }
+            else
+            {
+                <div class="erp-table-wrap">
+                    <table class="erp-table table">
+                        <thead>
+                            <tr>
+                                <th>@SharedDataService.SelectViewLang("Source", "المصدر")</th>
+                                <th>@SharedDataService.SelectViewLang("Step", "المرحلة")</th>
+                                <th>@SharedDataService.SelectViewLang("Warehouse", "المستودع")</th>
+                                <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                                <th>@SharedDataService.SelectViewLang("Quantity", "الكمية")</th>
+                                <th>@SharedDataService.SelectViewLang("Lines", "البنود")</th>
+                                <th>@SharedDataService.SelectViewLang("Action", "الإجراء")</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var operation in operations)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@operation.SourceDocumentNumber</div>
+                                        <div class="text-muted small">@operation.SourceDocumentType / @ShortId(operation.SourceDocumentId)</div>
+                                    </td>
+                                    <td>
+                                        <div>@operation.OperationKind</div>
+                                        <div class="text-muted small">@SharedDataService.SelectViewLang("Step", "مرحلة") @operation.Sequence - @operation.FlowDirection</div>
+                                    </td>
+                                    <td>@DisplayWarehouseName(operation.WarehouseId)</td>
+                                    <td><span class="@StatusClass(operation.Status)">@operation.Status</span></td>
+                                    <td>@operation.DoneQuantity / @operation.PlannedQuantity</td>
+                                    <td>
+                                        @foreach (var line in operation.Lines)
+                                        {
+                                            <div class="small d-flex flex-wrap align-items-center gap-2">
+                                                <span>@ShortId(line.ProductSkuId)</span>
+                                                <input class="form-control form-control-sm operation-done-input"
+                                                       type="number"
+                                                       min="0"
+                                                       max="@line.PlannedQuantity"
+                                                       step="0.01"
+                                                       value="@GetDoneQuantity(line).ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                                       @onchange="args => SetDoneQuantity(line, args)" />
+                                                <span class="text-muted">/ @line.PlannedQuantity.ToString("N2")</span>
+                                                <button class="btn btn-link btn-sm p-0" type="button" disabled="@(!CanCreateScrap(operation, line))" @onclick="() => CreateScrapFromLine(operation, line)">
+                                                    <i class="bi bi-scissors"></i>
+                                                    @SharedDataService.SelectViewLang("Scrap", "إتلاف")
+                                                </button>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary" type="button" disabled="@(!CanValidate(operation) || isSaving)" @onclick="() => ValidateAsync(operation)">
+                                            <i class="bi bi-check2-circle"></i>
+                                            @SharedDataService.SelectViewLang("Validate", "اعتماد")
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private List<InventoryOperationDto> operations = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<BranchDto> branches = [];
+    private readonly Dictionary<Guid, decimal> doneQuantities = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
+    private Guid? warehouseId;
+    private InventoryOperationStatus? status = InventoryOperationStatus.Ready;
+    private InventoryOperationKind? operationKind;
+    private InventoryOperationFlowDirection? flowDirection;
+    private string? sourceDocumentType;
+    private string? sourceDocumentIdText;
+    private bool isLoading;
+    private bool isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        ApplyQueryFilters();
+        await LoadLookupsAsync();
+        await LoadOperationsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var accessResponse = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResponse.IsSuccess ? accessResponse.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        var branchResponse = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        branches = branchResponse.IsSuccess ? branchResponse.Data?.Data?.ToList() ?? [] : [];
+
+        var warehouseResult = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResult.IsSuccess)
+        {
+            var loadedWarehouses = warehouseResult.Data?.Data?.ToList() ?? [];
+            warehouses = branchAccess.CanViewAllBranches
+                ? loadedWarehouses
+                : loadedWarehouses.Where(warehouse => warehouse.BranchId == null || (warehouse.BranchId.HasValue && branchAccess.BranchIds.Contains(warehouse.BranchId.Value))).ToList();
+        }
+    }
+
+    private async Task LoadOperationsAsync()
+    {
+        isLoading = true;
+        try
+        {
+            Guid? sourceDocumentId = Guid.TryParse(sourceDocumentIdText, out var parsedSourceDocumentId)
+                ? parsedSourceDocumentId
+                : null;
+
+            var result = await InventoryService.GetInventoryOperationsAsync(new InventoryOperationFilterDto
+            {
+                CompanyId = companyId,
+                WarehouseId = warehouseId,
+                Status = status,
+                OperationKind = operationKind,
+                FlowDirection = flowDirection,
+                SourceDocumentType = sourceDocumentType,
+                SourceDocumentId = sourceDocumentId
+            });
+
+            if (result.IsSuccess)
+            {
+                operations = result.Data ?? [];
+                SyncDoneQuantities();
+            }
+            else
+                ToastService.Show(new ToastMessage { Message = SharedDataService.SelectViewLang("Could not load operations", "تعذر تحميل العمليات"), Type = "error" });
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ValidateAsync(InventoryOperationDto operation)
+    {
+        isSaving = true;
+        try
+        {
+            var result = await InventoryService.ValidateInventoryOperationAsync(operation.Id, new ValidateInventoryOperationDto
+            {
+                Lines = operation.Lines.Select(line => new ValidateInventoryOperationLineDto
+                {
+                    LineId = line.Id,
+                    DoneQuantity = ClampDoneQuantity(line, GetDoneQuantity(line))
+                }).ToList()
+            });
+
+            if (result.IsSuccess)
+            {
+                ToastService.Show(new ToastMessage { Message = SharedDataService.SelectViewLang("Operation validated", "تم اعتماد العملية"), Type = "success" });
+                await LoadOperationsAsync();
+            }
+            else
+            {
+                ToastService.Show(new ToastMessage { Message = SharedDataService.SelectViewLang("Could not validate operation", "تعذر اعتماد العملية"), Type = "error" });
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ClearFiltersAsync()
+    {
+        warehouseId = null;
+        status = InventoryOperationStatus.Ready;
+        operationKind = null;
+        flowDirection = null;
+        sourceDocumentType = null;
+        sourceDocumentIdText = null;
+        await LoadOperationsAsync();
+    }
+
+    private void ApplyQueryFilters()
+    {
+        var query = NavigationManager.ToAbsoluteUri(NavigationManager.Uri).Query.TrimStart('?');
+        if (string.IsNullOrWhiteSpace(query))
+            return;
+
+        foreach (var part in query.Split('&', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var pieces = part.Split('=', 2);
+            if (pieces.Length != 2)
+                continue;
+
+            var key = Uri.UnescapeDataString(pieces[0]);
+            var value = Uri.UnescapeDataString(pieces[1]);
+            if (key.Equals("sourceDocumentType", StringComparison.OrdinalIgnoreCase))
+                sourceDocumentType = value;
+            if (key.Equals("sourceDocumentId", StringComparison.OrdinalIgnoreCase))
+                sourceDocumentIdText = value;
+            if (key.Equals("status", StringComparison.OrdinalIgnoreCase) && Enum.TryParse<InventoryOperationStatus>(value, true, out var parsedStatus))
+                status = parsedStatus;
+            if (key.Equals("operationKind", StringComparison.OrdinalIgnoreCase) && Enum.TryParse<InventoryOperationKind>(value, true, out var parsedKind))
+                operationKind = parsedKind;
+            if (key.Equals("flowDirection", StringComparison.OrdinalIgnoreCase) && Enum.TryParse<InventoryOperationFlowDirection>(value, true, out var parsedFlow))
+                flowDirection = parsedFlow;
+            if (key.Equals("warehouseId", StringComparison.OrdinalIgnoreCase) && Guid.TryParse(value, out var parsedWarehouseId))
+                warehouseId = parsedWarehouseId;
+        }
+    }
+
+    private bool CanValidate(InventoryOperationDto operation) =>
+        operation.Status is InventoryOperationStatus.Ready or InventoryOperationStatus.InProgress or InventoryOperationStatus.PartiallyDone;
+
+    private bool CanCreateScrap(InventoryOperationDto operation, InventoryOperationLineDto line) =>
+        AuthState?.User?.Claims.Any(c => c.Value == PermissionList.InventoryPermissions.Create) == true
+        && operation.Status is InventoryOperationStatus.Ready or InventoryOperationStatus.InProgress or InventoryOperationStatus.PartiallyDone or InventoryOperationStatus.Done
+        && line.PlannedQuantity > line.DoneQuantity;
+
+    private void SyncDoneQuantities()
+    {
+        var lineIds = operations.SelectMany(operation => operation.Lines).Select(line => line.Id).ToHashSet();
+        foreach (var staleId in doneQuantities.Keys.Where(id => !lineIds.Contains(id)).ToList())
+            doneQuantities.Remove(staleId);
+
+        foreach (var line in operations.SelectMany(operation => operation.Lines))
+            doneQuantities[line.Id] = line.DoneQuantity > 0 ? line.DoneQuantity : line.PlannedQuantity;
+    }
+
+    private decimal GetDoneQuantity(InventoryOperationLineDto line) =>
+        doneQuantities.TryGetValue(line.Id, out var value) ? value : line.DoneQuantity;
+
+    private void SetDoneQuantity(InventoryOperationLineDto line, ChangeEventArgs args)
+    {
+        var value = decimal.TryParse(args.Value?.ToString(), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var parsed)
+            ? parsed
+            : line.DoneQuantity;
+        doneQuantities[line.Id] = ClampDoneQuantity(line, value);
+    }
+
+    private static decimal ClampDoneQuantity(InventoryOperationLineDto line, decimal value) =>
+        Math.Min(line.PlannedQuantity, Math.Max(0, value));
+
+    private void CreateScrapFromLine(InventoryOperationDto operation, InventoryOperationLineDto line)
+    {
+        var remaining = Math.Max(0, line.PlannedQuantity - line.DoneQuantity);
+        var query = new Dictionary<string, string?>
+        {
+            ["operationId"] = operation.Id.ToString(),
+            ["operationLineId"] = line.Id.ToString(),
+            ["sourceDocumentType"] = operation.SourceDocumentType,
+            ["sourceDocumentId"] = operation.SourceDocumentId.ToString(),
+            ["sourceDocumentNumber"] = operation.SourceDocumentNumber,
+            ["warehouseId"] = operation.WarehouseId.ToString(),
+            ["productId"] = line.ProductId.ToString(),
+            ["productSkuId"] = line.ProductSkuId.ToString(),
+            ["batchId"] = line.BatchId.ToString(),
+            ["sourceLocationId"] = line.SourceLocationId?.ToString(),
+            ["quantity"] = remaining.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["unitCost"] = line.UnitCost.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["currencyId"] = line.CurrencyId.ToString()
+        };
+
+        var url = "/Inventory/Operations/Scrap?" + string.Join("&", query
+            .Where(x => !string.IsNullOrWhiteSpace(x.Value))
+            .Select(x => $"{Uri.EscapeDataString(x.Key)}={Uri.EscapeDataString(x.Value!)}"));
+        NavigationManager.NavigateTo(url);
+    }
+
+    private string DisplayWarehouseName(Guid id) =>
+        warehouses.FirstOrDefault(w => w.Id == id) is { } warehouse ? DisplayWarehouse(warehouse) : ShortId(id);
+
+    private string DisplayWarehouse(WarehouseDto warehouse)
+    {
+        var name = SharedDataService.Language == "Ar" ? warehouse.Name : warehouse.NameEng;
+        return warehouse.BranchId.HasValue ? $"{name} - {BranchName(warehouse.BranchId.Value)}" : $"{name} - {SharedDataService.SelectViewLang("Company", "الشركة")}";
+    }
+
+    private string BranchName(Guid branchId)
+    {
+        var branch = branches.FirstOrDefault(x => x.Id == branchId);
+        return branch is null ? ShortId(branchId) : SharedDataService.SelectViewLang(branch.NameEng, branch.Name);
+    }
+
+    private static string ShortId(Guid id) => id.ToString("N")[..8];
+
+    private static string StatusClass(InventoryOperationStatus value) => value switch
+    {
+        InventoryOperationStatus.Done => "badge bg-success",
+        InventoryOperationStatus.PartiallyDone => "badge bg-warning text-dark",
+        InventoryOperationStatus.Cancelled => "badge bg-danger",
+        InventoryOperationStatus.InProgress => "badge bg-info text-dark",
+        _ => "badge bg-secondary"
+    };
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}
+
+<style>
+    .operation-done-input {
+        inline-size: 7rem;
+    }
+</style>

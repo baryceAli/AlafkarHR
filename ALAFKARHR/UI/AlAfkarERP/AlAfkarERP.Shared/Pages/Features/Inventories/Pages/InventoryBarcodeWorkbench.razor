@@ -45,6 +45,20 @@
                             </select>
                         </div>
                         <div>
+                            <label class="form-label">@Text("Inventory Operation", "عملية المخزون")</label>
+                            <select class="form-select" value="@selectedInventoryOperationIdText" @onchange="OnInventoryOperationChanged" disabled="@(currentSession is not null)">
+                                <option value="">@Text("No operation selected", "لم يتم اختيار عملية")</option>
+                                @foreach (var operation in openOperations)
+                                {
+                                    <option value="@operation.Id">@OperationDisplay(operation)</option>
+                                }
+                            </select>
+                            @if (SelectedInventoryOperation is not null)
+                            {
+                                <div class="text-muted small mt-1">@SelectedInventoryOperation.SourceDocumentNumber - @SelectedInventoryOperation.OperationKind</div>
+                            }
+                        </div>
+                        <div>
                             <label class="form-label">@Text("Warehouse", "المستودع")</label>
                             <select class="form-select" @bind="selectedWarehouseIdText" disabled="@(currentSession is not null)">
                                 <option value="">@Text("No warehouse selected", "لم يتم اختيار مستودع")</option>
@@ -222,14 +236,20 @@
     private bool isBusy;
     private string scanText = string.Empty;
     private string selectedWarehouseIdText = string.Empty;
+    private string selectedInventoryOperationIdText = string.Empty;
     private ElementReference scanInput;
     private BarcodeOperationSessionDto session = new();
     private BarcodeOperationSessionDto? currentSession;
     private BarcodeScanResultDto? lastScan;
     private List<WarehouseDto> warehouses = [];
+    private List<InventoryOperationDto> openOperations = [];
     private List<BarcodeOperationSessionDto> sessions = [];
 
     private Guid? SelectedWarehouseId => Guid.TryParse(selectedWarehouseIdText, out var id) ? id : null;
+    private Guid? SelectedInventoryOperationId => Guid.TryParse(selectedInventoryOperationIdText, out var id) ? id : null;
+    private InventoryOperationDto? SelectedInventoryOperation => SelectedInventoryOperationId.HasValue
+        ? openOperations.FirstOrDefault(x => x.Id == SelectedInventoryOperationId.Value)
+        : null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -261,6 +281,16 @@
         var sessionsResponse = await InventoryService.GetBarcodeSessionsAsync(companyId);
         if (sessionsResponse.IsSuccess)
             sessions = sessionsResponse.Data ?? [];
+
+        var operationsResponse = await InventoryService.GetInventoryOperationsAsync(new InventoryOperationFilterDto { CompanyId = companyId });
+        if (operationsResponse.IsSuccess)
+        {
+            openOperations = operationsResponse.Data?
+                .Where(x => x.Status is InventoryOperationStatus.Ready or InventoryOperationStatus.InProgress or InventoryOperationStatus.PartiallyDone)
+                .OrderBy(x => x.SourceDocumentNumber)
+                .Take(100)
+                .ToList() ?? [];
+        }
     }
 
     private async Task StartSessionAsync()
@@ -268,13 +298,14 @@
         isBusy = true;
         session.CompanyId = companyId;
         session.WarehouseId = SelectedWarehouseId;
+        session.InventoryOperationId = SelectedInventoryOperationId;
         var result = await InventoryService.CreateBarcodeSessionAsync(session);
         if (result.IsSuccess)
         {
             var id = result.Data?.Id ?? Guid.Empty;
             await LoadDataAsync();
             currentSession = sessions.FirstOrDefault(x => x.Id == id)
-                ?? new BarcodeOperationSessionDto { Id = id, CompanyId = companyId, OperationType = session.OperationType, WarehouseId = session.WarehouseId, ReferenceNumber = session.ReferenceNumber };
+                ?? new BarcodeOperationSessionDto { Id = id, CompanyId = companyId, OperationType = session.OperationType, WarehouseId = session.WarehouseId, InventoryOperationId = session.InventoryOperationId, ReferenceNumber = session.ReferenceNumber };
             ToastService.ShowSuccess(Text("Barcode session started.", "تم بدء جلسة الباركود."));
         }
         else
@@ -363,9 +394,27 @@
         lastScan = null;
         scanText = string.Empty;
         selectedWarehouseIdText = string.Empty;
+        selectedInventoryOperationIdText = string.Empty;
     }
 
     private void OnScanInput(ChangeEventArgs args) => scanText = args.Value?.ToString() ?? string.Empty;
+
+    private void OnInventoryOperationChanged(ChangeEventArgs args)
+    {
+        selectedInventoryOperationIdText = args.Value?.ToString() ?? string.Empty;
+        if (SelectedInventoryOperation is not { } operation)
+            return;
+
+        selectedWarehouseIdText = operation.WarehouseId.ToString();
+        session.InventoryOperationId = operation.Id;
+        session.WarehouseId = operation.WarehouseId;
+        session.SourceDocumentType = operation.SourceDocumentType;
+        session.SourceDocumentId = operation.SourceDocumentId;
+        session.ReferenceNumber = $"BAR-{operation.SourceDocumentNumber}";
+        session.OperationType = operation.FlowDirection == InventoryOperationFlowDirection.Delivery
+            ? BarcodeOperationType.Delivery
+            : BarcodeOperationType.Receipt;
+    }
 
     private async Task OnScanKeyDown(KeyboardEventArgs args)
     {
@@ -376,6 +425,7 @@
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string Display(string? en, string? ar, string fallback) => string.IsNullOrWhiteSpace(en) && string.IsNullOrWhiteSpace(ar) ? fallback : Text(en ?? fallback, ar ?? fallback);
     private string WarehouseText(WarehouseDto warehouse) => Text(warehouse.NameEng, warehouse.Name);
+    private string OperationDisplay(InventoryOperationDto operation) => $"{operation.SourceDocumentNumber} - {operation.OperationKind} - {operation.DoneQuantity}/{operation.PlannedQuantity}";
     private string OperationText(BarcodeOperationType value) => value switch
     {
         BarcodeOperationType.Receipt => Text("Receipt", "استلام"),

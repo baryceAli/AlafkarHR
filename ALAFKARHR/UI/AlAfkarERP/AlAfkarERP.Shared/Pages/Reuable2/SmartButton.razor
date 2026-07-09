@@ -1,0 +1,26 @@
+@if (Visible)
+{
+    <button type="button"
+            class="erp-smart-button @CssClass"
+            title="@Title"
+            disabled="@(Disabled || IsLoading)"
+            @onclick="OnClick">
+        <span class="erp-smart-button-icon"><i class="bi @Icon"></i></span>
+        <span class="erp-smart-button-content">
+            <span class="erp-smart-button-value">@(IsLoading ? "..." : Count.ToString("N0"))</span>
+            <span class="erp-smart-button-label">@Label</span>
+        </span>
+    </button>
+}
+
+@code {
+    [Parameter] public string Label { get; set; } = string.Empty;
+    [Parameter] public string Icon { get; set; } = "bi-link-45deg";
+    [Parameter] public int Count { get; set; }
+    [Parameter] public bool Visible { get; set; } = true;
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool IsLoading { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? CssClass { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+}

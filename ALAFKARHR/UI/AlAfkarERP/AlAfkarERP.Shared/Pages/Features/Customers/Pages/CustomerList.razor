@@ -2,6 +2,7 @@
 @page "/Customers/Customer/List"
 @implements IDisposable
 @using AlAfkarERP.Shared.Pages.Features.Customers.Services
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
@@ -9,9 +10,11 @@
 @using SharedWithUI.Customers.Dtos
 @using SharedWithUI.Customers.Enums
 @using SharedWithUI.Permissions
+@using SharedWithUI.SharedDtos
 
 @inject ICustomerService CustomerService
 @inject ICustomerGroupService CustomerGroupService
+@inject ISalesService SalesService
 @inject ToastService ToastService
 @inject ModalService ModalService
 @inject LoadingService LoadingService
@@ -22,13 +25,11 @@
 
 @if (isLoading)
 {
-    <div class="branches-page" dir="@SharedDataService.PageDirection">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body py-5 text-center">
+    <div class="erp-page" dir="@SharedDataService.PageDirection">
+        <AppCard CssClass="allow-overflow" BodyClass="py-5 text-center">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
                 <div class="fw-semibold">@SharedDataService.SelectViewLang("Loading customers...", "جاري تحميل العملاء...")</div>
-            </div>
-        </div>
+        </AppCard>
     </div>
 }
 else if (!CanView)
@@ -39,8 +40,8 @@ else if (!CanView)
 }
 else
 {
-    <div class="branches-page">
-    <div class="branches-header mb-4">
+    <div class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="erp-page-header">
         <div>
             <div class="text-uppercase text-primary fw-semibold small mb-1">@SharedDataService.SelectViewLang("Customers", "العملاء")</div>
             <h3 class="mb-1">@SharedDataService.SelectViewLang("Customers Management", "ادارة العملاء")</h3>
@@ -106,8 +107,7 @@ else
 
     @if (editingCustomerId is not null)
     {
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
             <EditForm EditContext="customerEditContext" OnSubmit="SaveCustomer">
                 <DataAnnotationsValidator />
                 <ValidationSummary />
@@ -217,6 +217,41 @@ else
                     </div>
                 </div>
 
+                <div class="erp-subpanel mt-3">
+                    <div class="fw-semibold mb-3">@SharedDataService.SelectViewLang("Odoo Commercial Defaults", "إعدادات أودو التجارية")</div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Fiscal Position", "الوضع الضريبي"))</label>
+                            <InputText class="form-control" @bind-Value="editingCustomer.FiscalPosition" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Payment Reference", "مرجع الدفع"))</label>
+                            <InputText class="form-control" @bind-Value="editingCustomer.CustomerPaymentReference" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Default Currency Id", "معرف العملة الافتراضية"))</label>
+                            <input class="form-control"
+                                   value="@FormatGuid(editingCustomer.DefaultCurrencyId)"
+                                   @onchange="args => editingCustomer.DefaultCurrencyId = ParseNullableGuid(args.Value?.ToString())"
+                                   placeholder="00000000-0000-0000-0000-000000000000" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Receivable Account Id", "معرف حساب العملاء"))</label>
+                            <input class="form-control"
+                                   value="@FormatGuid(editingCustomer.ReceivableAccountId)"
+                                   @onchange="args => editingCustomer.ReceivableAccountId = ParseNullableGuid(args.Value?.ToString())"
+                                   placeholder="00000000-0000-0000-0000-000000000000" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Income Account Id", "معرف حساب الإيراد"))</label>
+                            <input class="form-control"
+                                   value="@FormatGuid(editingCustomer.IncomeAccountId)"
+                                   @onchange="args => editingCustomer.IncomeAccountId = ParseNullableGuid(args.Value?.ToString())"
+                                   placeholder="00000000-0000-0000-0000-000000000000" />
+                        </div>
+                    </div>
+                </div>
+
                 <hr />
 
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -278,6 +313,15 @@ else
                                     <InputNumber class="form-control" @bind-Value="address.Latitude" />
                                 </div>
                                 <div class="col-md-3">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("Address Type", "نوع العنوان")</label>
+                                    <InputSelect class="form-select" @bind-Value="address.AddressType">
+                                        @foreach (var type in Enum.GetValues<PartnerAddressType>())
+                                        {
+                                            <option value="@type">@GetAddressTypeLabel(type)</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-3">
                                     <div class="form-check mt-4">
                                         <InputCheckbox class="form-check-input" @bind-Value="address.IsDefaultBilling" />
                                         <label class="form-check-label">@SharedDataService.SelectViewLang("Default Billing", "الفوترة الافتراضية")</label>
@@ -337,6 +381,15 @@ else
                                     <label class="form-label">@OptionalLabel(SharedDataService.SelectViewLang("Phone", "الهاتف"))</label>
                                     <InputText class="form-control" @bind-Value="contact.PhoneNumber" />
                                 </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">@SharedDataService.SelectViewLang("Contact Type", "نوع جهة الاتصال")</label>
+                                    <InputSelect class="form-select" @bind-Value="contact.ContactType">
+                                        @foreach (var type in Enum.GetValues<PartnerContactType>())
+                                        {
+                                            <option value="@type">@GetContactTypeLabel(type)</option>
+                                        }
+                                    </InputSelect>
+                                </div>
                                 <div class="col-md-6">
                                     <div class="form-check mt-2">
                                         <InputCheckbox class="form-check-input" @bind-Value="contact.IsPrimaryContact" />
@@ -355,12 +408,10 @@ else
                 }
                 </div>
             </EditForm>
-            </div>
-        </div>
+        </AppCard>
     }
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
         <div class="branch-toolbar mb-3">
             <div class="branch-search">
                 <i class="bi bi-search"></i>
@@ -391,12 +442,12 @@ else
         }
         else
         {
-            <div class="table-responsive branch-table-wrap">
+            <div class="erp-table-wrap">
                         <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
 
-                <table class="table branch-table align-middle mb-0">
+                <table class="erp-table">
                     <thead>
                         <tr>
                             <th class="sortable" @onclick="() => Sort(nameof(CustomerDto.Name))">
@@ -409,6 +460,7 @@ else
                             <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                             @* <th>@SharedDataService.SelectViewLang("Payment", "الدفع")</th> *@
                             <th>@SharedDataService.SelectViewLang("Credit Limit", "حد الائتمان")</th>
+                            <th>@SharedDataService.SelectViewLang("Odoo Links", "روابط أودو")</th>
                             <th>@SharedDataService.SelectViewLang("Contacts", "جهات الاتصال")</th>
                             <th class="text-end"></th>
                         </tr>
@@ -430,6 +482,34 @@ else
                                 <td><span class="badge @GetStatusClass(customer.Status)">@customer.Status</span></td>
                                 @* <td>@customer.PaymentTerm</td> *@
                                 <td>@customer.CreditLimit.ToString("N2")</td>
+                                <td>
+                                    @{
+                                        var links = GetCustomerLinks(customer);
+                                    }
+                                    <div class="erp-smart-button-row">
+                                        <SmartButton Label="@SharedDataService.SelectViewLang("Quotes", "عروض")"
+                                                     Icon="bi-file-earmark-text"
+                                                     Count="@links.Quotations"
+                                                     Visible="@HasPermission(PermissionList.SalesQuotationPermissions.View)"
+                                                     OnClick="@(() => NavigateCustomerSales("/Sales/Quotations", customer.Id))" />
+                                        <SmartButton Label="@SharedDataService.SelectViewLang("Orders", "طلبات")"
+                                                     Icon="bi-list-check"
+                                                     Count="@links.SalesOrders"
+                                                     Visible="@HasPermission(PermissionList.SalesOrderPermissions.View)"
+                                                     OnClick="@(() => NavigateCustomerSales("/Sales/Orders", customer.Id))" />
+                                        <SmartButton Label="@SharedDataService.SelectViewLang("Deliveries", "تسليمات")"
+                                                     Icon="bi-truck"
+                                                     Count="@links.Deliveries"
+                                                     Visible="@HasPermission(PermissionList.SalesDeliveryNotePermissions.View)"
+                                                     OnClick="@(() => NavigateCustomerSales("/Sales/DeliveryNotes", customer.Id))" />
+                                        <SmartButton Label="@SharedDataService.SelectViewLang("Invoices", "فواتير")"
+                                                     Icon="bi-receipt"
+                                                     Count="@links.Invoices"
+                                                     Visible="@HasPermission(PermissionList.SalesOrderPermissions.Invoice)"
+                                                     Disabled="true"
+                                                     Title="@SharedDataService.SelectViewLang("Invoice drill-down is not available yet.", "التنقل إلى الفواتير غير متاح حالياً.")" />
+                                    </div>
+                                </td>
                                 <td>@(customer.Contacts?.Count ?? 0)</td>
                                 <td class="text-end">
                                     <div class="d-flex justify-content-end gap-2">
@@ -469,14 +549,13 @@ else
                 </button>
             </div>
         </div>
-        </div>
-    </div>
+    </AppCard>
     </div>
 }
 
 <style>
     .branches-page { max-width: 1400px; }
-    .branches-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    .erp-page-header { align-items: flex-start; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
     .branch-stat { align-items: center; background: var(--erp-surface); border-inline-start: 4px solid; border-radius: var(--erp-radius-lg); box-shadow: var(--erp-shadow-sm); display: flex; gap: 0.875rem; min-height: 88px; padding: 1rem; }
     .branch-stat-icon { align-items: center; background: var(--erp-surface-muted); border-radius: var(--erp-radius-lg); display: inline-flex; font-size: 1.35rem; height: 44px; justify-content: center; width: 44px; }
     .branch-stat-value { color: var(--erp-text); font-size: 1.35rem; font-weight: 700; line-height: 1.15; }
@@ -500,6 +579,7 @@ else
 
 @code {
     private List<CustomerDto> customers = new();
+    private readonly Dictionary<Guid, PartnerSmartLinkSummaryDto> customerSmartLinks = new();
     private CustomerDto editingCustomer = NewCustomer();
     private Guid? editingCustomerId;
     private Guid companyId;
@@ -694,10 +774,12 @@ else
         {
             customers = response.Data.Data.Select(Normalize).ToList();
             TotalPages = Math.Max(1, (int)Math.Ceiling(response.Data.Count / (double)pageSize));
+            await LoadCustomerSmartLinksAsync();
         }
         else
         {
             customers = [];
+            customerSmartLinks.Clear();
             TotalPages = 1;
             ShowError(response.Error?.Detail ?? SharedDataService.SelectViewLang("Unable to load customers.", "تعذر تحميل العملاء."));
         }
@@ -946,6 +1028,86 @@ else
             customerGroupIdText = "";
         }
     }
+
+    private static Guid? ParseNullableGuid(string? value)
+        => Guid.TryParse(value, out var id) ? id : null;
+
+    private static string FormatGuid(Guid? value)
+        => value?.ToString() ?? string.Empty;
+
+    private string GetAddressTypeLabel(PartnerAddressType type) => type switch
+    {
+        PartnerAddressType.Invoice => SharedDataService.SelectViewLang("Invoice", "فاتورة"),
+        PartnerAddressType.Delivery => SharedDataService.SelectViewLang("Delivery", "تسليم"),
+        PartnerAddressType.Other => SharedDataService.SelectViewLang("Other", "أخرى"),
+        PartnerAddressType.Private => SharedDataService.SelectViewLang("Private", "خاص"),
+        _ => SharedDataService.SelectViewLang("Contact", "اتصال")
+    };
+
+    private string GetContactTypeLabel(PartnerContactType type) => type switch
+    {
+        PartnerContactType.Sales => SharedDataService.SelectViewLang("Sales", "مبيعات"),
+        PartnerContactType.Purchase => SharedDataService.SelectViewLang("Purchase", "مشتريات"),
+        PartnerContactType.Accounting => SharedDataService.SelectViewLang("Accounting", "محاسبة"),
+        PartnerContactType.Operations => SharedDataService.SelectViewLang("Operations", "تشغيل"),
+        _ => SharedDataService.SelectViewLang("Contact", "اتصال")
+    };
+
+    private async Task LoadCustomerSmartLinksAsync()
+    {
+        customerSmartLinks.Clear();
+        foreach (var customer in customers)
+        {
+            var links = customer.SmartLinks ?? new();
+
+            if (HasPermission(PermissionList.SalesQuotationPermissions.View))
+            {
+                var quoteLinks = await SalesService.GetQuotationSmartLinksAsync(companyId, customerId: customer.Id);
+                if (quoteLinks.IsSuccess && quoteLinks.Data is not null)
+                    links.Quotations = quoteLinks.Data.PartnerLinks.Quotations;
+            }
+
+            if (HasPermission(PermissionList.SalesOrderPermissions.View))
+            {
+                var orderLinks = await SalesService.GetOrderSmartLinksAsync(companyId, customerId: customer.Id);
+                if (orderLinks.IsSuccess && orderLinks.Data is not null)
+                    links.SalesOrders = orderLinks.Data.PartnerLinks.SalesOrders;
+            }
+
+            if (HasPermission(PermissionList.SalesDeliveryNotePermissions.View))
+            {
+                var deliveryLinks = await SalesService.GetDeliveryNoteSmartLinksAsync(companyId, customerId: customer.Id);
+                if (deliveryLinks.IsSuccess && deliveryLinks.Data is not null)
+                    links.Deliveries = deliveryLinks.Data.PartnerLinks.Deliveries;
+            }
+
+            customerSmartLinks[customer.Id] = links;
+        }
+    }
+
+    private PartnerSmartLinkSummaryDto GetCustomerLinks(CustomerDto customer) =>
+        customerSmartLinks.TryGetValue(customer.Id, out var links) ? links : customer.SmartLinks ?? new();
+
+    private void NavigateCustomerSales(string route, Guid customerId) =>
+        NavigationManager.NavigateTo($"{route}?customerId={customerId}");
+
+    private MarkupString RenderCustomerSmartLinks(CustomerDto customer)
+    {
+        var links = customer.SmartLinks ?? new();
+        var html = string.Join("",
+        [
+            SmartLinkChip(SharedDataService.SelectViewLang("Quotes", "عروض"), links.Quotations),
+            SmartLinkChip(SharedDataService.SelectViewLang("Orders", "طلبات"), links.SalesOrders),
+            SmartLinkChip(SharedDataService.SelectViewLang("Deliveries", "تسليمات"), links.Deliveries),
+            SmartLinkChip(SharedDataService.SelectViewLang("Invoices", "فواتير"), links.Invoices)
+        ]);
+
+        return (MarkupString)$"<div class=\"erp-chip-row\">{html}</div>";
+    }
+
+    private static string SmartLinkChip(string label, int count)
+        => $"<span class=\"badge text-bg-light border\">{System.Net.WebUtility.HtmlEncode(label)}: {count}</span>";
+
     private string GetStatusClass(CustomerStatus status) => status switch
     {
         CustomerStatus.Active => "text-bg-success",
