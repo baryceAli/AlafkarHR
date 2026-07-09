@@ -17,8 +17,8 @@
 
     @StatusBlock()
 
-    <div class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <EditForm Model="meal" OnValidSubmit="SaveMealAsync">
                 <DataAnnotationsValidator />
                 <div class="row g-2">
@@ -36,13 +36,13 @@
                     <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" @bind-Value="meal.Notes" /></div>
                 </div>
             </EditForm>
-        </div>
-    </div>
+
+    </AppCard>
 
     @if (selectedMeal is not null && selectedMeal.StructureType == CateringMealStructureType.Combo)
     {
-        <div class="erp-card mb-3">
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
+
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0">@Text("Meal components", "مكونات الوجبة") - @Display(selectedMeal.Name, selectedMeal.NameEng)</h6>
                     <button class="btn btn-outline-secondary btn-sm" @onclick="ClearSelection" disabled="@busy" title="@Text("Close", "إغلاق")"><i class="bi bi-x-lg"></i></button>
@@ -58,8 +58,8 @@
                     @if (!selectedMeal.Components.Any()) { <tr><td colspan="6" class="text-muted">@Text("No components yet.", "لا توجد مكونات بعد.")</td></tr> }
                     @foreach (var item in selectedMeal.Components) { <tr><td>@Display(item.ComponentName, item.ComponentNameEng)</td><td>@item.QuantityPerMeal.ToString("N2")</td><td>@item.UnitName</td><td>@(item.CaloriesPerUnit?.ToString("N2") ?? "-")</td><td>@(item.TotalCalories?.ToString("N2") ?? "-")</td><td class="text-end"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteComponentAsync(item)" disabled="@busy" title="@Text("Remove", "حذف")"><i class="bi bi-trash"></i></button></td></tr> }
                 </tbody></table></div>
-            </div>
-        </div>
+
+        </AppCard>
     }
 
     <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Meal", "الوجبة")</th><th>@Text("Type", "النوع")</th><th>@Text("Structure", "التركيب")</th><th>@Text("Calories", "السعرات")</th><th>@Text("Components", "المكونات")</th><th>@Text("State", "الحالة")</th><th></th></tr></thead><tbody>

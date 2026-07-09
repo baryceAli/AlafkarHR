@@ -30,8 +30,8 @@
         <div class="alert @messageClass">@message</div>
     }
 
-    <div class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3">
+
             <div class="row g-3">
                 <div class="col-md-4">
                     <label class="form-label">@Text("Working date", "تاريخ يوم العمل")</label>
@@ -57,10 +57,10 @@
                     <textarea class="form-control" rows="2" @bind="notes"></textarea>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="erp-card">
+    </AppCard>
+
+    <AppCard>
         <div class="erp-table-wrap">
             <table class="table erp-table align-middle mb-0">
                 <thead>
@@ -96,7 +96,7 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </AppCard>
 </section>
 
 @code {

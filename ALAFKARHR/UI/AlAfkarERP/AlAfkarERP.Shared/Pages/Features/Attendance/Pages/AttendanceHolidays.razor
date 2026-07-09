@@ -33,11 +33,11 @@
 
     <div class="row g-3 mb-3">
         <div class="col-xl-8">
-            <div class="erp-card h-100">
-                <div class="erp-card-header bg-white">
+            <AppCard CssClass="h-100">
+                <div class="erp-table-toolbar bg-white">
                     <strong>@Text("Holiday Details", "تفاصيل العطلة")</strong>
                 </div>
-                <div class="erp-card-body">
+
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label">@Text("Holiday Name", "اسم العطلة")</label>
@@ -80,16 +80,16 @@
                             <textarea class="form-control" rows="2" @bind="model.Description"></textarea>
                         </div>
                     </div>
-                </div>
-            </div>
+
+            </AppCard>
         </div>
 
         <div class="col-xl-4">
-            <div class="erp-card h-100">
-                <div class="erp-card-header bg-white">
+            <AppCard CssClass="h-100">
+                <div class="erp-table-toolbar bg-white">
                     <strong>@Text("Weekend Configuration", "إعداد نهاية الأسبوع")</strong>
                 </div>
-                <div class="erp-card-body">
+
                     <p class="text-muted small">@Text("Select the first day of the week and one or more company weekend days. Attendance reports use these calendar settings.", "اختر أول يوم في الأسبوع ويوما واحدا أو أكثر لنهاية الأسبوع على مستوى الشركة. تستخدم تقارير الحضور هذه الإعدادات.")</p>
                     <div class="mb-3">
                         <label class="form-label">@Text("First day of week", "أول يوم في الأسبوع")</label>
@@ -112,12 +112,12 @@
                         }
                     </div>
                     <button class="btn btn-outline-primary mt-3" @onclick="SaveWeekendAsync" disabled="@isBusy">@Text("Save Weekend", "حفظ نهاية الأسبوع")</button>
-                </div>
-            </div>
+
+            </AppCard>
         </div>
     </div>
 
-    <div class="erp-card">
+    <AppCard>
         <div class="erp-table-wrap">
             <table class="table erp-table align-middle mb-0">
                 <thead>
@@ -161,7 +161,7 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </AppCard>
 </section>
 
 @code {

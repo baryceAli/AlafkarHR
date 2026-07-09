@@ -19,7 +19,7 @@
     <PageHeader Title="@Text("Dispatch & Execution", "التشغيل والرحلات")" Subtitle="@Text("Assign trucks, track loading, movement, arrival, and supervisor receipt.", "تجهيز الشاحنات وتتبع التحميل والحركة والوصول واستلام المشرفين.")" Icon="bi-truck" />
     @StatusBlock()
 
-    <div class="erp-card mb-3"><div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
         <h6 class="mb-3">@Text("Dispatch plan", "خطة الرحلة")</h6>
         <EditForm Model="dispatch" OnValidSubmit="SaveDispatchAsync"><DataAnnotationsValidator />
             <div class="row g-2 align-items-end">
@@ -30,9 +30,9 @@
                 <div class="col-md-1"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i></button></div>
             </div>
         </EditForm>
-    </div></div>
+    </AppCard>
 
-    <div class="erp-card mb-3"><div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
         <h6 class="mb-3">@Text("Legacy refrigerated receiving", "استلام البرادات السابق")</h6>
         <EditForm Model="delivery" OnValidSubmit="SaveAsync"><DataAnnotationsValidator />
             <div class="row g-2 align-items-end">
@@ -46,9 +46,9 @@
                 <div class="col-md-1"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i></button></div>
             </div>
         </EditForm>
-    </div></div>
+    </AppCard>
 
-    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label">@Text("Filter schedule", "تصفية الجدول")</label><select class="form-select" @bind="filterScheduleId"><option value="">@Text("All schedules", "كل الجداول")</option>@foreach (var item in schedules) { <option value="@item.Id">@ScheduleLabel(item)</option> }</select></div><div class="col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div><div class="col-md-2"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div><div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadDeliveriesAsync"><i class="bi bi-funnel"></i> @Text("Apply", "تطبيق")</button></div></div></div></div>
+    <AppCard CssClass="mb-3 allow-overflow"><div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label">@Text("Filter schedule", "تصفية الجدول")</label><select class="form-select" @bind="filterScheduleId"><option value="">@Text("All schedules", "كل الجداول")</option>@foreach (var item in schedules) { <option value="@item.Id">@ScheduleLabel(item)</option> }</select></div><div class="col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div><div class="col-md-2"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div><div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadDeliveriesAsync"><i class="bi bi-funnel"></i> @Text("Apply", "تطبيق")</button></div></div></AppCard>
 
     <div class="erp-table-wrap mb-3"><table class="table erp-table align-middle"><thead><tr><th>@Text("Schedule", "الجدول")</th><th>@Text("Truck", "الشاحنة")</th><th>@Text("Driver", "السائق")</th><th>@Text("Status", "الحالة")</th><th>@Text("Loaded", "المحمل")</th><th>@Text("Timeline", "المسار")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
         @if (loading) { <tr><td colspan="7" class="text-muted">@Text("Loading dispatches...", "جاري تحميل الرحلات...")</td></tr> }
@@ -59,7 +59,7 @@
                 <td>@ScheduleLabel(item.DailyScheduleId)</td>
                 <td>@item.VehicleName @item.PlateNumber</td>
                 <td>@item.DriverName</td>
-                <td>@item.Status</td>
+                <td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td>
                 <td>@item.LoadedMealCount.ToString("N0")</td>
                 <td class="small text-muted">@Timeline(item)</td>
                 <td class="text-end">

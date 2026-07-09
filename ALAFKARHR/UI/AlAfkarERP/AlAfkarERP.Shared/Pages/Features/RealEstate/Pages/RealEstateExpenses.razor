@@ -15,9 +15,9 @@
 <main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Property Expenses", "مصاريف العقارات")" Subtitle="@Text("Owner rent, utilities, furnishing, renovation, maintenance, and services.", "إيجار المالك والخدمات والتأثيث والترميم والصيانة.")" Icon="bi-receipt" />
 
-    <article class="erp-card mb-3">
-        <div class="erp-card-header"><strong>@(editingExpense.Id == Guid.Empty ? Text("New Expense", "مصروف جديد") : Text("Edit Expense", "تعديل مصروف"))</strong></div>
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+        <div class="erp-table-toolbar"><strong>@(editingExpense.Id == Guid.Empty ? Text("New Expense", "مصروف جديد") : Text("Edit Expense", "تعديل مصروف"))</strong></div>
+
             <EditForm Model="editingExpense" OnValidSubmit="SaveAsync">
                 <div class="row g-3">
                     <div class="col-12 col-md-3"><label class="form-label">@Text("Property", "العقار")</label><select class="form-select" @bind="propertyIdText"><option value="">@Text("Select property", "اختر العقار")</option>@foreach (var property in properties) { <option value="@property.Id">@property.Name</option> }</select></div>
@@ -36,25 +36,25 @@
                     <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
                 </div>
             </EditForm>
-        </div>
-    </article>
 
-    <article class="erp-card">
-        <div class="erp-card-body">
+    </AppCard>
+
+    <AppCard CssClass="allow-overflow">
+
             @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
             <div class="row g-3 align-items-end mb-3">
                 <div class="col-12 col-md-3"><label class="form-label">@Text("Filter Property", "تصفية العقار")</label><select class="form-select" @bind="filterPropertyIdText"><option value="">@Text("All", "الكل")</option>@foreach (var property in properties) { <option value="@property.Id">@property.Name</option> }</select></div>
                 <div class="col-12 col-md-3"><label class="form-label">@Text("Category", "التصنيف")</label><select class="form-select" @bind="filterCategoryText"><option value="">@Text("All", "الكل")</option>@foreach (var category in Enum.GetValues<ExpenseCategory>()) { <option value="@category">@category</option> }</select></div>
                 <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadExpensesAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button></div>
             </div>
-            <div class="table-responsive">
-                <table class="table align-middle">
+            <div class="erp-table-wrap">
+                <table class="table align-middle erp-table">
                     <thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Property", "العقار")</th><th>@Text("Category", "التصنيف")</th><th>@Text("Total", "الإجمالي")</th><th>@Text("Supplier", "المورد")</th><th>@Text("Source", "المصدر")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                     <tbody>@foreach (var item in expenses) { <tr><td>@item.ExpenseDate.ToShortDateString()</td><td>@item.PropertyName</td><td>@item.Category</td><td>@item.TotalAmount.ToString("N2")</td><td>@item.SupplierName</td><td>@item.SourceDocumentNumber</td><td class="text-end text-nowrap"><button class="btn btn-sm btn-outline-primary" @onclick="@(() => Edit(item))"><i class="bi bi-pencil"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="@(() => DeleteAsync(item.Id))"><i class="bi bi-trash"></i></button></td></tr> }</tbody>
                 </table>
             </div>
-        </div>
-    </article>
+
+    </AppCard>
 </main>
 
 @code {

@@ -22,9 +22,9 @@
 
     @if (Can(PermissionList.FleetVehicleAssignmentPermissions.Create))
     {
-    <section class="erp-card mb-3">
-        <div class="erp-card-header"><strong>@Text("New Assignment", "عهدة جديدة")</strong></div>
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3">
+        <div class="erp-table-toolbar"><strong>@Text("New Assignment", "عهدة جديدة")</strong></div>
+
             <EditForm Model="newAssignment" OnValidSubmit="CreateAsync">
                 <DataAnnotationsValidator />
                 <div class="row g-2 align-items-end">
@@ -49,15 +49,15 @@
                     <div class="col-12"><label class="form-label">@Text("Purpose", "الغرض")</label><InputText class="form-control" @bind-Value="newAssignment.Purpose" /></div>
                 </div>
             </EditForm>
-        </div>
-    </section>
+
+    </AppCard>
     }
 
     @if (returningAssignment is not null && Can(PermissionList.FleetVehicleAssignmentPermissions.Close))
     {
-        <section class="erp-card mb-3">
-            <div class="erp-card-header"><strong>@Text("Return Vehicle", "إرجاع المركبة")</strong></div>
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3">
+            <div class="erp-table-toolbar"><strong>@Text("Return Vehicle", "إرجاع المركبة")</strong></div>
+
                 <EditForm Model="returnForm" OnValidSubmit="ConfirmReturnAsync">
                     <div class="row g-2 align-items-end">
                         <div class="col-12 col-lg-3">@returningAssignment.PlateNumber - @returningAssignment.VehicleName</div>
@@ -71,12 +71,12 @@
                         <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="returnForm.Notes" /></div>
                     </div>
                 </EditForm>
-            </div>
-        </section>
+
+        </AppCard>
     }
 
-    <section class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3">
+
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-lg-3"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" @bind:event="oninput" /></div>
                 <div class="col-12 col-lg-4">
@@ -89,10 +89,10 @@
                 </div>
                 <div class="col-12 col-lg-2"><button class="btn btn-outline-secondary w-100" @onclick="ApplyFiltersAsync"><i class="bi bi-search"></i></button></div>
             </div>
-        </div>
-    </section>
 
-    <section class="erp-card">
+    </AppCard>
+
+    <AppCard>
         <div class="erp-table-wrap">
             <table class="erp-table table">
                 <thead><tr><th>@Text("Vehicle", "المركبة")</th><th>@Text("Employee/User", "موظف/مستخدم")</th><th>@Text("Branch/Dept", "فرع/إدارة")</th><th>@Text("Period", "الفترة")</th><th>@Text("Odometer", "العداد")</th><th>@Text("Fuel", "الوقود")</th><th>@Text("Purpose", "الغرض")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead>
@@ -137,15 +137,15 @@
                 </tbody>
             </table>
         </div>
-        <div class="erp-card-body border-top d-flex justify-content-between align-items-center gap-2">
+
             <span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span>
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-sm btn-outline-secondary" disabled="@(pageIndex == 0 || isLoading)" @onclick="PreviousPageAsync"><i class="bi bi-chevron-left"></i></button>
                 <span class="small">@Text("Page", "صفحة") @(pageIndex + 1)</span>
                 <button class="btn btn-sm btn-outline-secondary" disabled="@(!HasNextPage || isLoading)" @onclick="NextPageAsync"><i class="bi bi-chevron-right"></i></button>
             </div>
-        </div>
-    </section>
+
+    </AppCard>
 </main>
 
 @code {

@@ -13,21 +13,21 @@
 <main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Rent Collections", "تحصيل الإيجارات")" Subtitle="@Text("Filter tenant installments and allocate full or partial payments.", "تصفية أقساط المستأجرين وتخصيص السداد الكامل أو الجزئي.")" Icon="bi-cash-coin" />
 
-    <article class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-3"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var status in Enum.GetValues<InstallmentStatus>()) { <option value="@status">@status</option> }</select></div>
                 <div class="col-12 col-md-3"><label class="form-label">@Text("View", "العرض")</label><select class="form-select" @bind="quickView"><option value="">@Text("All", "الكل")</option><option value="Overdue">@Text("Overdue", "متأخر")</option><option value="Open">@Text("Open", "مفتوح")</option></select></div>
                 <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button></div>
             </div>
-        </div>
-    </article>
+
+    </AppCard>
 
     @if (selected is not null)
     {
-        <article class="erp-card mb-3">
-            <div class="erp-card-header"><strong>@Text("Record Payment", "تسجيل سداد")</strong></div>
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
+            <div class="erp-table-toolbar"><strong>@Text("Record Payment", "تسجيل سداد")</strong></div>
+
                 <EditForm Model="payment" OnValidSubmit="RecordPaymentAsync">
                     <div class="row g-3 align-items-end">
                         <div class="col-12 col-md-3"><label class="form-label">@Text("Installment", "القسط")</label><input class="form-control" value="@($"#{selected.Sequence} - {selected.RemainingAmount:N2}")" disabled /></div>
@@ -38,12 +38,12 @@
                         <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputTextArea class="form-control" @bind-Value="payment.Notes" rows="2" /></div>
                     </div>
                 </EditForm>
-            </div>
-        </article>
+
+        </AppCard>
     }
 
-    <article class="erp-card">
-        <div class="erp-card-body">
+    <AppCard CssClass="allow-overflow">
+
             @if (isLoading)
             {
                 <div class="text-muted">@Text("Loading installments...", "جاري تحميل الأقساط...")</div>
@@ -58,8 +58,8 @@
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table align-middle">
+                <div class="erp-table-wrap">
+                    <table class="table align-middle erp-table">
                         <thead><tr><th>@Text("Due Date", "تاريخ الاستحقاق")</th><th>@Text("Period", "الفترة")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Paid", "المدفوع")</th><th>@Text("Remaining", "المتبقي")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                         <tbody>
                             @foreach (var item in FilteredInstallments)
@@ -70,7 +70,7 @@
                                     <td>@item.Amount.ToString("N2")</td>
                                     <td>@item.PaidAmount.ToString("N2")</td>
                                     <td>@item.RemainingAmount.ToString("N2")</td>
-                                    <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                    <td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td>
                                     <td class="text-end text-nowrap">
                                         <button class="btn btn-sm btn-outline-success" disabled="@(item.RemainingAmount <= 0)" @onclick="@(() => SelectInstallment(item))"><i class="bi bi-cash"></i> @Text("Pay", "سداد")</button>
                                         <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/{item.LeaseId}"))"><i class="bi bi-eye"></i></button>
@@ -81,8 +81,8 @@
                     </table>
                 </div>
             }
-        </div>
-    </article>
+
+    </AppCard>
 </main>
 
 @code {

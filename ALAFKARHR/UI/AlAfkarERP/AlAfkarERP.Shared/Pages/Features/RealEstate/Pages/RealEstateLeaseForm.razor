@@ -26,8 +26,8 @@
         <Actions><button class="btn btn-outline-secondary" @onclick="Back"><i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")</button></Actions>
     </PageHeader>
 
-    <article class="erp-card">
-        <div class="erp-card-body">
+    <AppCard CssClass="allow-overflow">
+
             @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
             @if (isLoading)
             {
@@ -94,8 +94,8 @@
                     </div>
                 </EditForm>
             }
-        </div>
-    </article>
+
+    </AppCard>
 </main>
 
 @code {

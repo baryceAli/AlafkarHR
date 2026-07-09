@@ -38,7 +38,7 @@
 
     @if (isFormVisible)
     {
-    <section class="attendance-workspace-card">
+    <AppCard>
         <div class="attendance-section-title">
             <div>
                 <h2>@(isEditing ? Text("Update shift", "تعديل الوردية") : Text("Create shift", "انشاء وردية"))</h2>
@@ -109,10 +109,10 @@
                 @(isEditing ? Text("Update shift", "تعديل الوردية") : Text("Create shift", "انشاء وردية"))
             </button>
         </div>
-    </section>
+    </AppCard>
     }
 
-    <section class="attendance-workspace-card mt-3">
+    <AppCard CssClass="mt-3">
         <div class="attendance-section-title">
             <div>
                 <h2>@Text("Existing shifts", "الورديات الحالية")</h2>
@@ -179,7 +179,7 @@
                 </tbody>
             </table>
         </div>
-    </section>
+    </AppCard>
 </section>
 
 @code {

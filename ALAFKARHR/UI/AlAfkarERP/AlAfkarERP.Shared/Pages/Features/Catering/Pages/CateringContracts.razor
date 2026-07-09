@@ -16,7 +16,7 @@
     <PageHeader Title="@Text("Catering Contracts", "عقود الإعاشة")" Subtitle="@Text("Create charity contracts, add addendums, and monitor allowance totals.", "إنشاء عقود الجمعيات وإضافة الملاحق ومتابعة إجمالي الكميات.")" Icon="bi-file-earmark-check" />
     @StatusBlock()
 
-    <div class="erp-card mb-3"><div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
         <EditForm Model="contract" OnValidSubmit="SaveAsync"><DataAnnotationsValidator />
             <div class="row g-2">
                 <div class="col-md-3"><label class="form-label">@Text("Charity", "الجمعية")</label><select class="form-select" @bind="contract.CustomerId"><option value="@Guid.Empty">@Text("Select charity", "اختر الجمعية")</option>@foreach (var c in customers) { <option value="@c.Id">@CustomerName(c)</option> }</select></div>
@@ -38,11 +38,11 @@
                 <div class="col-md-1 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit" disabled="@busy" title="@Text("Save", "حفظ")"><i class="bi bi-save"></i></button></div>
             </div>
         </EditForm>
-    </div></div>
+    </AppCard>
 
     @if (selectedContract is not null)
     {
-        <div class="erp-card mb-3"><div class="erp-card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
             <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">@Text("Addendum", "ملحق العقد") - @selectedContract.Number</h6><button class="btn btn-outline-secondary btn-sm" @onclick="() => selectedContract = null" title="@Text("Close", "إغلاق")"><i class="bi bi-x-lg"></i></button></div>
             <div class="row g-2 align-items-end">
                 <div class="col-md-2"><label class="form-label">@Text("Added quantity", "الكمية المضافة")</label><InputNumber class="form-control" @bind-Value="addendum.AddedQuantity" /></div>
@@ -52,7 +52,7 @@
                 <div class="col-md-1"><button class="btn btn-primary w-100" @onclick="AddAddendumAsync" disabled="@busy" title="@Text("Add", "إضافة")"><i class="bi bi-plus-lg"></i></button></div>
             </div>
             <div class="mt-3 text-muted">@Text("Total contracted", "إجمالي المتعاقد عليه"): @selectedContract.TotalContractedMealQuantity.ToString("N0")</div>
-        </div></div>
+        </AppCard>
     }
 
     <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("No.", "الرقم")</th><th>@Text("Charity", "الجمعية")</th><th>@Text("Meal", "الوجبة")</th><th>@Text("Season", "الموسم")</th><th>@Text("Contract", "العقد")</th><th>@Text("Addendum", "الملاحق")</th><th>@Text("Total", "الإجمالي")</th><th>@Text("Calories", "السعرات")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>
@@ -60,7 +60,7 @@
         else if (!contracts.Any()) { <tr><td colspan="10" class="text-muted">@Text("No contracts found.", "لا توجد عقود.")</td></tr> }
         @foreach (var item in contracts)
         {
-            <tr><td>@item.Number</td><td>@Display(item.CustomerName, item.CustomerNameEng)</td><td>@Display(item.MealName ?? "-", item.MealNameEng)</td><td>@item.SeasonLabel</td><td>@item.ContractedMealQuantity.ToString("N0")</td><td>@item.AddendumMealQuantity.ToString("N0")</td><td>@item.TotalContractedMealQuantity.ToString("N0")</td><td>@CalorieRequirement(item)</td><td>@item.Status</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => Edit(item)" disabled="@busy" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SelectContractAsync(item.Id)" disabled="@busy" title="@Text("Addendum", "ملحق")"><i class="bi bi-plus-square"></i></button><button class="btn btn-sm btn-outline-warning me-1" @onclick="() => CloseAsync(item.Id)" disabled="@busy" title="@Text("Close", "إغلاق")"><i class="bi bi-lock"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(item.Id)" disabled="@busy" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button></td></tr>
+            <tr><td>@item.Number</td><td>@Display(item.CustomerName, item.CustomerNameEng)</td><td>@Display(item.MealName ?? "-", item.MealNameEng)</td><td>@item.SeasonLabel</td><td>@item.ContractedMealQuantity.ToString("N0")</td><td>@item.AddendumMealQuantity.ToString("N0")</td><td>@item.TotalContractedMealQuantity.ToString("N0")</td><td>@CalorieRequirement(item)</td><td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => Edit(item)" disabled="@busy" title="@Text("Edit", "تعديل")"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SelectContractAsync(item.Id)" disabled="@busy" title="@Text("Addendum", "ملحق")"><i class="bi bi-plus-square"></i></button><button class="btn btn-sm btn-outline-warning me-1" @onclick="() => CloseAsync(item.Id)" disabled="@busy" title="@Text("Close", "إغلاق")"><i class="bi bi-lock"></i></button><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(item.Id)" disabled="@busy" title="@Text("Delete", "حذف")"><i class="bi bi-trash"></i></button></td></tr>
         }
     </tbody></table></div>
 </div>

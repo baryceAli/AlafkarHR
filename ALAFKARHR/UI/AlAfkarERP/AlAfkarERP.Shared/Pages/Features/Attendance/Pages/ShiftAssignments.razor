@@ -36,7 +36,7 @@
         <div class="alert @messageClass">@message</div>
     }
 
-    <section class="attendance-workspace-card">
+    <AppCard CssClass="allow-overflow">
         <div class="attendance-section-title">
             <h2>@Text("Apply shift", "تطبيق الوردية")</h2>
             <span>@Text("Priority is employee, department, administration, then company.", "الأولوية للموظف ثم القسم ثم الإدارة ثم الشركة.")</span>
@@ -124,9 +124,9 @@
                 @Text("Apply shift", "تطبيق الوردية")
             </button>
         </div>
-    </section>
+    </AppCard>
 
-    <section class="attendance-workspace-card mt-3">
+    <AppCard CssClass="mt-3">
         <div class="attendance-section-title">
             <h2>@Text("Configured assignments", "التعيينات الحالية")</h2>
             <select class="form-select form-select-sm scope-filter" @bind="scopeFilter">
@@ -166,7 +166,7 @@
                 </tbody>
             </table>
         </div>
-    </section>
+    </AppCard>
 </section>
 
 @code {
@@ -387,7 +387,7 @@
         => assignment.IsActive ? "success" : "muted";
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
-    
+
     protected override void OnInitialized()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;

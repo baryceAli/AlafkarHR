@@ -12,20 +12,20 @@
     <PageHeader Title="@Text("Catering Reports", "تقارير الإعاشة")" Subtitle="@Text("Operational variance by day, contract, charity, and square.", "فروقات التشغيل حسب اليوم والعقد والجمعية والمربع.")" Icon="bi-bar-chart-line" />
     @StatusBlock()
 
-    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end">
+    <AppCard CssClass="mb-3 allow-overflow"><div class="row g-2 align-items-end">
         <div class="col-md-4"><label class="form-label">@Text("Contract", "العقد")</label><select class="form-select" @bind="contractId"><option value="">@Text("All contracts", "كل العقود")</option>@foreach (var item in contracts) { <option value="@item.Id">@item.Number - @Display(item.CustomerName, item.CustomerNameEng)</option> }</select></div>
         <div class="col-md-2"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div>
         <div class="col-md-2"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div>
         <div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync" disabled="@loading"><i class="bi bi-funnel"></i> @Text("Apply", "تطبيق")</button></div>
-    </div></div></div>
+    </div></AppCard>
 
     <div class="row g-3 mb-3">
-        <div class="col-md-2"><div class="erp-card"><div class="erp-card-body"><div class="text-muted">@Text("Contracted", "المتعاقد")</div><h5>@TotalContracted.ToString("N0")</h5></div></div></div>
-        <div class="col-md-2"><div class="erp-card"><div class="erp-card-body"><div class="text-muted">@Text("Scheduled", "المجدول")</div><h5>@TotalScheduled.ToString("N0")</h5></div></div></div>
-        <div class="col-md-2"><div class="erp-card"><div class="erp-card-body"><div class="text-muted">@Text("Received", "المستلم")</div><h5>@TotalReceived.ToString("N0")</h5></div></div></div>
-        <div class="col-md-2"><div class="erp-card"><div class="erp-card-body"><div class="text-muted">@Text("Distributed", "الموزع")</div><h5>@TotalDistributed.ToString("N0")</h5></div></div></div>
-        <div class="col-md-2"><div class="erp-card"><div class="erp-card-body"><div class="text-muted">@Text("Remaining", "المتبقي")</div><h5>@Remaining.ToString("N0")</h5></div></div></div>
-        <div class="col-md-2"><div class="erp-card"><div class="erp-card-body"><div class="text-muted">@Text("Variance", "الفرق")</div><h5>@TotalVariance.ToString("N0")</h5></div></div></div>
+        <div class="col-md-2"><AppCard CssClass="allow-overflow"><div class="text-muted">@Text("Contracted", "المتعاقد")</div><h5>@TotalContracted.ToString("N0")</h5></AppCard></div>
+        <div class="col-md-2"><AppCard CssClass="allow-overflow"><div class="text-muted">@Text("Scheduled", "المجدول")</div><h5>@TotalScheduled.ToString("N0")</h5></AppCard></div>
+        <div class="col-md-2"><AppCard CssClass="allow-overflow"><div class="text-muted">@Text("Received", "المستلم")</div><h5>@TotalReceived.ToString("N0")</h5></AppCard></div>
+        <div class="col-md-2"><AppCard CssClass="allow-overflow"><div class="text-muted">@Text("Distributed", "الموزع")</div><h5>@TotalDistributed.ToString("N0")</h5></AppCard></div>
+        <div class="col-md-2"><AppCard CssClass="allow-overflow"><div class="text-muted">@Text("Remaining", "المتبقي")</div><h5>@Remaining.ToString("N0")</h5></AppCard></div>
+        <div class="col-md-2"><AppCard CssClass="allow-overflow"><div class="text-muted">@Text("Variance", "الفرق")</div><h5>@TotalVariance.ToString("N0")</h5></AppCard></div>
     </div>
 
     <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Period", "الفترة")</th><th>@Text("Date", "التاريخ")</th><th>@Text("Contract", "العقد")</th><th>@Text("Charity", "الجمعية")</th><th>@Text("Square", "المربع")</th><th>@Text("Vehicle", "المركبة")</th><th>@Text("Contracted", "المتعاقد")</th><th>@Text("Scheduled", "المجدول")</th><th>@Text("Received", "المستلم")</th><th>@Text("Distributed", "الموزع")</th><th>@Text("Variance", "الفرق")</th></tr></thead><tbody>

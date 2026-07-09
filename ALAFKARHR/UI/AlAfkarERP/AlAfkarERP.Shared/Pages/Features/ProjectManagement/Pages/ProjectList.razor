@@ -27,9 +27,9 @@
 <main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Projects", "المشاريع")" Subtitle="@Text("Create and manage meal preparation and distribution projects.", "إنشاء وإدارة مشاريع تجهيز وتوزيع الوجبات.")" Icon="bi-kanban" />
 
-    <article class="erp-card mb-3">
-        <div class="erp-card-header"><strong>@Text("New Project", "مشروع جديد")</strong></div>
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+        <div class="erp-table-toolbar"><strong>@Text("New Project", "مشروع جديد")</strong></div>
+
             <EditForm Model="editingProject" OnValidSubmit="SaveProjectAsync">
                 <DataAnnotationsValidator />
                 <div class="row g-3">
@@ -111,7 +111,7 @@
                     @if (draftCustomer.ProductPlans.Any())
                     {
                         <div class="erp-table-wrap mt-3">
-                            <table class="table align-middle mb-0">
+                            <table class="table align-middle mb-0 erp-table">
                                 <thead><tr><th>@Text("SKU", "الصنف")</th><th>@Text("Type", "النوع")</th><th>@Text("Quantity", "الكمية")</th><th>@Text("Unit Price", "سعر الوحدة")</th><th>@Text("Line Amount", "مبلغ السطر")</th><th>@Text("Notes", "ملاحظات")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                                 <tbody>
                                     @foreach (var plan in draftCustomer.ProductPlans)
@@ -154,7 +154,7 @@
                     @if (projectCustomers.Any())
                     {
                         <div class="erp-table-wrap mt-3">
-                            <table class="table align-middle mb-0">
+                            <table class="table align-middle mb-0 erp-table">
                                 <thead><tr><th>@Text("Customer", "العميل")</th><th>@Text("Quantity", "الكمية")</th><th>@Text("Contracted Amount", "المبلغ المتعاقد عليه")</th><th>@Text("Actual Amount", "المبلغ الفعلي")</th><th>@Text("Difference", "الفرق")</th><th>@Text("Products", "الأصناف")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                                 <tbody>
                                     @foreach (var item in projectCustomers)
@@ -179,19 +179,19 @@
                     <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
                 </div>
             </EditForm>
-        </div>
-    </article>
 
-    <article class="erp-card">
-        <div class="erp-card-body">
+    </AppCard>
+
+    <AppCard CssClass="allow-overflow">
+
             @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
             <div class="row g-3 align-items-end mb-3">
                 <div class="col-12 col-md-4"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" /></div>
                 <div class="col-12 col-md-3"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var status in Enum.GetValues<ProjectStatus>()) { <option value="@status">@status</option> }</select></div>
                 <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadProjectsAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button></div>
             </div>
-            <div class="table-responsive">
-                <table class="table align-middle">
+            <div class="erp-table-wrap">
+                <table class="table align-middle erp-table">
                     <thead><tr><th>@Text("Number", "الرقم")</th><th>@Text("Project", "المشروع")</th><th>@Text("Manager", "المدير")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                     <tbody>
                         @foreach (var project in projects)
@@ -208,8 +208,8 @@
                     </tbody>
                 </table>
             </div>
-        </div>
-    </article>
+
+    </AppCard>
 </main>
 
 @if (showNewCustomerModal)

@@ -22,8 +22,8 @@
     <PageHeader Title="@Text("Catering Plan", "خطة الإعاشة")" Subtitle="@Text("Connect contract resources, daily schedules, and packaging inventory requests.", "ربط موارد العقد والجداول اليومية وطلبات مخزون التجهيز.")" Icon="bi-diagram-3" />
     @StatusBlock()
 
-    <div class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <EditForm Model="plan" OnValidSubmit="SavePlanAsync">
                 <DataAnnotationsValidator />
                 <div class="row g-2 align-items-end">
@@ -35,15 +35,15 @@
                     <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="plan.Notes" /></div>
                 </div>
             </EditForm>
-        </div>
-    </div>
+
+    </AppCard>
 
     @if (selectedPlan is not null)
     {
         <div class="row g-3 mb-3">
             <div class="col-xl-7">
-                <div class="erp-card h-100">
-                    <div class="erp-card-body">
+                <AppCard CssClass="h-100 allow-overflow">
+
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <h6 class="mb-0">@Text("Resources", "الموارد") - @selectedPlan.ContractNumber</h6>
                             <button class="btn btn-outline-secondary btn-sm" @onclick="ClearSelection"><i class="bi bi-x-lg"></i></button>
@@ -65,12 +65,12 @@
                             @if (!selectedPlan.Resources.Any()) { <tr><td colspan="4" class="text-muted">@Text("No resources assigned.", "لم يتم تعيين موارد.")</td></tr> }
                             @foreach (var item in selectedPlan.Resources) { <tr><td>@item.ResourceType</td><td>@ResourceLabel(item)</td><td>@item.EffectiveFrom?.ToString("yyyy-MM-dd") - @item.EffectiveTo?.ToString("yyyy-MM-dd")</td><td class="text-end"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteResourceAsync(item)" disabled="@busy"><i class="bi bi-trash"></i></button></td></tr> }
                         </tbody></table></div>
-                    </div>
-                </div>
+
+                </AppCard>
             </div>
             <div class="col-xl-5">
-                <div class="erp-card h-100">
-                    <div class="erp-card-body">
+                <AppCard CssClass="h-100 allow-overflow">
+
                         <h6>@Text("Generate daily plans", "إنشاء الخطط اليومية")</h6>
                         <div class="row g-2 align-items-end">
                             <div class="col-md-6"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="generateRequest.FromDate" /></div>
@@ -79,25 +79,25 @@
                             <div class="col-md-6"><label class="form-check mt-4"><InputCheckbox class="form-check-input" @bind-Value="generateRequest.UseFullContractDuration" /> <span class="form-check-label">@Text("Full contract", "كامل العقد")</span></label></div>
                             <div class="col-12"><button class="btn btn-outline-primary w-100" @onclick="GenerateDailyPlansAsync" disabled="@busy"><i class="bi bi-calendar-plus"></i> @Text("Generate schedules", "إنشاء الجداول")</button></div>
                         </div>
-                    </div>
-                </div>
+
+                </AppCard>
             </div>
         </div>
     }
 
-    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end">
+    <AppCard CssClass="mb-3 allow-overflow"><div class="row g-2 align-items-end">
         <div class="col-md-4"><label class="form-label">@Text("Filter contract", "تصفية العقد")</label><select class="form-select" @bind="filterContractId"><option value="">@Text("All contracts", "كل العقود")</option>@foreach (var item in contracts) { <option value="@item.Id">@ContractLabel(item)</option> }</select></div>
         <div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadPlansAsync"><i class="bi bi-funnel"></i> @Text("Apply", "تطبيق")</button></div>
-    </div></div></div>
+    </div></AppCard>
 
     <div class="erp-table-wrap mb-3"><table class="table erp-table align-middle"><thead><tr><th>@Text("Contract", "العقد")</th><th>@Text("Dates", "التواريخ")</th><th>@Text("Resources", "الموارد")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>
         @if (loading) { <tr><td colspan="5" class="text-muted">@Text("Loading plans...", "جاري تحميل الخطط...")</td></tr> }
         else if (!plans.Any()) { <tr><td colspan="5" class="text-muted">@Text("No plans found.", "لا توجد خطط.")</td></tr> }
-        @foreach (var item in plans) { <tr><td>@item.ContractNumber - @Display(item.CustomerName ?? "", item.CustomerNameEng)</td><td>@item.StartDate.ToString("yyyy-MM-dd") - @item.EndDate.ToString("yyyy-MM-dd")</td><td>@item.Resources.Count</td><td>@item.Status</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditPlan(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary" @onclick="() => SelectPlan(item)"><i class="bi bi-diagram-3"></i></button></td></tr> }
+        @foreach (var item in plans) { <tr><td>@item.ContractNumber - @Display(item.CustomerName ?? "", item.CustomerNameEng)</td><td>@item.StartDate.ToString("yyyy-MM-dd") - @item.EndDate.ToString("yyyy-MM-dd")</td><td>@item.Resources.Count</td><td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditPlan(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary" @onclick="() => SelectPlan(item)"><i class="bi bi-diagram-3"></i></button></td></tr> }
     </tbody></table></div>
 
-    <div class="erp-card">
-        <div class="erp-card-body">
+    <AppCard CssClass="allow-overflow">
+
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h6 class="mb-0">@Text("Packaging inventory requests", "طلبات مخزون التجهيز")</h6>
                 <button class="btn btn-outline-primary btn-sm" @onclick="CreateInventoryRequestAsync" disabled="@(busy || selectedPlan is null || inventoryRequest.DailyScheduleId == Guid.Empty || inventoryRequest.SourceWarehouseId == Guid.Empty || inventoryRequest.RequestedByEmployeeId == Guid.Empty)"><i class="bi bi-plus-lg"></i> @Text("Create request", "إنشاء طلب")</button>
@@ -110,10 +110,10 @@
             </div>
             <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Schedule", "الجدول")</th><th>@Text("Status", "الحالة")</th><th>@Text("Lines", "البنود")</th><th></th></tr></thead><tbody>
                 @if (!inventoryRequests.Any()) { <tr><td colspan="5" class="text-muted">@Text("No inventory requests.", "لا توجد طلبات مخزون.")</td></tr> }
-                @foreach (var item in inventoryRequests) { <tr><td>@item.RequestDate.ToString("yyyy-MM-dd")</td><td>@item.DailyScheduleId</td><td>@item.Status</td><td>@item.Lines.Count</td><td class="text-end"><button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SubmitInventoryRequestAsync(item)" disabled="@(busy || item.Status != CateringInventoryRequestStatus.Draft)">@Text("Submit", "إرسال")</button><button class="btn btn-sm btn-outline-success me-1" @onclick="() => ApproveInventoryRequestAsync(item)" disabled="@(busy || item.Status != CateringInventoryRequestStatus.Submitted)">@Text("Approve", "اعتماد")</button><button class="btn btn-sm btn-outline-primary" @onclick="() => FulfillInventoryRequestAsync(item)" disabled="@(busy || item.Status != CateringInventoryRequestStatus.Approved)">@Text("Fulfill", "صرف")</button></td></tr> }
+                @foreach (var item in inventoryRequests) { <tr><td>@item.RequestDate.ToString("yyyy-MM-dd")</td><td>@item.DailyScheduleId</td><td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td><td>@item.Lines.Count</td><td class="text-end"><button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => SubmitInventoryRequestAsync(item)" disabled="@(busy || item.Status != CateringInventoryRequestStatus.Draft)">@Text("Submit", "إرسال")</button><button class="btn btn-sm btn-outline-success me-1" @onclick="() => ApproveInventoryRequestAsync(item)" disabled="@(busy || item.Status != CateringInventoryRequestStatus.Submitted)">@Text("Approve", "اعتماد")</button><button class="btn btn-sm btn-outline-primary" @onclick="() => FulfillInventoryRequestAsync(item)" disabled="@(busy || item.Status != CateringInventoryRequestStatus.Approved)">@Text("Fulfill", "صرف")</button></td></tr> }
             </tbody></table></div>
-        </div>
-    </div>
+
+    </AppCard>
 </div>
 
 @code {

@@ -18,8 +18,8 @@
         </Actions>
     </PageHeader>
 
-    <article class="erp-card">
-        <div class="erp-card-body">
+    <AppCard CssClass="allow-overflow">
+
             @if (!string.IsNullOrWhiteSpace(errorMessage))
             {
                 <div class="alert alert-danger">@errorMessage</div>
@@ -86,8 +86,8 @@
                     </div>
                 </EditForm>
             }
-        </div>
-    </article>
+
+    </AppCard>
 </main>
 
 @code {

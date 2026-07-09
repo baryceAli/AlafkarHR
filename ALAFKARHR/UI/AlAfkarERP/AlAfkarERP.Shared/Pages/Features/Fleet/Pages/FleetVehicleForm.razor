@@ -30,9 +30,9 @@
 
     <EditForm Model="vehicle" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
-        <section class="erp-card mb-3">
-            <div class="erp-card-header"><strong>@Text("Vehicle Details", "بيانات المركبة")</strong></div>
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3">
+            <div class="erp-table-toolbar"><strong>@Text("Vehicle Details", "بيانات المركبة")</strong></div>
+
                 <div class="row g-3">
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Vehicle Code", "كود المركبة")</label>
@@ -113,12 +113,12 @@
                         </InputSelect>
                     </div>
                 </div>
-            </div>
-        </section>
 
-        <section class="erp-card mb-3">
-            <div class="erp-card-header"><strong>@Text("Ownership", "الملكية")</strong></div>
-            <div class="erp-card-body">
+        </AppCard>
+
+        <AppCard CssClass="mb-3">
+            <div class="erp-table-toolbar"><strong>@Text("Ownership", "الملكية")</strong></div>
+
                 <div class="row g-3">
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Ownership Type", "نوع الملكية")</label>
@@ -188,8 +188,8 @@
                         <InputTextArea class="form-control" rows="3" @bind-Value="vehicle.Notes" />
                     </div>
                 </div>
-            </div>
-        </section>
+
+        </AppCard>
 
         <div class="d-flex justify-content-end gap-2">
             <button type="button" class="btn btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo("/Fleet/Vehicles"))">@Text("Cancel", "إلغاء")</button>

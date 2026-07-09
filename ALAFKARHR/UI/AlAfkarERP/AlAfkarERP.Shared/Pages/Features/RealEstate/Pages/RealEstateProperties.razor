@@ -19,8 +19,8 @@
         </Actions>
     </PageHeader>
 
-    <article class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-5">
                     <label class="form-label">@Text("Search", "بحث")</label>
@@ -34,11 +34,11 @@
                     <button class="btn btn-outline-primary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button>
                 </div>
             </div>
-        </div>
-    </article>
 
-    <article class="erp-card">
-        <div class="erp-card-body">
+    </AppCard>
+
+    <AppCard CssClass="allow-overflow">
+
             @if (isLoading)
             {
                 <div class="text-muted">@Text("Loading properties...", "جاري تحميل العقارات...")</div>
@@ -53,8 +53,8 @@
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table align-middle">
+                <div class="erp-table-wrap">
+                    <table class="table align-middle erp-table">
                         <thead><tr><th>@Text("Code", "الكود")</th><th>@Text("Name", "الاسم")</th><th>@Text("Status", "الحالة")</th><th>@Text("Units", "الوحدات")</th><th>@Text("Location", "الموقع")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                         <tbody>
                             @foreach (var item in properties)
@@ -62,7 +62,7 @@
                                 <tr>
                                     <td>@item.Code</td>
                                     <td><strong>@item.Name</strong><div class="text-muted small">@item.NameEng</div></td>
-                                    <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                    <td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td>
                                     <td>@item.UnitsCount</td>
                                     <td>@string.Join(" - ", new[] { item.City, item.District }.Where(x => !string.IsNullOrWhiteSpace(x)))</td>
                                     <td class="text-end text-nowrap">
@@ -76,8 +76,8 @@
                     </table>
                 </div>
             }
-        </div>
-    </article>
+
+    </AppCard>
 </main>
 
 @code {

@@ -15,7 +15,7 @@
     @StatusBlock()
 
     <div class="row g-3 mb-3">
-        <div class="col-lg-5"><div class="erp-card"><div class="erp-card-body">
+        <div class="col-lg-5"><AppCard CssClass="allow-overflow">
             <h6>@Text("Area", "الساحة")</h6>
             <EditForm Model="area" OnValidSubmit="SaveAreaAsync"><DataAnnotationsValidator />
                 <div class="row g-2">
@@ -27,9 +27,9 @@
                     <div class="col-md-6 text-end"><button class="btn btn-primary" type="submit" disabled="@busy"><i class="bi bi-save"></i> @Text("Save area", "حفظ الساحة")</button></div>
                 </div>
             </EditForm>
-        </div></div></div>
+        </AppCard></div>
 
-        <div class="col-lg-7"><div class="erp-card"><div class="erp-card-body">
+        <div class="col-lg-7"><AppCard CssClass="allow-overflow">
             <h6>@Text("Square", "المربع")</h6>
             <EditForm Model="square" OnValidSubmit="SaveSquareAsync"><DataAnnotationsValidator />
                 <div class="row g-2">
@@ -47,10 +47,10 @@
                     <div class="col-12"><button class="btn btn-outline-secondary btn-sm" type="button" @onclick="UseCurrentLocationAsync"><i class="bi bi-crosshair"></i> @Text("Use current location", "استخدام الموقع الحالي")</button></div>
                 </div>
             </EditForm>
-        </div></div></div>
+        </AppCard></div>
     </div>
 
-    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label">@Text("Filter squares by area", "تصفية المربعات حسب الساحة")</label><select class="form-select" @bind="selectedAreaId"><option value="">@Text("All areas", "كل الساحات")</option>@foreach (var item in areas) { <option value="@item.Id">@Display(item.Name, item.NameEng)</option> }</select></div><div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync" disabled="@busy"><i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")</button></div></div></div></div>
+    <AppCard CssClass="mb-3 allow-overflow"><div class="row g-2 align-items-end"><div class="col-md-4"><label class="form-label">@Text("Filter squares by area", "تصفية المربعات حسب الساحة")</label><select class="form-select" @bind="selectedAreaId"><option value="">@Text("All areas", "كل الساحات")</option>@foreach (var item in areas) { <option value="@item.Id">@Display(item.Name, item.NameEng)</option> }</select></div><div class="col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync" disabled="@busy"><i class="bi bi-arrow-clockwise"></i> @Text("Refresh", "تحديث")</button></div></div></AppCard>
 
     <div class="row g-3">
         <div class="col-lg-5"><div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Area", "الساحة")</th><th>@Text("Group", "الفئة")</th><th>@Text("State", "الحالة")</th><th></th></tr></thead><tbody>

@@ -41,7 +41,7 @@
 
     @if (isLoading)
     {
-        <section class="erp-card"><div class="erp-card-body text-muted">@Text("Loading asset...", "جاري تحميل الأصل...")</div></section>
+        <AppCard>@Text("Loading asset...", "جاري تحميل الأصل...")</AppCard>
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -51,12 +51,12 @@
     {
         <div class="row g-3">
             <div class="col-12 col-xl-5">
-                <article class="erp-card">
-                    <div class="erp-card-header d-flex justify-content-between align-items-center">
+                <AppCard>
+                    <div class="erp-table-toolbar d-flex justify-content-between align-items-center">
                         <strong>@Text("Asset Details", "تفاصيل الأصل")</strong>
                         <StatusChip Text="@asset.Status.ToString()" Tone="@AssetStatusTone(asset.Status)" />
                     </div>
-                    <div class="erp-card-body">
+
                         <dl class="row mb-0">
                             <dt class="col-sm-4">@Text("Type", "النوع")</dt>
                             <dd class="col-sm-8">@asset.AssetType</dd>
@@ -89,13 +89,13 @@
                                 </button>
                             }
                         </div>
-                    </div>
-                </article>
+
+                </AppCard>
             </div>
 
             <div class="col-12 col-xl-7">
-                <article class="erp-card mb-3">
-                    <div class="erp-card-header"><strong>@Text("Child Assets", "الأصول الفرعية")</strong></div>
+                <AppCard CssClass="mb-3">
+                    <div class="erp-table-toolbar"><strong>@Text("Child Assets", "الأصول الفرعية")</strong></div>
                     <div class="erp-table-wrap">
                         <table class="erp-table table">
                             <thead>
@@ -132,10 +132,10 @@
                             </tbody>
                         </table>
                     </div>
-                </article>
+                </AppCard>
 
-                <article class="erp-card">
-                    <div class="erp-card-header"><strong>@Text("Related Work Orders", "أوامر العمل المرتبطة")</strong></div>
+                <AppCard>
+                    <div class="erp-table-toolbar"><strong>@Text("Related Work Orders", "أوامر العمل المرتبطة")</strong></div>
                     <div class="erp-table-wrap">
                         <table class="erp-table table">
                             <thead>
@@ -172,7 +172,7 @@
                             </tbody>
                         </table>
                     </div>
-                </article>
+                </AppCard>
             </div>
         </div>
     }

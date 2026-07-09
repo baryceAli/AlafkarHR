@@ -12,7 +12,7 @@
     <PageHeader Title="@Text("Schedules", "الجداول")" Subtitle="@Text("Plan daily quantities, allocate meals to squares, and record distribution actuals.", "تخطيط الكميات اليومية وتوزيعها على المربعات وتسجيل الفعلي.")" Icon="bi-calendar2-week" />
     @StatusBlock()
 
-    <div class="erp-card mb-3"><div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
         <EditForm Model="schedule" OnValidSubmit="SaveScheduleAsync"><DataAnnotationsValidator />
             <div class="row g-2 align-items-end">
                 <div class="col-md-4"><label class="form-label">@Text("Contract", "العقد")</label><select class="form-select" @bind="schedule.CateringContractId"><option value="@Guid.Empty">@Text("Select contract", "اختر العقد")</option>@foreach (var item in contracts) { <option value="@item.Id">@item.Number - @Display(item.CustomerName, item.CustomerNameEng)</option> }</select></div>
@@ -26,11 +26,11 @@
                 <div class="text-danger small mt-2">@Text("No draft or active catering contracts are available. Create a contract first or check company scope.", "لا توجد عقود إعاشة مسودة أو نشطة. أنشئ عقدا أولا أو تحقق من نطاق الشركة.")</div>
             }
         </EditForm>
-    </div></div>
+    </AppCard>
 
     @if (selectedSchedule is not null)
     {
-        <div class="erp-card mb-3"><div class="erp-card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
             <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">@Text("Square allocations", "توزيع المربعات") - @selectedSchedule.ServiceDate.ToString("yyyy-MM-dd")</h6><button class="btn btn-outline-secondary btn-sm" @onclick="ClearSelectedSchedule"><i class="bi bi-x-lg"></i></button></div>
             <div class="row g-2 align-items-end">
                 <div class="col-md-5"><label class="form-label">@Text("Square", "المربع")</label><select class="form-select" @bind="allocation.SquareId"><option value="@Guid.Empty">@Text("Select square", "اختر المربع")</option>@foreach (var square in squares) { <option value="@square.Id">@square.Code - @Display(square.Name, square.NameEng)</option> }</select></div>
@@ -54,10 +54,10 @@
                 @if (!selectedSchedule.Allocations.Any()) { <tr><td colspan="6" class="text-muted">@Text("No allocations yet.", "لا توجد توزيعات بعد.")</td></tr> }
                 @foreach (var item in selectedSchedule.Allocations) { <tr><td>@Display(item.SquareName, item.SquareNameEng)</td><td>@item.PlannedQuantity.ToString("N0")</td><td>@item.ReceivedQuantity.ToString("N0")</td><td>@item.DistributedQuantity.ToString("N0")</td><td>@item.VarianceQuantity.ToString("N0")</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="() => EditActuals(item)"><i class="bi bi-pencil-square"></i></button></td></tr> }
             </tbody></table></div>
-        </div></div>
+        </AppCard>
     }
 
-    <div class="erp-card mb-3"><div class="erp-card-body"><div class="row g-2 align-items-end"><div class="col-md-3"><label class="form-label">@Text("Filter project", "تصفية المشروع")</label><select class="form-select" @bind="filterProjectId" @bind:after="OnProjectFilterChanged"><option value="">@Text("All projects", "كل المشاريع")</option>@foreach (var item in projects) { <option value="@item.Id">@item.ProjectName</option> }</select></div><div class="col-md-3"><label class="form-label">@Text("Project day", "يوم المشروع")</label><select class="form-select" @bind="filterProjectDailyPlanId"><option value="">@Text("All days", "كل الأيام")</option>@foreach (var day in FilterProjectDays()) { <option value="@day.Id">@day.ServiceDate.ToString("yyyy-MM-dd") - @day.PlannedQuantity.ToString("N0")</option> }</select></div><div class="col-md-3"><label class="form-label">@Text("Filter contract", "تصفية العقد")</label><select class="form-select" @bind="filterContractId"><option value="">@Text("All contracts", "كل العقود")</option>@foreach (var item in contracts) { <option value="@item.Id">@item.Number - @Display(item.CustomerName, item.CustomerNameEng)</option> }</select></div><div class="col-md-1"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div><div class="col-md-1"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div><div class="col-md-1"><button class="btn btn-outline-primary w-100" @onclick="LoadSchedulesAsync"><i class="bi bi-funnel"></i></button></div></div></div></div>
+    <AppCard CssClass="mb-3 allow-overflow"><div class="row g-2 align-items-end"><div class="col-md-3"><label class="form-label">@Text("Filter project", "تصفية المشروع")</label><select class="form-select" @bind="filterProjectId" @bind:after="OnProjectFilterChanged"><option value="">@Text("All projects", "كل المشاريع")</option>@foreach (var item in projects) { <option value="@item.Id">@item.ProjectName</option> }</select></div><div class="col-md-3"><label class="form-label">@Text("Project day", "يوم المشروع")</label><select class="form-select" @bind="filterProjectDailyPlanId"><option value="">@Text("All days", "كل الأيام")</option>@foreach (var day in FilterProjectDays()) { <option value="@day.Id">@day.ServiceDate.ToString("yyyy-MM-dd") - @day.PlannedQuantity.ToString("N0")</option> }</select></div><div class="col-md-3"><label class="form-label">@Text("Filter contract", "تصفية العقد")</label><select class="form-select" @bind="filterContractId"><option value="">@Text("All contracts", "كل العقود")</option>@foreach (var item in contracts) { <option value="@item.Id">@item.Number - @Display(item.CustomerName, item.CustomerNameEng)</option> }</select></div><div class="col-md-1"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="fromDate" /></div><div class="col-md-1"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div><div class="col-md-1"><button class="btn btn-outline-primary w-100" @onclick="LoadSchedulesAsync"><i class="bi bi-funnel"></i></button></div></div></AppCard>
 
     <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Contract", "العقد")</th><th>@Text("Planned", "المخطط")</th><th>@Text("Received", "المستلم")</th><th>@Text("Distributed", "الموزع")</th><th>@Text("Allocations", "التوزيعات")</th><th></th></tr></thead><tbody>
         @if (loading) { <tr><td colspan="7" class="text-muted">@Text("Loading schedules...", "جاري تحميل الجداول...")</td></tr> }

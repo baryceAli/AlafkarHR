@@ -1,12 +1,12 @@
-<article class="erp-card">
-    <div class="erp-card-header"><strong>@Title</strong></div>
+<AppCard>
+    <div class="erp-table-toolbar"><strong>@Title</strong></div>
     <div class="erp-table-wrap">
         <table class="erp-table table">
             <thead>@Header</thead>
             <tbody>@Body</tbody>
         </table>
     </div>
-</article>
+</AppCard>
 
 @code {
     [Parameter] public string Title { get; set; } = string.Empty;

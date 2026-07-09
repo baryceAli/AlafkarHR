@@ -15,8 +15,8 @@
         </Actions>
     </PageHeader>
 
-    <article class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-4">
                     <label class="form-label">@Text("Search", "بحث")</label>
@@ -46,11 +46,11 @@
                     <button class="btn btn-outline-primary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button>
                 </div>
             </div>
-        </div>
-    </article>
 
-    <article class="erp-card">
-        <div class="erp-card-body">
+    </AppCard>
+
+    <AppCard CssClass="allow-overflow">
+
             @if (isLoading)
             {
                 <div class="text-muted">@Text("Loading units...", "جاري تحميل الوحدات...")</div>
@@ -65,8 +65,8 @@
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table align-middle">
+                <div class="erp-table-wrap">
+                    <table class="table align-middle erp-table">
                         <thead><tr><th>@Text("Property", "العقار")</th><th>@Text("Unit", "الوحدة")</th><th>@Text("Type", "النوع")</th><th>@Text("Status", "الحالة")</th><th>@Text("Floor", "الدور")</th><th>@Text("Maintenance", "الصيانة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                         <tbody>
                             @foreach (var item in FilteredUnits)
@@ -75,7 +75,7 @@
                                     <td>@item.PropertyName</td>
                                     <td><strong>@item.UnitNumber</strong><div class="text-muted small">@item.Name</div></td>
                                     <td>@item.UnitType</td>
-                                    <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                    <td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td>
                                     <td>@item.Floor</td>
                                     <td>@Text("Linked asset", "أصل مرتبط")</td>
                                     <td class="text-end text-nowrap">
@@ -88,8 +88,8 @@
                     </table>
                 </div>
             }
-        </div>
-    </article>
+
+    </AppCard>
 </main>
 
 @code {

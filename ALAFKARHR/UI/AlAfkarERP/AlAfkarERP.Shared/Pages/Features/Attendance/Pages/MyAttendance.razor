@@ -3,6 +3,7 @@
 @implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.Attendance.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.JSInterop
 @using SharedWithUI.Attendance.Dtos
@@ -12,13 +13,11 @@
 @inject IJSRuntime JSRuntime
 @inject SharedDataService SharedDataService
 
-<section class="attendance-terminal" dir="@SharedDataService.PageDirection">
-    <div class="terminal-header">
-        <div>
-            <p class="eyebrow">@Text("My attendance", "حضوري")</p>
-            <h1>@Text("Check in for today", "تسجيل حضور اليوم")</h1>
-        </div>
-        <div class="header-actions">
+<section class="erp-page attendance-terminal" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Check in for today", "تسجيل حضور اليوم")"
+                Overline="@Text("My attendance", "حضوري")"
+                Icon="bi-fingerprint">
+        <Actions>
             <button class="btn btn-outline-primary" @onclick="CaptureLocationAndRefreshPreviewAsync" disabled="@isBusy">
                 <i class="bi bi-crosshair"></i>
                 @Text("Refresh location", "تحديث الموقع")
@@ -27,8 +26,8 @@
                 <i class="bi bi-arrow-clockwise"></i>
                 @Text("Reload", "إعادة تحميل")
             </button>
-        </div>
-    </div>
+        </Actions>
+    </PageHeader>
 
     @if (!string.IsNullOrWhiteSpace(message))
     {
@@ -36,7 +35,7 @@
     }
 
     <div class="terminal-grid">
-        <section class="terminal-panel identity-panel">
+        <AppCard CssClass="terminal-panel identity-panel">
             <div class="panel-title">
                 <h2>@Text("Employee", "الموظف")</h2>
                 @if (preview is not null)
@@ -47,10 +46,8 @@
 
             @if (preview is null)
             {
-                <div class="empty-state">
-                    <i class="bi bi-person-exclamation"></i>
-                    <p>@Text("Loading your employee profile.", "جاري تحميل بيانات الموظف.")</p>
-                </div>
+                <EmptyState Icon="bi-person-exclamation"
+                            Title="@Text("Loading your employee profile.", "جاري تحميل بيانات الموظف.")" />
             }
             else
             {
@@ -76,9 +73,9 @@
                     </div>
                 </div>
             }
-        </section>
+        </AppCard>
 
-        <section class="terminal-panel">
+        <AppCard CssClass="terminal-panel">
             <div class="panel-title">
                 <h2>@Text("Effective shift", "الوردية الفعلية")</h2>
                 @if (preview?.ShiftName is not null)
@@ -105,12 +102,12 @@
                     <strong>@FormatDate(preview?.ProhibitCheckInAfterUtc)</strong>
                 </div>
             </div>
-        </section>
+        </AppCard>
 
-        <section class="terminal-panel">
+        <AppCard CssClass="terminal-panel">
             <div class="panel-title">
                 <h2>@Text("Location", "الموقع")</h2>
-                <span class="badge @LocationBadgeClass">@LocationBadgeText</span>
+                <StatusChip Text="@LocationBadgeText" Tone="@LocationTone" />
             </div>
 
             <div class="detail-list">
@@ -135,20 +132,19 @@
                     <strong>@Meters(preview?.AllowedRadiusMeters)</strong>
                 </div>
             </div>
-        </section>
+        </AppCard>
 
-        <section class="terminal-panel action-panel">
+        <AppCard CssClass="terminal-panel action-panel">
             <div class="panel-title">
                 <h2>@Text("Session", "الجلسة")</h2>
                 @if (activeSession is not null)
                 {
-                    <span class="badge @StatusClass(activeSession.Status)">@SessionStatusText(activeSession.Status)</span>
+                    <StatusChip Text="@SessionStatusText(activeSession.Status)" Tone="@SessionTone(activeSession.Status)" />
                 }
                 else if (preview is not null)
                 {
-                    <span class="badge @(preview.CanCheckIn ? "text-bg-success" : preview.IsAttendanceCompleted ? "text-bg-secondary" : "text-bg-warning")">
-                        @(preview.CanCheckIn ? Text("Ready", "جاهز") : preview.IsAttendanceCompleted ? Text("Completed", "مكتمل") : Text("Blocked", "غير متاح"))
-                    </span>
+                    <StatusChip Text="@(preview.CanCheckIn ? Text("Ready", "جاهز") : preview.IsAttendanceCompleted ? Text("Completed", "مكتمل") : Text("Blocked", "غير متاح"))"
+                                Tone="@(preview.CanCheckIn ? "success" : preview.IsAttendanceCompleted ? "muted" : "warning")" />
                 }
             </div>
 
@@ -204,13 +200,13 @@
                     </div>
                 </div>
             }
-        </section>
+        </AppCard>
     </div>
 
     @if (IsMobileEmployee)
     {
         <div class="terminal-grid secondary-grid">
-        <section class="terminal-panel">
+        <AppCard CssClass="terminal-panel">
             <div class="panel-title">
                 <h2>@Text("Mobile actions", "إجراءات الموظف المتنقل")</h2>
             </div>
@@ -234,7 +230,7 @@
                     @Text("Check in at site", "تسجيل حضور في الموقع")
                 </button>
             </div>
-        </section>
+        </AppCard>
         </div>
     }
 </section>
@@ -343,6 +339,16 @@
             : preview?.IsWithinAllowedRadius == false
                 ? "text-bg-danger"
                 : "text-bg-success";
+
+    private string LocationTone => !HasLocation
+        ? "muted"
+        : isMockedLocation
+            ? "danger"
+        : !HasGeofencePreview
+            ? "warning"
+            : preview?.IsWithinAllowedRadius == false
+                ? "danger"
+                : "success";
 
     protected override async Task OnInitializedAsync()
     {
@@ -701,6 +707,15 @@
         AttendanceSessionStatus.OnBreak => "text-bg-warning",
         AttendanceSessionStatus.Completed => "text-bg-secondary",
         _ => "text-bg-light"
+    };
+
+    private static string SessionTone(AttendanceSessionStatus status) => status switch
+    {
+        AttendanceSessionStatus.Active => "success",
+        AttendanceSessionStatus.OnBreak => "warning",
+        AttendanceSessionStatus.Completed => "muted",
+        AttendanceSessionStatus.Cancelled => "danger",
+        _ => "muted"
     };
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
