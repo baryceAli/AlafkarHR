@@ -15,26 +15,26 @@
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©")</div>
         return;
     }
 
-    <PageHeader Title="@Text("Delivery Notes", "إشعارات التسليم")"
-                Subtitle="@Text("Post sales deliveries and track warehouse shipment documents.", "ترحيل تسليمات المبيعات ومتابعة مستندات الشحن.")"
-                Overline="@Text("Sales", "المبيعات")"
+    <PageHeader Title="@Text("Delivery Notes", "Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„ØªØ³Ù„ÙŠÙ…")"
+                Subtitle="@Text("Post sales deliveries and track warehouse shipment documents.", "ØªØ±Ø­ÙŠÙ„ ØªØ³Ù„ÙŠÙ…Ø§Øª Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ù…Ø³ØªÙ†Ø¯Ø§Øª Ø§Ù„Ø´Ø­Ù†.")"
+                Overline="@Text("Sales", "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")"
                 Icon="bi-truck" />
 
-    <AppCard Title="@Text("Delivery Notes", "إشعارات التسليم")">
+    <AppCard Title="@Text("Delivery Notes", "Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„ØªØ³Ù„ÙŠÙ…")">
         @if (HasSmartFilter)
         {
             <div class="erp-chip-row mb-3">
                 <StatusChip Tone="info" Text="@SmartFilterText()" />
                 <button class="btn btn-sm btn-outline-secondary" @onclick="ClearSmartFilter">
                     <i class="bi bi-x-lg"></i>
-                    @Text("Clear", "مسح")
+                    @Text("Clear", "Ù…Ø³Ø­")
                 </button>
             </div>
         }
@@ -45,8 +45,8 @@
         }
         else if (!deliveryNotes.Any())
         {
-            <EmptyState Title="@Text("No delivery notes", "لا توجد إشعارات تسليم")"
-                        Message="@Text("Delivery notes created from sales orders will appear here.", "ستظهر إشعارات التسليم المنشأة من أوامر البيع هنا.")"
+            <EmptyState Title="@Text("No delivery notes", "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¥Ø´Ø¹Ø§Ø±Ø§Øª ØªØ³Ù„ÙŠÙ…")"
+                        Message="@Text("Delivery notes created from sales orders will appear here.", "Ø³ØªØ¸Ù‡Ø± Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„ØªØ³Ù„ÙŠÙ… Ø§Ù„Ù…Ù†Ø´Ø£Ø© Ù…Ù† Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹ Ù‡Ù†Ø§.")"
                         Icon="bi-truck" />
         }
         else
@@ -55,11 +55,11 @@
                 <table class="table erp-table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>@Text("Number", "الرقم")</th>
-                            <th>@Text("Sales order", "أمر البيع")</th>
-                            <th>@Text("Status", "الحالة")</th>
-                            <th>@Text("Delivery date", "تاريخ التسليم")</th>
-                            <th>@Text("Lines", "الأصناف")</th>
+                            <th>@Text("Number", "Ø§Ù„Ø±Ù‚Ù…")</th>
+                            <th>@Text("Sales order", "Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹")</th>
+                            <th>@Text("Status", "Ø§Ù„Ø­Ø§Ù„Ø©")</th>
+                            <th>@Text("Delivery date", "ØªØ§Ø±ÙŠØ® Ø§Ù„ØªØ³Ù„ÙŠÙ…")</th>
+                            <th>@Text("Lines", "Ø§Ù„Ø£ØµÙ†Ø§Ù")</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -69,7 +69,7 @@
                             <tr>
                                 <td class="fw-semibold">@note.Number</td>
                                 <td>@(note.SalesOrderNumber ?? note.SalesOrderId.ToString())</td>
-                                <td><span class="badge rounded-pill @StatusBadge(note.Status)">@note.Status</span></td>
+                                <td><StatusChip Text="@note.Status.ToString()" Tone="@StatusTone(note.Status)" /></td>
                                 <td>@note.DeliveryDate.ToString("yyyy-MM-dd")</td>
                                 <td>@note.Lines.Count</td>
                           <td class="text-end">
@@ -79,7 +79,7 @@
                               @if (note.Status == SalesDeliveryNoteStatus.Draft && CanPost)
                               {
                                         <button class="btn btn-sm btn-primary" @onclick="() => PostAsync(note.Id)">
-                                            <i class="bi bi-check2-circle"></i> @Text("Post", "ترحيل")
+                                            <i class="bi bi-check2-circle"></i> @Text("Post", "ØªØ±Ø­ÙŠÙ„")
                                         </button>
                                     }
                                     @if (note.Status == SalesDeliveryNoteStatus.Draft && CanCancel)
@@ -146,12 +146,12 @@
         var result = await SalesService.PostDeliveryNoteAsync(id);
         if (result.IsSuccess)
         {
-            ToastService.ShowSuccess(Text("Delivery note posted.", "تم ترحيل إشعار التسليم."));
+            ToastService.ShowSuccess(Text("Delivery note posted.", "ØªÙ… ØªØ±Ø­ÙŠÙ„ Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„ØªØ³Ù„ÙŠÙ…."));
             await LoadAsync();
         }
         else
         {
-            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to post delivery note.", "تعذر ترحيل إشعار التسليم."));
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to post delivery note.", "ØªØ¹Ø°Ø± ØªØ±Ø­ÙŠÙ„ Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„ØªØ³Ù„ÙŠÙ…."));
         }
     }
 
@@ -161,25 +161,25 @@
         if (result.IsSuccess)
             await LoadAsync();
         else
-            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to cancel delivery note.", "تعذر إلغاء إشعار التسليم."));
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to cancel delivery note.", "ØªØ¹Ø°Ø± Ø¥Ù„ØºØ§Ø¡ Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„ØªØ³Ù„ÙŠÙ…."));
     }
 
-    private static string StatusBadge(SalesDeliveryNoteStatus status) => status switch
+    private static string StatusTone(SalesDeliveryNoteStatus status) => status switch
     {
-        SalesDeliveryNoteStatus.Delivered or SalesDeliveryNoteStatus.PartiallyDelivered => "text-bg-success",
-        SalesDeliveryNoteStatus.Submitted => "text-bg-primary",
-        SalesDeliveryNoteStatus.Cancelled => "text-bg-danger",
-        _ => "text-bg-secondary"
+        SalesDeliveryNoteStatus.Delivered or SalesDeliveryNoteStatus.PartiallyDelivered => "success",
+        SalesDeliveryNoteStatus.Submitted => "primary",
+        SalesDeliveryNoteStatus.Cancelled => "danger",
+        _ => "muted"
     };
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string SmartFilterText()
     {
         if (CustomerId.HasValue)
-            return Text("Filtered by customer", "مصفي حسب العميل");
+            return Text("Filtered by customer", "Ù…ØµÙÙŠ Ø­Ø³Ø¨ Ø§Ù„Ø¹Ù…ÙŠÙ„");
         if (ProductSkuId.HasValue)
-            return Text("Filtered by SKU", "مصفي حسب وحدة المنتج");
-        return Text("Filtered by product", "مصفي حسب المنتج");
+            return Text("Filtered by SKU", "Ù…ØµÙÙŠ Ø­Ø³Ø¨ ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ù†ØªØ¬");
+        return Text("Filtered by product", "Ù…ØµÙÙŠ Ø­Ø³Ø¨ Ø§Ù„Ù…Ù†ØªØ¬");
     }
 
     private void ClearSmartFilter() => NavigationManager.NavigateTo("/Sales/DeliveryNotes");

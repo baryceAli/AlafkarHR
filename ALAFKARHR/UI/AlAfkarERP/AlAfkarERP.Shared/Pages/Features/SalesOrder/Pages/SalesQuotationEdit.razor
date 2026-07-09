@@ -24,20 +24,20 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanUsePage)
     {
-        <div class="alert alert-warning">@Text("You don't have permission to save quotations.", "ليست لديك صلاحية حفظ عروض الأسعار.")</div>
+        <div class="alert alert-warning">@Text("You don't have permission to save quotations.", "Ù„ÙŠØ³Øª Ù„Ø¯ÙŠÙƒ ØµÙ„Ø§Ø­ÙŠØ© Ø­ÙØ¸ Ø¹Ø±ÙˆØ¶ Ø§Ù„Ø£Ø³Ø¹Ø§Ø±.")</div>
         return;
     }
 
-    <PageHeader Title="@Text(IsEdit ? "Edit Quotation" : "New Quotation", IsEdit ? "تعديل عرض السعر" : "عرض سعر جديد")"
-                Subtitle="@Text("Create and maintain customer quotations before converting them to sales orders.", "إنشاء عروض أسعار العملاء ومراجعتها قبل تحويلها إلى أوامر بيع.")"
-                Overline="@Text("Sales", "المبيعات")"
+    <PageHeader Title="@Text(IsEdit ? "Edit Quotation" : "New Quotation", IsEdit ? "ØªØ¹Ø¯ÙŠÙ„ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±" : "Ø¹Ø±Ø¶ Ø³Ø¹Ø± Ø¬Ø¯ÙŠØ¯")"
+                Subtitle="@Text("Create and maintain customer quotations before converting them to sales orders.", "Ø¥Ù†Ø´Ø§Ø¡ Ø¹Ø±ÙˆØ¶ Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆÙ…Ø±Ø§Ø¬Ø¹ØªÙ‡Ø§ Ù‚Ø¨Ù„ ØªØ­ÙˆÙŠÙ„Ù‡Ø§ Ø¥Ù„Ù‰ Ø£ÙˆØ§Ù…Ø± Ø¨ÙŠØ¹.")"
+                Overline="@Text("Sales", "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")"
                 Icon="bi-file-earmark-plus">
         <Actions>
             <a class="btn btn-outline-secondary" href="/Sales/Quotations">
-                <i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")
+                <i class="bi bi-arrow-left"></i> @Text("Back", "Ø±Ø¬ÙˆØ¹")
             </a>
         </Actions>
     </PageHeader>
@@ -46,7 +46,7 @@
     {
         <div class="erp-loading py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <div class="mt-2">@Text("Loading quotation form...", "جاري تحميل نموذج عرض السعر...")</div>
+            <div class="mt-2">@Text("Loading quotation form...", "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ù†Ù…ÙˆØ°Ø¬ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±...")</div>
         </div>
     }
     else
@@ -55,24 +55,24 @@
             <DataAnnotationsValidator />
             <div class="row g-3">
                 <div class="col-xl-8">
-                    <AppCard Title="@Text("Quotation Details", "تفاصيل عرض السعر")" CssClass="mb-3">
+                    <AppCard Title="@Text("Quotation Details", "ØªÙØ§ØµÙŠÙ„ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±")" CssClass="mb-3">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Quotation number", "رقم عرض السعر")</label>
+                                <label class="form-label">@Text("Quotation number", "Ø±Ù‚Ù… Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±")</label>
                                 <input class="form-control" @bind="quotation.Number" disabled="@IsEdit" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Quotation date", "تاريخ عرض السعر")</label>
+                                <label class="form-label">@Text("Quotation date", "ØªØ§Ø±ÙŠØ® Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±")</label>
                                 <InputDate class="form-control" @bind-Value="quotation.QuotationDate" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Valid until", "صالح حتى")</label>
+                                <label class="form-label">@Text("Valid until", "ØµØ§Ù„Ø­ Ø­ØªÙ‰")</label>
                                 <InputDate class="form-control" @bind-Value="quotation.ValidUntil" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Customer", "العميل")</label>
+                                <label class="form-label">@Text("Customer", "Ø§Ù„Ø¹Ù…ÙŠÙ„")</label>
                                 <select class="form-select" @onchange="OnCustomerChanged">
-                                    <option value="">@Text("Select customer", "اختر العميل")</option>
+                                    <option value="">@Text("Select customer", "Ø§Ø®ØªØ± Ø§Ù„Ø¹Ù…ÙŠÙ„")</option>
                                     @foreach (var customer in customers)
                                     {
                                         <option value="@customer.Id" selected="@(customer.Id == quotation.CustomerId)">@customer.Name</option>
@@ -80,9 +80,9 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Quotation template", "قالب عرض السعر")</label>
+                                <label class="form-label">@Text("Quotation template", "Ù‚Ø§Ù„Ø¨ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±")</label>
                                 <select class="form-select" @onchange="OnQuotationTemplateChanged">
-                                    <option value="">@Text("Select quotation template", "اختر قالب عرض السعر")</option>
+                                    <option value="">@Text("Select quotation template", "Ø§Ø®ØªØ± Ù‚Ø§Ù„Ø¨ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±")</option>
                                     @foreach (var template in quotationTemplates)
                                     {
                                         <option value="@template.Id" selected="@(template.Id == quotation.QuotationTemplateId)">@template.Name</option>
@@ -90,26 +90,26 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Coupon code", "رمز القسيمة")</label>
+                                <label class="form-label">@Text("Coupon code", "Ø±Ù…Ø² Ø§Ù„Ù‚Ø³ÙŠÙ…Ø©")</label>
                                 <input class="form-control" @bind="quotation.CouponCode" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <label class="form-label">@Text("Notes", "Ù…Ù„Ø§Ø­Ø¸Ø§Øª")</label>
                                 <textarea class="form-control" rows="3" @bind="quotation.Notes"></textarea>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Terms", "الشروط")</label>
+                                <label class="form-label">@Text("Terms", "Ø§Ù„Ø´Ø±ÙˆØ·")</label>
                                 <textarea class="form-control" rows="3" @bind="quotation.Terms"></textarea>
                             </div>
                         </div>
                     </AppCard>
 
-                    <AppCard Title="@Text("Commercial Controls", "الضوابط التجارية")" CssClass="mb-3">
+                    <AppCard Title="@Text("Commercial Controls", "Ø§Ù„Ø¶ÙˆØ§Ø¨Ø· Ø§Ù„ØªØ¬Ø§Ø±ÙŠØ©")" CssClass="mb-3">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Invoice address", "عنوان الفاتورة")</label>
+                                <label class="form-label">@Text("Invoice address", "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ÙØ§ØªÙˆØ±Ø©")</label>
                                 <select class="form-select" @bind="quotation.InvoiceAddressId" disabled="@(CustomerAddresses.Count == 0)">
-                                    <option value="">@Text("Default customer invoice address", "عنوان فاتورة العميل الافتراضي")</option>
+                                    <option value="">@Text("Default customer invoice address", "Ø¹Ù†ÙˆØ§Ù† ÙØ§ØªÙˆØ±Ø© Ø§Ù„Ø¹Ù…ÙŠÙ„ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ")</option>
                                     @foreach (var address in CustomerAddresses)
                                     {
                                         <option value="@address.Id">@AddressLabel(address)</option>
@@ -117,9 +117,9 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Delivery address", "عنوان التسليم")</label>
+                                <label class="form-label">@Text("Delivery address", "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ØªØ³Ù„ÙŠÙ…")</label>
                                 <select class="form-select" @bind="quotation.DeliveryAddressId" disabled="@(CustomerAddresses.Count == 0)">
-                                    <option value="">@Text("Default customer delivery address", "عنوان تسليم العميل الافتراضي")</option>
+                                    <option value="">@Text("Default customer delivery address", "Ø¹Ù†ÙˆØ§Ù† ØªØ³Ù„ÙŠÙ… Ø§Ù„Ø¹Ù…ÙŠÙ„ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ")</option>
                                     @foreach (var address in CustomerAddresses)
                                     {
                                         <option value="@address.Id">@AddressLabel(address)</option>
@@ -127,50 +127,50 @@
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Down payment amount", "مبلغ الدفعة المقدمة")</label>
+                                <label class="form-label">@Text("Down payment amount", "Ù…Ø¨Ù„Øº Ø§Ù„Ø¯ÙØ¹Ø© Ø§Ù„Ù…Ù‚Ø¯Ù…Ø©")</label>
                                 <input class="form-control" type="number" min="0" step="0.01" @bind="quotation.DownPaymentAmount" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Down payment percent", "نسبة الدفعة المقدمة")</label>
+                                <label class="form-label">@Text("Down payment percent", "Ù†Ø³Ø¨Ø© Ø§Ù„Ø¯ÙØ¹Ø© Ø§Ù„Ù…Ù‚Ø¯Ù…Ø©")</label>
                                 <input class="form-control" type="number" min="0" max="100" step="0.01" @bind="quotation.DownPaymentPercent" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Quote requirements", "متطلبات عرض السعر")</label>
+                                <label class="form-label">@Text("Quote requirements", "Ù…ØªØ·Ù„Ø¨Ø§Øª Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±")</label>
                                 <div class="quotation-switches">
                                     <label class="form-check">
                                         <InputCheckbox class="form-check-input" @bind-Value="quotation.RequiresCustomerSignature" />
-                                        <span class="form-check-label">@Text("Signature", "التوقيع")</span>
+                                        <span class="form-check-label">@Text("Signature", "Ø§Ù„ØªÙˆÙ‚ÙŠØ¹")</span>
                                     </label>
                                     <label class="form-check">
                                         <InputCheckbox class="form-check-input" @bind-Value="quotation.RequiresOnlinePayment" />
-                                        <span class="form-check-label">@Text("Online payment", "الدفع الإلكتروني")</span>
+                                        <span class="form-check-label">@Text("Online payment", "Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ")</span>
                                     </label>
                                     <label class="form-check">
                                         <InputCheckbox class="form-check-input" @bind-Value="quotation.IsProForma" />
-                                        <span class="form-check-label">@Text("Pro-forma", "فاتورة شكلية")</span>
+                                        <span class="form-check-label">@Text("Pro-forma", "ÙØ§ØªÙˆØ±Ø© Ø´ÙƒÙ„ÙŠØ©")</span>
                                     </label>
                                 </div>
                             </div>
                         </div>
                     </AppCard>
 
-                    <AppCard Title="@Text("Quotation Lines", "بنود عرض السعر")">
+                    <AppCard Title="@Text("Quotation Lines", "Ø¨Ù†ÙˆØ¯ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±")">
                         <div class="d-flex justify-content-end mb-2">
                             <button class="btn btn-outline-primary btn-sm" type="button" @onclick="AddLine">
-                                <i class="bi bi-plus-lg"></i> @Text("Add line", "إضافة بند")
+                                <i class="bi bi-plus-lg"></i> @Text("Add line", "Ø¥Ø¶Ø§ÙØ© Ø¨Ù†Ø¯")
                             </button>
                         </div>
                         <div class="erp-table-wrap">
                             <table class="table erp-table align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th>@Text("SKU", "وحدة المنتج")</th>
-                                        <th>@Text("Qty", "الكمية")</th>
-                                        <th>@Text("Unit price", "سعر الوحدة")</th>
-                                        <th>@Text("Discount", "الخصم")</th>
-                                        <th>@Text("Tax", "الضريبة")</th>
-                                        <th>@Text("Optional", "اختياري")</th>
-                                        <th>@Text("Total", "الإجمالي")</th>
+                                        <th>@Text("SKU", "ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ù†ØªØ¬")</th>
+                                        <th>@Text("Qty", "Ø§Ù„ÙƒÙ…ÙŠØ©")</th>
+                                        <th>@Text("Unit price", "Ø³Ø¹Ø± Ø§Ù„ÙˆØ­Ø¯Ø©")</th>
+                                        <th>@Text("Discount", "Ø§Ù„Ø®ØµÙ…")</th>
+                                        <th>@Text("Tax", "Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©")</th>
+                                        <th>@Text("Optional", "Ø§Ø®ØªÙŠØ§Ø±ÙŠ")</th>
+                                        <th>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -180,7 +180,7 @@
                                         <tr class="@(line.IsOptional ? "optional-quote-line" : null)">
                                             <td>
                                                 <select class="form-select form-select-sm" @onchange="e => SelectSku(line, e.Value?.ToString())">
-                                                    <option value="">@Text("Select SKU", "اختر وحدة المنتج")</option>
+                                                    <option value="">@Text("Select SKU", "Ø§Ø®ØªØ± ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ù†ØªØ¬")</option>
                                                     @foreach (var sku in skus)
                                                     {
                                                         <option value="@sku.Id" selected="@(sku.Id == line.ProductSkuId)">@Text(sku.NameEng, sku.Name) - @sku.SkuCode</option>
@@ -192,7 +192,7 @@
                                                 }
                                                 @if (line.IsOptional)
                                                 {
-                                                    <span class="badge text-bg-info mt-1">@Text("Optional product", "منتج اختياري")</span>
+                                                    <span class="erp-status-chip erp-status-chip-info mt-1">@Text("Optional product", "Ù…Ù†ØªØ¬ Ø§Ø®ØªÙŠØ§Ø±ÙŠ")</span>
                                                 }
                                             </td>
                                             <td><input class="form-control form-control-sm" type="number" min="0.01" step="0.01" @bind="line.Quantity" @bind:after="Recalculate" /></td>
@@ -216,12 +216,12 @@
                     </AppCard>
                 </div>
                 <div class="col-xl-4">
-                    <AppCard Title="@Text("Totals", "الإجماليات")">
-                        <div class="summary-row"><span>@Text("Subtotal", "المجموع الفرعي")</span><strong>@Money(quotation.Subtotal)</strong></div>
-                        <div class="summary-row"><span>@Text("Tax", "الضريبة")</span><strong>@Money(quotation.TaxAmount)</strong></div>
-                        <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(quotation.TotalAmount)</strong></div>
+                    <AppCard Title="@Text("Totals", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠØ§Øª")">
+                        <div class="summary-row"><span>@Text("Subtotal", "Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹ Ø§Ù„ÙØ±Ø¹ÙŠ")</span><strong>@Money(quotation.Subtotal)</strong></div>
+                        <div class="summary-row"><span>@Text("Tax", "Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©")</span><strong>@Money(quotation.TaxAmount)</strong></div>
+                        <div class="summary-row summary-total"><span>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</span><strong>@Money(quotation.TotalAmount)</strong></div>
                         <button class="btn btn-primary w-100 mt-3" type="submit" disabled="@isSaving">
-                            <i class="bi bi-save"></i> @Text("Save Quotation", "حفظ عرض السعر")
+                            <i class="bi bi-save"></i> @Text("Save Quotation", "Ø­ÙØ¸ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±")
                         </button>
                     </AppCard>
                 </div>
@@ -403,7 +403,7 @@
     {
         if (quotation.CustomerId == Guid.Empty)
         {
-            ToastService.ShowWarning(Text("Select a customer.", "اختر عميلا."));
+            ToastService.ShowWarning(Text("Select a customer.", "Ø§Ø®ØªØ± Ø¹Ù…ÙŠÙ„Ø§."));
             return;
         }
 
@@ -411,7 +411,7 @@
         quotation.Lines = quotation.Lines.Where(x => x.ProductSkuId != Guid.Empty && x.Quantity > 0).ToList();
         if (quotation.Lines.Count == 0)
         {
-            ToastService.ShowWarning(Text("Add at least one SKU line.", "أضف بند وحدة منتج واحدا على الأقل."));
+            ToastService.ShowWarning(Text("Add at least one SKU line.", "Ø£Ø¶Ù Ø¨Ù†Ø¯ ÙˆØ­Ø¯Ø© Ù…Ù†ØªØ¬ ÙˆØ§Ø­Ø¯Ø§ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„."));
             AddLine();
             return;
         }
@@ -435,12 +435,12 @@
 
         if (isSuccess)
         {
-            ToastService.ShowSuccess(Text("Quotation saved.", "تم حفظ عرض السعر."));
+            ToastService.ShowSuccess(Text("Quotation saved.", "ØªÙ… Ø­ÙØ¸ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±."));
             NavigationManager.NavigateTo("/Sales/Quotations");
         }
         else
         {
-            ToastService.ShowError(errorDetail ?? Text("Unable to save quotation.", "تعذر حفظ عرض السعر."));
+            ToastService.ShowError(errorDetail ?? Text("Unable to save quotation.", "ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±."));
         }
         isSaving = false;
     }
@@ -481,11 +481,11 @@
     {
         var type = address.AddressType switch
         {
-            PartnerAddressType.Invoice => Text("Invoice", "فاتورة"),
-            PartnerAddressType.Delivery => Text("Delivery", "تسليم"),
-            PartnerAddressType.Private => Text("Private", "خاص"),
-            PartnerAddressType.Other => Text("Other", "أخرى"),
-            _ => Text("Contact", "جهة اتصال")
+            PartnerAddressType.Invoice => Text("Invoice", "ÙØ§ØªÙˆØ±Ø©"),
+            PartnerAddressType.Delivery => Text("Delivery", "ØªØ³Ù„ÙŠÙ…"),
+            PartnerAddressType.Private => Text("Private", "Ø®Ø§Øµ"),
+            PartnerAddressType.Other => Text("Other", "Ø£Ø®Ø±Ù‰"),
+            _ => Text("Contact", "Ø¬Ù‡Ø© Ø§ØªØµØ§Ù„")
         };
 
         return $"{type} - {address.Title} - {address.City}";

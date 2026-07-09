@@ -199,7 +199,7 @@
                                 <td>@loan.InstallmentAmount.ToString("N2")</td>
                                 <td>@loan.DeductedAmount.ToString("N2")</td>
                                 <td>@loan.RemainingAmount.ToString("N2")</td>
-                                <td><span class="badge @StatusBadge(loan.Status)">@StatusText(loan.Status)</span></td>
+                                <td><StatusChip Text="@StatusText(loan.Status)" Tone="@StatusTone(loan.Status)" /></td>
                                 <td class="text-end">
                                     <button class="btn btn-outline-warning btn-sm erp-row-action"
                                             type="button"
@@ -476,14 +476,14 @@
             _ => status.ToString()
         };
 
-    private static string StatusBadge(EmployeeLoanStatus status)
+    private static string StatusTone(EmployeeLoanStatus status)
         => status switch
         {
-            EmployeeLoanStatus.Draft => "text-bg-secondary",
-            EmployeeLoanStatus.Approved => "text-bg-success",
-            EmployeeLoanStatus.Closed => "text-bg-info",
-            EmployeeLoanStatus.Cancelled => "text-bg-danger",
-            _ => "text-bg-light"
+            EmployeeLoanStatus.Draft => "muted",
+            EmployeeLoanStatus.Approved => "success",
+            EmployeeLoanStatus.Closed => "info",
+            EmployeeLoanStatus.Cancelled => "danger",
+            _ => "muted"
         };
 
     private bool HasPermission(string permission)

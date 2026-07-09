@@ -28,20 +28,20 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©")</div>
         return;
     }
 
-    <PageHeader Title="@(order?.Number ?? Text("Sales Order", "أمر بيع"))"
-                Subtitle="@Text("Review sales order lines, totals, and fulfillment workflow.", "مراجعة الأصناف والإجماليات وسير التنفيذ.")"
-                Overline="@Text("Sales Order", "أمر بيع")"
+    <PageHeader Title="@(order?.Number ?? Text("Sales Order", "Ø£Ù…Ø± Ø¨ÙŠØ¹"))"
+                Subtitle="@Text("Review sales order lines, totals, and fulfillment workflow.", "Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø£ØµÙ†Ø§Ù ÙˆØ§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠØ§Øª ÙˆØ³ÙŠØ± Ø§Ù„ØªÙ†ÙÙŠØ°.")"
+                Overline="@Text("Sales Order", "Ø£Ù…Ø± Ø¨ÙŠØ¹")"
                 Icon="bi-list-check">
         <Actions>
             <a class="btn btn-outline-secondary" href="/Sales/Orders">
-                <i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")
+                <i class="bi bi-arrow-left"></i> @Text("Back", "Ø±Ø¬ÙˆØ¹")
             </a>
         </Actions>
     </PageHeader>
@@ -50,32 +50,32 @@
     {
         <div class="erp-loading py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <div class="mt-2">@Text("Loading sales order...", "جاري تحميل أمر البيع...")</div>
+            <div class="mt-2">@Text("Loading sales order...", "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹...")</div>
         </div>
     }
     else if (order is null)
     {
-        <EmptyState Title="@Text("Sales order not found", "لم يتم العثور على الأمر")"
-                    Message="@Text("The requested sales order could not be loaded.", "تعذر تحميل أمر البيع المطلوب.")"
+        <EmptyState Title="@Text("Sales order not found", "Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù…Ø±")"
+                    Message="@Text("The requested sales order could not be loaded.", "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨.")"
                     Icon="bi-exclamation-circle" />
     }
     else
     {
         <div class="row g-3">
             <div class="col-lg-8">
-                <AppCard Title="@Text("Lines", "الأصناف")">
+                <AppCard Title="@Text("Lines", "Ø§Ù„Ø£ØµÙ†Ø§Ù")">
                     <div class="erp-table-wrap">
                         <table class="table erp-table align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>@Text("Item", "الصنف")</th>
-                                    <th>@Text("SKU", "الرمز")</th>
-                                    <th>@Text("Qty", "الكمية")</th>
-                                    <th>@Text("Reserved", "محجوز")</th>
-                                    <th>@Text("Delivered", "مسلم")</th>
-                                    <th>@Text("Remaining", "متبقي")</th>
-                                    <th>@Text("Invoiced", "مفوتر")</th>
-                                    <th>@Text("Total", "الإجمالي")</th>
+                                    <th>@Text("Item", "Ø§Ù„ØµÙ†Ù")</th>
+                                    <th>@Text("SKU", "Ø§Ù„Ø±Ù…Ø²")</th>
+                                    <th>@Text("Qty", "Ø§Ù„ÙƒÙ…ÙŠØ©")</th>
+                                    <th>@Text("Reserved", "Ù…Ø­Ø¬ÙˆØ²")</th>
+                                    <th>@Text("Delivered", "Ù…Ø³Ù„Ù…")</th>
+                                    <th>@Text("Remaining", "Ù…ØªØ¨Ù‚ÙŠ")</th>
+                                    <th>@Text("Invoiced", "Ù…ÙÙˆØªØ±")</th>
+                                    <th>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -97,7 +97,7 @@
                                             <td colspan="8">
                                                 <details>
                                                     <summary>
-                                                        <span class="badge text-bg-info">@Text("Kit components", "Kit components")</span>
+                                    <StatusChip Text="@Text("Kit components", "Kit components")" Tone="info" />
                                                         <span class="text-muted small">@Text("Inventory is reserved and moved through component SKUs.", "Inventory is reserved and moved through component SKUs.")</span>
                                                     </summary>
                                                     <div class="kit-impact-list">
@@ -119,16 +119,16 @@
                 </AppCard>
             </div>
             <div class="col-lg-4">
-                <AppCard Title="@Text("Summary", "الملخص")" CssClass="mb-3">
-                    <div class="summary-row"><span>@Text("Status", "الحالة")</span><strong>@StatusText(order.Status)</strong></div>
+                <AppCard Title="@Text("Summary", "Ø§Ù„Ù…Ù„Ø®Øµ")" CssClass="mb-3">
+                    <div class="summary-row"><span>@Text("Status", "Ø§Ù„Ø­Ø§Ù„Ø©")</span><strong>@StatusText(order.Status)</strong></div>
                     @if (order.BranchId.HasValue)
                     {
-                        <div class="summary-row"><span>@Text("Branch", "الفرع")</span><strong>@BranchName(order.BranchId.Value)</strong></div>
+                        <div class="summary-row"><span>@Text("Branch", "Ø§Ù„ÙØ±Ø¹")</span><strong>@BranchName(order.BranchId.Value)</strong></div>
                     }
-                    <div class="summary-row"><span>@Text("Order date", "تاريخ الأمر")</span><strong>@order.OrderDate.ToString("yyyy-MM-dd")</strong></div>
-                    <div class="summary-row"><span>@Text("Subtotal", "المجموع")</span><strong>@Money(order.Subtotal)</strong></div>
-                    <div class="summary-row"><span>@Text("Tax", "الضريبة")</span><strong>@Money(order.TaxAmount)</strong></div>
-                    <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(order.TotalAmount)</strong></div>
+                    <div class="summary-row"><span>@Text("Order date", "ØªØ§Ø±ÙŠØ® Ø§Ù„Ø£Ù…Ø±")</span><strong>@order.OrderDate.ToString("yyyy-MM-dd")</strong></div>
+                    <div class="summary-row"><span>@Text("Subtotal", "Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹")</span><strong>@Money(order.Subtotal)</strong></div>
+                    <div class="summary-row"><span>@Text("Tax", "Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©")</span><strong>@Money(order.TaxAmount)</strong></div>
+                    <div class="summary-row summary-total"><span>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</span><strong>@Money(order.TotalAmount)</strong></div>
                 </AppCard>
 
                 <AppCard Title="@Text("Quotation & Invoicing", "Quotation & Invoicing")" CssClass="mb-3">
@@ -151,33 +151,33 @@
                     <div class="quote-control-chips mt-3">
                         @if (order.RequiresCustomerSignature)
                         {
-                            <span class="badge text-bg-secondary">@Text("Signature required", "Signature required")</span>
+                    <StatusChip Text="@Text("Signature required", "Signature required")" Tone="muted" />
                         }
                         @if (order.RequiresOnlinePayment)
                         {
-                            <span class="badge text-bg-primary">@Text("Online payment required", "Online payment required")</span>
+                    <StatusChip Text="@Text("Online payment required", "Online payment required")" Tone="primary" />
                         }
                         @if (order.IsProForma)
                         {
-                            <span class="badge text-bg-info">@Text("Pro-forma", "Pro-forma")</span>
+                    <StatusChip Text="@Text("Pro-forma", "Pro-forma")" Tone="info" />
                         }
                     </div>
                 </AppCard>
 
                 @if ((CanEdit || CanConfirm) && !order.IsCancelled && !order.IsCompleted)
                 {
-                    <AppCard Title="@Text("Workflow", "سير العمل")">
+                    <AppCard Title="@Text("Workflow", "Ø³ÙŠØ± Ø§Ù„Ø¹Ù…Ù„")">
                         @if (order.Status == SalesOrderStatus.Draft && CanConfirm)
                         {
                             <button class="btn btn-primary w-100 mb-2" @onclick="ConfirmAsync" disabled="@isSaving">
-                                <i class="bi bi-check2-circle"></i> @Text("Confirm order", "تأكيد الأمر")
+                                <i class="bi bi-check2-circle"></i> @Text("Confirm order", "ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø£Ù…Ø±")
                             </button>
                         }
                         @if (CanReserve && CanReserveOrder)
                         {
-                            <label class="form-label">@Text("Reservation warehouse", "مستودع الحجز")</label>
+                            <label class="form-label">@Text("Reservation warehouse", "Ù…Ø³ØªÙˆØ¯Ø¹ Ø§Ù„Ø­Ø¬Ø²")</label>
                             <select class="form-select mb-2" @bind="selectedWarehouseId" disabled="@(isSaving || warehouses.Count == 0)">
-                                <option value="@Guid.Empty">@Text("Select warehouse", "اختر المستودع")</option>
+                                <option value="@Guid.Empty">@Text("Select warehouse", "Ø§Ø®ØªØ± Ø§Ù„Ù…Ø³ØªÙˆØ¯Ø¹")</option>
                                 @foreach (var warehouse in warehouses)
                                 {
                                     <option value="@warehouse.Id">@Text(warehouse.NameEng, warehouse.Name)</option>
@@ -195,22 +195,22 @@
                             </div>
 
                             <button class="btn btn-outline-primary w-100 mb-2" @onclick="ReserveAsync" disabled="@(isSaving || selectedWarehouseId == Guid.Empty)">
-                                <i class="bi bi-box-seam"></i> @Text("Reserve stock", "حجز المخزون")
+                                <i class="bi bi-box-seam"></i> @Text("Reserve stock", "Ø­Ø¬Ø² Ø§Ù„Ù…Ø®Ø²ÙˆÙ†")
                             </button>
                             <button class="btn btn-outline-secondary w-100 mb-2" @onclick="ReleaseReservationAsync" disabled="@(isSaving || selectedWarehouseId == Guid.Empty)">
-                                <i class="bi bi-unlock"></i> @Text("Release reservation", "فك الحجز")
+                                <i class="bi bi-unlock"></i> @Text("Release reservation", "ÙÙƒ Ø§Ù„Ø­Ø¬Ø²")
                             </button>
                         }
                         <button class="btn btn-outline-primary w-100 mb-2" @onclick="DeliverAsync" disabled="@(isSaving || order.Status == SalesOrderStatus.Draft || !CanEdit)">
-                            <i class="bi bi-truck"></i> @Text("Mark delivered", "تحديد كمسلم")
+                            <i class="bi bi-truck"></i> @Text("Mark delivered", "ØªØ­Ø¯ÙŠØ¯ ÙƒÙ…Ø³Ù„Ù…")
                         </button>
                         <button class="btn btn-outline-success w-100 mb-2" @onclick="InvoiceAsync" disabled="@(isSaving || order.Status == SalesOrderStatus.Draft || !CanEdit)">
-                            <i class="bi bi-receipt"></i> @Text("Mark invoiced", "تحديد كمفوتر")
+                            <i class="bi bi-receipt"></i> @Text("Mark invoiced", "ØªØ­Ø¯ÙŠØ¯ ÙƒÙ…ÙÙˆØªØ±")
                         </button>
-                        <label class="form-label">@Text("Cancel reason", "سبب الإلغاء")</label>
+                        <label class="form-label">@Text("Cancel reason", "Ø³Ø¨Ø¨ Ø§Ù„Ø¥Ù„ØºØ§Ø¡")</label>
                         <textarea class="form-control mb-2" rows="2" @bind="cancelReason"></textarea>
                         <button class="btn btn-outline-danger w-100" @onclick="CancelAsync" disabled="@isSaving">
-                            <i class="bi bi-x-circle"></i> @Text("Cancel order", "إلغاء الأمر")
+                            <i class="bi bi-x-circle"></i> @Text("Cancel order", "Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø£Ù…Ø±")
                         </button>
                     </AppCard>
                 }
@@ -303,29 +303,29 @@
         selectedWarehouseId = warehouses.FirstOrDefault()?.Id ?? Guid.Empty;
     }
 
-    private async Task ConfirmAsync() => await RunWorkflowAsync(() => WorkflowService.ConfirmAsync(Id), Text("Order confirmed.", "تم تأكيد الأمر."));
+    private async Task ConfirmAsync() => await RunWorkflowAsync(() => WorkflowService.ConfirmAsync(Id), Text("Order confirmed.", "ØªÙ… ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø£Ù…Ø±."));
 
     private async Task ReserveAsync() => await RunWorkflowAsync(
         () => WorkflowService.ReserveAsync(Id, BuildReservationRequest()),
-        Text("Stock reserved.", "تم حجز المخزون."));
+        Text("Stock reserved.", "ØªÙ… Ø­Ø¬Ø² Ø§Ù„Ù…Ø®Ø²ÙˆÙ†."));
 
     private async Task ReleaseReservationAsync() => await RunWorkflowAsync(
         () => WorkflowService.ReleaseReservationAsync(Id, BuildReservationRequest()),
-        Text("Reservation released.", "تم فك الحجز."));
+        Text("Reservation released.", "ØªÙ… ÙÙƒ Ø§Ù„Ø­Ø¬Ø²."));
 
-    private async Task DeliverAsync() => await RunWorkflowAsync(() => WorkflowService.DeliverAsync(order!), Text("Order delivered.", "تم تحديد الأمر كمسلم."));
+    private async Task DeliverAsync() => await RunWorkflowAsync(() => WorkflowService.DeliverAsync(order!), Text("Order delivered.", "ØªÙ… ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø£Ù…Ø± ÙƒÙ…Ø³Ù„Ù…."));
 
-    private async Task InvoiceAsync() => await RunWorkflowAsync(() => WorkflowService.InvoiceAsync(order!), Text("Order invoiced.", "تم تحديد الأمر كمفوتر."));
+    private async Task InvoiceAsync() => await RunWorkflowAsync(() => WorkflowService.InvoiceAsync(order!), Text("Order invoiced.", "ØªÙ… ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø£Ù…Ø± ÙƒÙ…ÙÙˆØªØ±."));
 
     private async Task CancelAsync()
     {
         if (string.IsNullOrWhiteSpace(cancelReason))
         {
-            ToastService.ShowWarning(Text("Enter a cancel reason.", "أدخل سبب الإلغاء."));
+            ToastService.ShowWarning(Text("Enter a cancel reason.", "Ø£Ø¯Ø®Ù„ Ø³Ø¨Ø¨ Ø§Ù„Ø¥Ù„ØºØ§Ø¡."));
             return;
         }
 
-        await RunWorkflowAsync(() => WorkflowService.CancelAsync(Id, cancelReason), Text("Order cancelled.", "تم إلغاء الأمر."));
+        await RunWorkflowAsync(() => WorkflowService.CancelAsync(Id, cancelReason), Text("Order cancelled.", "ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø£Ù…Ø±."));
     }
 
     private async Task RunWorkflowAsync(Func<Task<AlAfkarERP.Shared.Dtos.ApiResult<bool>>> action, string successMessage)
@@ -342,7 +342,7 @@
         }
         else
         {
-            ToastService.ShowError(result.Error?.Detail ?? Text("Workflow action failed.", "فشل إجراء سير العمل."));
+            ToastService.ShowError(result.Error?.Detail ?? Text("Workflow action failed.", "ÙØ´Ù„ Ø¥Ø¬Ø±Ø§Ø¡ Ø³ÙŠØ± Ø§Ù„Ø¹Ù…Ù„."));
         }
         isSaving = false;
     }
@@ -378,16 +378,16 @@
 
     private string StatusText(SalesOrderStatus status) => status switch
     {
-        SalesOrderStatus.Confirmed => Text("Confirmed", "مؤكد"),
-        SalesOrderStatus.PartiallyReserved => Text("Partially reserved", "محجوز جزئيا"),
-        SalesOrderStatus.Reserved => Text("Reserved", "محجوز"),
-        SalesOrderStatus.PartiallyDelivered => Text("Partially delivered", "مسلم جزئيا"),
-        SalesOrderStatus.Delivered => Text("Delivered", "مسلم"),
-        SalesOrderStatus.PartiallyInvoiced => Text("Partially invoiced", "مفوتر جزئيا"),
-        SalesOrderStatus.Invoiced => Text("Invoiced", "مفوتر"),
-        SalesOrderStatus.Completed => Text("Completed", "مكتمل"),
-        SalesOrderStatus.Cancelled => Text("Cancelled", "ملغي"),
-        _ => Text("Draft", "مسودة")
+        SalesOrderStatus.Confirmed => Text("Confirmed", "Ù…Ø¤ÙƒØ¯"),
+        SalesOrderStatus.PartiallyReserved => Text("Partially reserved", "Ù…Ø­Ø¬ÙˆØ² Ø¬Ø²Ø¦ÙŠØ§"),
+        SalesOrderStatus.Reserved => Text("Reserved", "Ù…Ø­Ø¬ÙˆØ²"),
+        SalesOrderStatus.PartiallyDelivered => Text("Partially delivered", "Ù…Ø³Ù„Ù… Ø¬Ø²Ø¦ÙŠØ§"),
+        SalesOrderStatus.Delivered => Text("Delivered", "Ù…Ø³Ù„Ù…"),
+        SalesOrderStatus.PartiallyInvoiced => Text("Partially invoiced", "Ù…ÙÙˆØªØ± Ø¬Ø²Ø¦ÙŠØ§"),
+        SalesOrderStatus.Invoiced => Text("Invoiced", "Ù…ÙÙˆØªØ±"),
+        SalesOrderStatus.Completed => Text("Completed", "Ù…ÙƒØªÙ…Ù„"),
+        SalesOrderStatus.Cancelled => Text("Cancelled", "Ù…Ù„ØºÙŠ"),
+        _ => Text("Draft", "Ù…Ø³ÙˆØ¯Ø©")
     };
 
     private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";

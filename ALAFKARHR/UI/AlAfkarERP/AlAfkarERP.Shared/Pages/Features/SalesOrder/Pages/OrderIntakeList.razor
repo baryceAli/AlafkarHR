@@ -17,37 +17,37 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©")</div>
         return;
     }
 
-    <PageHeader Title="@Text("Order Intakes", "طلبات البيع")"
-                Subtitle="@Text("Review submitted cart checkouts before converting them into sales orders.", "مراجعة طلبات الدفع قبل تحويلها إلى أوامر بيع.")"
-                Overline="@Text("Sales", "المبيعات")"
+    <PageHeader Title="@Text("Order Intakes", "Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¨ÙŠØ¹")"
+                Subtitle="@Text("Review submitted cart checkouts before converting them into sales orders.", "Ù…Ø±Ø§Ø¬Ø¹Ø© Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¯ÙØ¹ Ù‚Ø¨Ù„ ØªØ­ÙˆÙŠÙ„Ù‡Ø§ Ø¥Ù„Ù‰ Ø£ÙˆØ§Ù…Ø± Ø¨ÙŠØ¹.")"
+                Overline="@Text("Sales", "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")"
                 Icon="bi-card-checklist">
         <Actions>
             <a class="btn btn-primary" href="/StoreFront/POS">
-                <i class="bi bi-shop-window"></i> @Text("StoreFront POS", "نقطة بيع المتجر")
+                <i class="bi bi-shop-window"></i> @Text("StoreFront POS", "Ù†Ù‚Ø·Ø© Ø¨ÙŠØ¹ Ø§Ù„Ù…ØªØ¬Ø±")
             </a>
             <a class="btn btn-outline-secondary" href="/SalesOrder/POS">
-                <i class="bi bi-receipt"></i> @Text("Company POS", "نقطة بيع الشركة")
+                <i class="bi bi-receipt"></i> @Text("Company POS", "Ù†Ù‚Ø·Ø© Ø¨ÙŠØ¹ Ø§Ù„Ø´Ø±ÙƒØ©")
             </a>
         </Actions>
     </PageHeader>
 
-    <AppCard Title="@Text("Filters", "التصفية")" CssClass="mb-3">
+    <AppCard Title="@Text("Filters", "Ø§Ù„ØªØµÙÙŠØ©")" CssClass="mb-3">
         <div class="row g-2 align-items-end">
             <div class="col-md-5">
-                <label class="form-label">@Text("Search", "بحث")</label>
-                <input class="form-control" @bind="searchText" placeholder="@Text("Number or customer", "الرقم أو العميل")" />
+                <label class="form-label">@Text("Search", "Ø¨Ø­Ø«")</label>
+                <input class="form-control" @bind="searchText" placeholder="@Text("Number or customer", "Ø§Ù„Ø±Ù‚Ù… Ø£Ùˆ Ø§Ù„Ø¹Ù…ÙŠÙ„")" />
             </div>
             <div class="col-md-4">
-                <label class="form-label">@Text("Status", "الحالة")</label>
+                <label class="form-label">@Text("Status", "Ø§Ù„Ø­Ø§Ù„Ø©")</label>
                 <select class="form-select" @bind="statusFilter">
-                    <option value="">@Text("All statuses", "كل الحالات")</option>
+                    <option value="">@Text("All statuses", "ÙƒÙ„ Ø§Ù„Ø­Ø§Ù„Ø§Øª")</option>
                     @foreach (var status in Enum.GetValues<OrderIntakeStatus>())
                     {
                         <option value="@status">@StatusText(status)</option>
@@ -56,7 +56,7 @@
             </div>
             <div class="col-md-3 d-flex gap-2">
                 <button class="btn btn-primary flex-grow-1" @onclick="LoadAsync">
-                    <i class="bi bi-search"></i> @Text("Apply", "تطبيق")
+                    <i class="bi bi-search"></i> @Text("Apply", "ØªØ·Ø¨ÙŠÙ‚")
                 </button>
                 <button class="btn btn-outline-secondary" @onclick="ResetFilters">
                     <i class="bi bi-arrow-counterclockwise"></i>
@@ -65,18 +65,18 @@
         </div>
     </AppCard>
 
-    <AppCard Title="@Text("Intakes", "الطلبات")">
+    <AppCard Title="@Text("Intakes", "Ø§Ù„Ø·Ù„Ø¨Ø§Øª")">
         @if (isLoading)
         {
             <div class="erp-loading py-4">
                 <div class="spinner-border text-primary" role="status"></div>
-                <div class="mt-2">@Text("Loading intakes...", "جاري تحميل الطلبات...")</div>
+                <div class="mt-2">@Text("Loading intakes...", "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª...")</div>
             </div>
         }
         else if (!orders.Any())
         {
-            <EmptyState Title="@Text("No order intakes", "لا توجد طلبات")"
-                        Message="@Text("Submitted POS checkouts will appear here.", "ستظهر طلبات نقطة البيع هنا.")"
+            <EmptyState Title="@Text("No order intakes", "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø·Ù„Ø¨Ø§Øª")"
+                        Message="@Text("Submitted POS checkouts will appear here.", "Ø³ØªØ¸Ù‡Ø± Ø·Ù„Ø¨Ø§Øª Ù†Ù‚Ø·Ø© Ø§Ù„Ø¨ÙŠØ¹ Ù‡Ù†Ø§.")"
                         Icon="bi-inboxes" />
         }
         else
@@ -85,12 +85,12 @@
                 <table class="table erp-table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>@Text("Number", "الرقم")</th>
-                            <th>@Text("Customer", "العميل")</th>
-                            <th>@Text("Status", "الحالة")</th>
-                            <th>@Text("Payment", "الدفع")</th>
-                            <th>@Text("Total", "الإجمالي")</th>
-                            <th>@Text("Submitted", "تاريخ الإرسال")</th>
+                            <th>@Text("Number", "Ø§Ù„Ø±Ù‚Ù…")</th>
+                            <th>@Text("Customer", "Ø§Ù„Ø¹Ù…ÙŠÙ„")</th>
+                            <th>@Text("Status", "Ø§Ù„Ø­Ø§Ù„Ø©")</th>
+                            <th>@Text("Payment", "Ø§Ù„Ø¯ÙØ¹")</th>
+                            <th>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</th>
+                            <th>@Text("Submitted", "ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ø±Ø³Ø§Ù„")</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -99,8 +99,8 @@
                         {
                             <tr>
                                 <td class="fw-semibold">@order.Number</td>
-                                <td>@(order.CustomerName ?? Text("Walk-in", "عميل مباشر"))</td>
-                                <td><span class="badge rounded-pill @StatusBadge(order.Status)">@StatusText(order.Status)</span></td>
+                                <td>@(order.CustomerName ?? Text("Walk-in", "Ø¹Ù…ÙŠÙ„ Ù…Ø¨Ø§Ø´Ø±"))</td>
+                                <td><StatusChip Text="@StatusText(order.Status)" Tone="@StatusTone(order.Status)" /></td>
                                 <td>@(order.PaymentStatus?.ToString() ?? "-")</td>
                                 <td>@Money(order.CheckoutTotal)</td>
                                 <td>@DateText(order.SubmittedAt)</td>
@@ -116,9 +116,9 @@
             </div>
 
             <div class="d-flex justify-content-between align-items-center mt-3">
-                <button class="btn btn-outline-secondary" @onclick="PreviousPage" disabled="@(pageIndex == 0 || isLoading)">@Text("Previous", "السابق")</button>
-                <span class="text-muted">@Text($"Page {pageIndex + 1}", $"صفحة {pageIndex + 1}")</span>
-                <button class="btn btn-outline-secondary" @onclick="NextPage" disabled="@(!HasNextPage || isLoading)">@Text("Next", "التالي")</button>
+                <button class="btn btn-outline-secondary" @onclick="PreviousPage" disabled="@(pageIndex == 0 || isLoading)">@Text("Previous", "Ø§Ù„Ø³Ø§Ø¨Ù‚")</button>
+                <span class="text-muted">@Text($"Page {pageIndex + 1}", $"ØµÙØ­Ø© {pageIndex + 1}")</span>
+                <button class="btn btn-outline-secondary" @onclick="NextPage" disabled="@(!HasNextPage || isLoading)">@Text("Next", "Ø§Ù„ØªØ§Ù„ÙŠ")</button>
             </div>
         }
     </AppCard>
@@ -209,21 +209,21 @@
 
     private string StatusText(OrderIntakeStatus status) => status switch
     {
-        OrderIntakeStatus.Submitted => Text("Submitted", "مرسل"),
-        OrderIntakeStatus.Validated => Text("Validated", "تم التحقق"),
-        OrderIntakeStatus.Rejected => Text("Rejected", "مرفوض"),
-        OrderIntakeStatus.Accepted => Text("Accepted", "مقبول"),
-        OrderIntakeStatus.ConvertedToSales => Text("Converted", "محول للبيع"),
-        OrderIntakeStatus.Cancelled => Text("Cancelled", "ملغي"),
-        _ => Text("Draft", "مسودة")
+        OrderIntakeStatus.Submitted => Text("Submitted", "Ù…Ø±Ø³Ù„"),
+        OrderIntakeStatus.Validated => Text("Validated", "ØªÙ… Ø§Ù„ØªØ­Ù‚Ù‚"),
+        OrderIntakeStatus.Rejected => Text("Rejected", "Ù…Ø±ÙÙˆØ¶"),
+        OrderIntakeStatus.Accepted => Text("Accepted", "Ù…Ù‚Ø¨ÙˆÙ„"),
+        OrderIntakeStatus.ConvertedToSales => Text("Converted", "Ù…Ø­ÙˆÙ„ Ù„Ù„Ø¨ÙŠØ¹"),
+        OrderIntakeStatus.Cancelled => Text("Cancelled", "Ù…Ù„ØºÙŠ"),
+        _ => Text("Draft", "Ù…Ø³ÙˆØ¯Ø©")
     };
 
-    private static string StatusBadge(OrderIntakeStatus status) => status switch
+    private static string StatusTone(OrderIntakeStatus status) => status switch
     {
-        OrderIntakeStatus.Rejected or OrderIntakeStatus.Cancelled => "text-bg-danger",
-        OrderIntakeStatus.Accepted or OrderIntakeStatus.ConvertedToSales => "text-bg-success",
-        OrderIntakeStatus.Submitted or OrderIntakeStatus.Validated => "text-bg-primary",
-        _ => "text-bg-secondary"
+        OrderIntakeStatus.Rejected or OrderIntakeStatus.Cancelled => "danger",
+        OrderIntakeStatus.Accepted or OrderIntakeStatus.ConvertedToSales => "success",
+        OrderIntakeStatus.Submitted or OrderIntakeStatus.Validated => "primary",
+        _ => "muted"
     };
 
     private string DateText(DateTime? value) => value?.ToString("yyyy-MM-dd HH:mm") ?? "-";

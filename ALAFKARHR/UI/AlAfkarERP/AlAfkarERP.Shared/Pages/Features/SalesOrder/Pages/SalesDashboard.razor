@@ -17,21 +17,21 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©")</div>
     }
     else
     {
 
-    <PageHeader Title="@Text("Sales Dashboard", "لوحة المبيعات")"
-                Subtitle="@Text("Monitor sales order volume and open/completed value.", "متابعة حجم أوامر البيع وقيمتها.")"
-                Overline="@Text("Sales", "المبيعات")"
+    <PageHeader Title="@Text("Sales Dashboard", "Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")"
+                Subtitle="@Text("Monitor sales order volume and open/completed value.", "Ù…ØªØ§Ø¨Ø¹Ø© Ø­Ø¬Ù… Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹ ÙˆÙ‚ÙŠÙ…ØªÙ‡Ø§.")"
+                Overline="@Text("Sales", "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")"
                 Icon="bi-graph-up-arrow">
         <Actions>
             <a class="btn btn-outline-secondary" href="/Sales/Orders">
-                <i class="bi bi-list-check"></i> @Text("Sales Orders", "أوامر البيع")
+                <i class="bi bi-list-check"></i> @Text("Sales Orders", "Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹")
             </a>
         </Actions>
     </PageHeader>
@@ -40,23 +40,23 @@
     {
         <div class="erp-loading py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <div class="mt-2">@Text("Loading dashboard...", "جاري تحميل اللوحة...")</div>
+            <div class="mt-2">@Text("Loading dashboard...", "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù„ÙˆØ­Ø©...")</div>
         </div>
 
     }
     else if (dashboard is null)
     {
-        <EmptyState Title="@Text("No dashboard data", "لا توجد بيانات")"
-                    Message="@Text("Sales dashboard data is not available right now.", "بيانات لوحة المبيعات غير متاحة حاليا.")"
+        <EmptyState Title="@Text("No dashboard data", "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª")"
+                    Message="@Text("Sales dashboard data is not available right now.", "Ø¨ÙŠØ§Ù†Ø§Øª Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª ØºÙŠØ± Ù…ØªØ§Ø­Ø© Ø­Ø§Ù„ÙŠØ§.")"
                     Icon="bi-bar-chart" />
     }
     else
     {
         <div class="row g-3 mb-3">
-            <div class="col-md-3"><StatsCard Title="@Text("Draft", "مسودة")" Value="@dashboard.DraftOrders.ToString()" Icon="bi-pencil-square" /></div>
-            <div class="col-md-3"><StatsCard Title="@Text("Confirmed", "مؤكدة")" Value="@dashboard.ConfirmedOrders.ToString()" Icon="bi-check2-circle" /></div>
-            <div class="col-md-3"><StatsCard Title="@Text("Delivered", "مسلمة")" Value="@dashboard.DeliveredOrders.ToString()" Icon="bi-truck" /></div>
-            <div class="col-md-3"><StatsCard Title="@Text("Completed", "مكتملة")" Value="@dashboard.CompletedOrders.ToString()" Icon="bi-patch-check" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Draft", "Ù…Ø³ÙˆØ¯Ø©")" Value="@dashboard.DraftOrders.ToString()" Icon="bi-pencil-square" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Confirmed", "Ù…Ø¤ÙƒØ¯Ø©")" Value="@dashboard.ConfirmedOrders.ToString()" Icon="bi-check2-circle" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Delivered", "Ù…Ø³Ù„Ù…Ø©")" Value="@dashboard.DeliveredOrders.ToString()" Icon="bi-truck" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Completed", "Ù…ÙƒØªÙ…Ù„Ø©")" Value="@dashboard.CompletedOrders.ToString()" Icon="bi-patch-check" /></div>
         </div>
 
         <div class="row g-3 mb-3">
@@ -68,12 +68,12 @@
 
         <div class="row g-3 mb-3">
             <div class="col-md-6">
-                <AppCard Title="@Text("Open Order Value", "قيمة الأوامر المفتوحة")">
+                <AppCard Title="@Text("Open Order Value", "Ù‚ÙŠÙ…Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…ÙØªÙˆØ­Ø©")">
                     <div class="sales-value">@Money(dashboard.OpenOrderValue)</div>
                 </AppCard>
             </div>
             <div class="col-md-6">
-                <AppCard Title="@Text("Completed Order Value", "قيمة الأوامر المكتملة")">
+                <AppCard Title="@Text("Completed Order Value", "Ù‚ÙŠÙ…Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…ÙƒØªÙ…Ù„Ø©")">
                     <div class="sales-value">@Money(dashboard.CompletedOrderValue)</div>
                 </AppCard>
             </div>

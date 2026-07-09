@@ -1,11 +1,22 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Auth/User/List"
+@implements IDisposable
 @inject SharedDataService SharedDataService
 
 @using AlAfkarERP.Shared.Pages.Features.Auth.Layout
 @using AlAfkarERP.Shared.Utilities
 
-<h3>UserManagement</h3>
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title='@SharedDataService.SelectViewLang("User Management", "إدارة المستخدمين")'
+                Overline='@SharedDataService.SelectViewLang("Auth", "الصلاحيات")'
+                Icon="bi-people" />
+
+    <AppCard>
+        <EmptyState Title='@SharedDataService.SelectViewLang("User list is not configured yet.", "قائمة المستخدمين غير مهيأة بعد.")'
+                    Message='@SharedDataService.SelectViewLang("Use the existing user assignment pages for role and branch access management.", "استخدم صفحات تعيين المستخدمين الحالية لإدارة الأدوار والوصول حسب الفروع.")'
+                    Icon="bi-person-gear" />
+    </AppCard>
+</div>
 
 @code {
     protected override void OnInitialized()

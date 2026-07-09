@@ -1,4 +1,4 @@
-﻿@implements IDisposable
+@implements IDisposable
 
 @using AlAfkarERP.Shared.Pages.Features.DocumentManagement.Services
 @using AlAfkarERP.Shared.Utilities
@@ -78,7 +78,7 @@ else
                                     <small class="text-muted">@document.Description</small>
                                 </td>
                                 <td>
-                                    <span class="badge bg-secondary">v@document.LatestVersionNumber</span>
+                                    <StatusChip Text="@($"v{document.LatestVersionNumber}")" Tone="muted" />
                                     <small class="text-muted d-block">@document.LatestFileName</small>
                                 </td>
                                 <td>@SourceText(document)</td>

@@ -23,20 +23,20 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanCreate)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to create sales orders.", "لا تملك صلاحية إنشاء أوامر البيع.")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to create sales orders.", "Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© Ø¥Ù†Ø´Ø§Ø¡ Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹.")</div>
         return;
     }
 
-    <PageHeader Title="@Text("New Sales Order", "أمر بيع جديد")"
-                Subtitle="@Text("Create a draft sales order for organization and back-office sales.", "إنشاء مسودة أمر بيع للمبيعات المكتبية والعملاء من المؤسسات.")"
-                Overline="@Text("Sales", "المبيعات")"
+    <PageHeader Title="@Text("New Sales Order", "Ø£Ù…Ø± Ø¨ÙŠØ¹ Ø¬Ø¯ÙŠØ¯")"
+                Subtitle="@Text("Create a draft sales order for organization and back-office sales.", "Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø³ÙˆØ¯Ø© Ø£Ù…Ø± Ø¨ÙŠØ¹ Ù„Ù„Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„Ù…ÙƒØªØ¨ÙŠØ© ÙˆØ§Ù„Ø¹Ù…Ù„Ø§Ø¡ Ù…Ù† Ø§Ù„Ù…Ø¤Ø³Ø³Ø§Øª.")"
+                Overline="@Text("Sales", "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")"
                 Icon="bi-file-earmark-plus">
         <Actions>
             <a class="btn btn-outline-secondary" href="/Sales/Orders">
-                <i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")
+                <i class="bi bi-arrow-left"></i> @Text("Back", "Ø±Ø¬ÙˆØ¹")
             </a>
         </Actions>
     </PageHeader>
@@ -45,7 +45,7 @@
     {
         <div class="erp-loading py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <div class="mt-2">@Text("Loading sales order form...", "جاري تحميل نموذج أمر البيع...")</div>
+            <div class="mt-2">@Text("Loading sales order form...", "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ù†Ù…ÙˆØ°Ø¬ Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹...")</div>
         </div>
     }
     else
@@ -55,24 +55,24 @@
 
             <div class="row g-3">
                 <div class="col-xl-8">
-                    <AppCard Title="@Text("Order Details", "تفاصيل الأمر")" CssClass="mb-3">
+                    <AppCard Title="@Text("Order Details", "ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø£Ù…Ø±")" CssClass="mb-3">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Order number", "رقم الأمر")</label>
+                                <label class="form-label">@Text("Order number", "Ø±Ù‚Ù… Ø§Ù„Ø£Ù…Ø±")</label>
                                 <input class="form-control" @bind="order.Number" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Order date", "تاريخ الأمر")</label>
+                                <label class="form-label">@Text("Order date", "ØªØ§Ø±ÙŠØ® Ø§Ù„Ø£Ù…Ø±")</label>
                                 <InputDate class="form-control" @bind-Value="order.OrderDate" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Delivery date", "تاريخ التسليم")</label>
+                                <label class="form-label">@Text("Delivery date", "ØªØ§Ø±ÙŠØ® Ø§Ù„ØªØ³Ù„ÙŠÙ…")</label>
                                 <InputDate class="form-control" @bind-Value="order.DeliveryDate" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Customer", "العميل")</label>
+                                <label class="form-label">@Text("Customer", "Ø§Ù„Ø¹Ù…ÙŠÙ„")</label>
                                 <select class="form-select" @onchange="OnCustomerChanged">
-                                    <option value="">@Text("Select customer", "اختر العميل")</option>
+                                    <option value="">@Text("Select customer", "Ø§Ø®ØªØ± Ø§Ù„Ø¹Ù…ÙŠÙ„")</option>
                                     @foreach (var customer in customers)
                                     {
                                         <option value="@customer.Id" selected="@(customer.Id == order.CustomerId)">@customer.Name</option>
@@ -80,24 +80,24 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Customer purchase order", "أمر شراء العميل")</label>
+                                <label class="form-label">@Text("Customer purchase order", "Ø£Ù…Ø± Ø´Ø±Ø§Ø¡ Ø§Ù„Ø¹Ù…ÙŠÙ„")</label>
                                 <input class="form-control" @bind="order.CustomerPurchaseOrderNumber" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
+                                <label class="form-label">@Text("Notes", "Ù…Ù„Ø§Ø­Ø¸Ø§Øª")</label>
                                 <textarea class="form-control" rows="3" @bind="order.Notes"></textarea>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Terms", "الشروط")</label>
+                                <label class="form-label">@Text("Terms", "Ø§Ù„Ø´Ø±ÙˆØ·")</label>
                                 <textarea class="form-control" rows="3" @bind="order.Terms"></textarea>
                             </div>
                         </div>
                     </AppCard>
 
-                    <AppCard Title="@Text("Order Lines", "أصناف الأمر")">
+                    <AppCard Title="@Text("Order Lines", "Ø£ØµÙ†Ø§Ù Ø§Ù„Ø£Ù…Ø±")">
                         <div class="d-flex justify-content-end mb-2">
                             <button class="btn btn-outline-primary btn-sm" type="button" @onclick="AddLine">
-                                <i class="bi bi-plus-lg"></i> @Text("Add line", "إضافة صنف")
+                                <i class="bi bi-plus-lg"></i> @Text("Add line", "Ø¥Ø¶Ø§ÙØ© ØµÙ†Ù")
                             </button>
                         </div>
 
@@ -105,12 +105,12 @@
                             <table class="table erp-table align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th>@Text("SKU", "الرمز")</th>
-                                        <th>@Text("Qty", "الكمية")</th>
-                                        <th>@Text("Unit price", "سعر الوحدة")</th>
-                                        <th>@Text("Discount", "الخصم")</th>
-                                        <th>@Text("Tax", "الضريبة")</th>
-                                        <th>@Text("Total", "الإجمالي")</th>
+                                        <th>@Text("SKU", "Ø§Ù„Ø±Ù…Ø²")</th>
+                                        <th>@Text("Qty", "Ø§Ù„ÙƒÙ…ÙŠØ©")</th>
+                                        <th>@Text("Unit price", "Ø³Ø¹Ø± Ø§Ù„ÙˆØ­Ø¯Ø©")</th>
+                                        <th>@Text("Discount", "Ø§Ù„Ø®ØµÙ…")</th>
+                                        <th>@Text("Tax", "Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©")</th>
+                                        <th>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -120,7 +120,7 @@
                                         <tr>
                                             <td>
                                                 <select class="form-select form-select-sm" @onchange="e => SelectSku(line, e.Value?.ToString())">
-                                                    <option value="">@Text("Select SKU", "اختر الرمز")</option>
+                                                    <option value="">@Text("Select SKU", "Ø§Ø®ØªØ± Ø§Ù„Ø±Ù…Ø²")</option>
                                                     @foreach (var sku in skus)
                                                     {
                                                         <option value="@sku.Id" selected="@(sku.Id == line.ProductSkuId)">@Text(sku.NameEng, sku.Name) - @sku.SkuCode</option>
@@ -150,30 +150,30 @@
                 </div>
 
                 <div class="col-xl-4">
-                    <AppCard Title="@Text("Quick Customer", "عميل سريع")" CssClass="mb-3">
+                    <AppCard Title="@Text("Quick Customer", "Ø¹Ù…ÙŠÙ„ Ø³Ø±ÙŠØ¹")" CssClass="mb-3">
                         <div class="mb-2">
-                            <label class="form-label">@Text("Organization name", "اسم المؤسسة")</label>
+                            <label class="form-label">@Text("Organization name", "Ø§Ø³Ù… Ø§Ù„Ù…Ø¤Ø³Ø³Ø©")</label>
                             <input class="form-control" @bind="quickCustomer.Name" />
                         </div>
                         <div class="mb-2">
-                            <label class="form-label">@Text("Commercial name", "الاسم التجاري")</label>
+                            <label class="form-label">@Text("Commercial name", "Ø§Ù„Ø§Ø³Ù… Ø§Ù„ØªØ¬Ø§Ø±ÙŠ")</label>
                             <input class="form-control" @bind="quickCustomer.CommercialName" />
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">@Text("VAT number", "الرقم الضريبي")</label>
+                            <label class="form-label">@Text("VAT number", "Ø§Ù„Ø±Ù‚Ù… Ø§Ù„Ø¶Ø±ÙŠØ¨ÙŠ")</label>
                             <input class="form-control" @bind="quickCustomer.VatNumber" />
                         </div>
                         <button class="btn btn-outline-primary w-100" type="button" @onclick="CreateCustomerAsync" disabled="@isSaving">
-                            <i class="bi bi-person-plus"></i> @Text("Create and select", "إنشاء واختيار")
+                            <i class="bi bi-person-plus"></i> @Text("Create and select", "Ø¥Ù†Ø´Ø§Ø¡ ÙˆØ§Ø®ØªÙŠØ§Ø±")
                         </button>
                     </AppCard>
 
-                    <AppCard Title="@Text("Totals", "الإجماليات")">
-                        <div class="summary-row"><span>@Text("Subtotal", "المجموع")</span><strong>@Money(order.Subtotal)</strong></div>
-                        <div class="summary-row"><span>@Text("Tax", "الضريبة")</span><strong>@Money(order.TaxAmount)</strong></div>
-                        <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(order.TotalAmount)</strong></div>
+                    <AppCard Title="@Text("Totals", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠØ§Øª")">
+                        <div class="summary-row"><span>@Text("Subtotal", "Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹")</span><strong>@Money(order.Subtotal)</strong></div>
+                        <div class="summary-row"><span>@Text("Tax", "Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©")</span><strong>@Money(order.TaxAmount)</strong></div>
+                        <div class="summary-row summary-total"><span>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</span><strong>@Money(order.TotalAmount)</strong></div>
                         <button class="btn btn-primary w-100 mt-3" type="submit" disabled="@isSaving">
-                            <i class="bi bi-save"></i> @Text("Save Draft", "حفظ كمسودة")
+                            <i class="bi bi-save"></i> @Text("Save Draft", "Ø­ÙØ¸ ÙƒÙ…Ø³ÙˆØ¯Ø©")
                         </button>
                     </AppCard>
                 </div>
@@ -295,7 +295,7 @@
     {
         if (string.IsNullOrWhiteSpace(quickCustomer.Name))
         {
-            ToastService.ShowWarning(Text("Enter the organization name.", "أدخل اسم المؤسسة."));
+            ToastService.ShowWarning(Text("Enter the organization name.", "Ø£Ø¯Ø®Ù„ Ø§Ø³Ù… Ø§Ù„Ù…Ø¤Ø³Ø³Ø©."));
             return;
         }
 
@@ -304,7 +304,7 @@
         var result = await CustomerService.CreateAsync(quickCustomer);
         if (result.IsSuccess && result.Data is not null)
         {
-            ToastService.ShowSuccess(Text("Customer created.", "تم إنشاء العميل."));
+            ToastService.ShowSuccess(Text("Customer created.", "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¹Ù…ÙŠÙ„."));
             var customerResult = await CustomerService.GetByCompany(companyId, 0, 1000);
             customers = customerResult.IsSuccess ? customerResult.Data?.Data.ToList() ?? [] : customers;
             order.CustomerId = result.Data.Id;
@@ -313,7 +313,7 @@
         }
         else
         {
-            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to create customer.", "تعذر إنشاء العميل."));
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to create customer.", "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¹Ù…ÙŠÙ„."));
         }
         isSaving = false;
     }
@@ -322,14 +322,14 @@
     {
         if (order.CustomerId == Guid.Empty)
         {
-            ToastService.ShowWarning(Text("Select a customer.", "اختر العميل."));
+            ToastService.ShowWarning(Text("Select a customer.", "Ø§Ø®ØªØ± Ø§Ù„Ø¹Ù…ÙŠÙ„."));
             return;
         }
 
         order.Lines = order.Lines.Where(x => x.ProductSkuId != Guid.Empty && x.Quantity > 0).ToList();
         if (order.Lines.Count == 0)
         {
-            ToastService.ShowWarning(Text("Add at least one SKU line.", "أضف صنفا واحدا على الأقل."));
+            ToastService.ShowWarning(Text("Add at least one SKU line.", "Ø£Ø¶Ù ØµÙ†ÙØ§ ÙˆØ§Ø­Ø¯Ø§ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„."));
             AddLine();
             return;
         }
@@ -339,12 +339,12 @@
         var result = await SalesService.CreateManualOrderAsync(order);
         if (result.IsSuccess && result.Data is not null)
         {
-            ToastService.ShowSuccess(Text("Sales order draft created.", "تم إنشاء مسودة أمر البيع."));
+            ToastService.ShowSuccess(Text("Sales order draft created.", "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø³ÙˆØ¯Ø© Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹."));
             NavigationManager.NavigateTo($"/Sales/Orders/{result.Data.Id}");
         }
         else
         {
-            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to create sales order.", "تعذر إنشاء أمر البيع."));
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to create sales order.", "ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹."));
         }
         isSaving = false;
     }

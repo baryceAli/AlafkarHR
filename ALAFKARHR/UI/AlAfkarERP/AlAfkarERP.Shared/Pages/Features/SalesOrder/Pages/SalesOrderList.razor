@@ -19,38 +19,38 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©")</div>
         return;
     }
 
-    <PageHeader Title="@Text("Sales Orders", "أوامر البيع")"
-                Subtitle="@Text("Browse converted sales orders and inspect fulfillment progress.", "استعراض أوامر البيع ومتابعة التنفيذ.")"
-                Overline="@Text("Sales", "المبيعات")"
+    <PageHeader Title="@Text("Sales Orders", "Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹")"
+                Subtitle="@Text("Browse converted sales orders and inspect fulfillment progress.", "Ø§Ø³ØªØ¹Ø±Ø§Ø¶ Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹ ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ø§Ù„ØªÙ†ÙÙŠØ°.")"
+                Overline="@Text("Sales", "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")"
                 Icon="bi-list-check">
         <Actions>
             @if (CanCreate)
             {
                 <a class="btn btn-primary" href="/Sales/Orders/Create">
-                    <i class="bi bi-plus-lg"></i> @Text("New Sales Order", "أمر بيع جديد")
+                    <i class="bi bi-plus-lg"></i> @Text("New Sales Order", "Ø£Ù…Ø± Ø¨ÙŠØ¹ Ø¬Ø¯ÙŠØ¯")
                 </a>
             }
             <a class="btn btn-outline-secondary" href="/Sales/Dashboard">
-                <i class="bi bi-graph-up-arrow"></i> @Text("Dashboard", "لوحة المبيعات")
+                <i class="bi bi-graph-up-arrow"></i> @Text("Dashboard", "Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")
             </a>
         </Actions>
     </PageHeader>
 
-    <AppCard Title="@Text("Orders", "الأوامر")">
+    <AppCard Title="@Text("Orders", "Ø§Ù„Ø£ÙˆØ§Ù…Ø±")">
         @if (HasSmartFilter)
         {
             <div class="erp-chip-row mb-3">
                 <StatusChip Tone="info" Text="@SmartFilterText()" />
                 <button class="btn btn-outline-secondary btn-sm" @onclick='() => NavigationManager.NavigateTo("/Sales/Orders")'>
                     <i class="bi bi-x-lg"></i>
-                    @Text("Clear filter", "مسح التصفية")
+                    @Text("Clear filter", "Ù…Ø³Ø­ Ø§Ù„ØªØµÙÙŠØ©")
                 </button>
             </div>
         }
@@ -58,13 +58,13 @@
         {
             <div class="erp-loading py-4">
                 <div class="spinner-border text-primary" role="status"></div>
-                <div class="mt-2">@Text("Loading sales orders...", "جاري تحميل أوامر البيع...")</div>
+                <div class="mt-2">@Text("Loading sales orders...", "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹...")</div>
             </div>
         }
         else if (!orders.Any())
         {
-            <EmptyState Title="@Text("No sales orders", "لا توجد أوامر بيع")"
-                        Message="@Text("Accepted order intakes will appear here.", "ستظهر الطلبات المقبولة هنا.")"
+            <EmptyState Title="@Text("No sales orders", "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø£ÙˆØ§Ù…Ø± Ø¨ÙŠØ¹")"
+                        Message="@Text("Accepted order intakes will appear here.", "Ø³ØªØ¸Ù‡Ø± Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…Ù‚Ø¨ÙˆÙ„Ø© Ù‡Ù†Ø§.")"
                         Icon="bi-inboxes" />
         }
         else
@@ -73,13 +73,13 @@
                 <table class="table erp-table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>@Text("Number", "الرقم")</th>
-                            <th>@Text("Status", "الحالة")</th>
-                            <th>@Text("Order date", "تاريخ الأمر")</th>
-                            <th>@Text("Subtotal", "المجموع")</th>
-                            <th>@Text("Tax", "الضريبة")</th>
-                            <th>@Text("Total", "الإجمالي")</th>
-                            <th>@Text("Branch", "الفرع")</th>
+                            <th>@Text("Number", "Ø§Ù„Ø±Ù‚Ù…")</th>
+                            <th>@Text("Status", "Ø§Ù„Ø­Ø§Ù„Ø©")</th>
+                            <th>@Text("Order date", "ØªØ§Ø±ÙŠØ® Ø§Ù„Ø£Ù…Ø±")</th>
+                            <th>@Text("Subtotal", "Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹")</th>
+                            <th>@Text("Tax", "Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©")</th>
+                            <th>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</th>
+                            <th>@Text("Branch", "Ø§Ù„ÙØ±Ø¹")</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -88,7 +88,7 @@
                         {
                             <tr>
                                 <td class="fw-semibold">@order.Number</td>
-                                <td><span class="badge rounded-pill @StatusBadge(order.Status)">@StatusText(order.Status)</span></td>
+                                <td><StatusChip Text="@StatusText(order.Status)" Tone="@StatusTone(order.Status)" /></td>
                                 <td>@order.OrderDate.ToString("yyyy-MM-dd")</td>
                                 <td>@Money(order.Subtotal)</td>
                                 <td>@Money(order.TaxAmount)</td>
@@ -106,9 +106,9 @@
             </div>
 
             <div class="d-flex justify-content-between align-items-center mt-3">
-                <button class="btn btn-outline-secondary" @onclick="PreviousPage" disabled="@(pageIndex == 0 || isLoading)">@Text("Previous", "السابق")</button>
-                <span class="text-muted">@Text($"Page {pageIndex + 1}", $"صفحة {pageIndex + 1}")</span>
-                <button class="btn btn-outline-secondary" @onclick="NextPage" disabled="@(!HasNextPage || isLoading)">@Text("Next", "التالي")</button>
+                <button class="btn btn-outline-secondary" @onclick="PreviousPage" disabled="@(pageIndex == 0 || isLoading)">@Text("Previous", "Ø§Ù„Ø³Ø§Ø¨Ù‚")</button>
+                <span class="text-muted">@Text($"Page {pageIndex + 1}", $"ØµÙØ­Ø© {pageIndex + 1}")</span>
+                <button class="btn btn-outline-secondary" @onclick="NextPage" disabled="@(!HasNextPage || isLoading)">@Text("Next", "Ø§Ù„ØªØ§Ù„ÙŠ")</button>
             </div>
         }
     </AppCard>
@@ -203,41 +203,41 @@
     private string SmartFilterText()
     {
         if (CustomerId.HasValue)
-            return Text("Filtered by customer", "مصفى حسب العميل");
+            return Text("Filtered by customer", "Ù…ØµÙÙ‰ Ø­Ø³Ø¨ Ø§Ù„Ø¹Ù…ÙŠÙ„");
         if (ProductSkuId.HasValue)
-            return Text("Filtered by SKU", "مصفى حسب وحدة المنتج");
+            return Text("Filtered by SKU", "Ù…ØµÙÙ‰ Ø­Ø³Ø¨ ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ù†ØªØ¬");
         if (ProductId.HasValue)
-            return Text("Filtered by product", "مصفى حسب المنتج");
-        return Text("Filtered", "مصفى");
+            return Text("Filtered by product", "Ù…ØµÙÙ‰ Ø­Ø³Ø¨ Ø§Ù„Ù…Ù†ØªØ¬");
+        return Text("Filtered", "Ù…ØµÙÙ‰");
     }
 
     private string StatusText(SalesOrderStatus status) => status switch
     {
-        SalesOrderStatus.Confirmed => Text("Confirmed", "مؤكد"),
-        SalesOrderStatus.PartiallyReserved => Text("Partially reserved", "محجوز جزئيا"),
-        SalesOrderStatus.Reserved => Text("Reserved", "محجوز"),
-        SalesOrderStatus.PartiallyDelivered => Text("Partially delivered", "مسلم جزئيا"),
-        SalesOrderStatus.Delivered => Text("Delivered", "مسلم"),
-        SalesOrderStatus.PartiallyInvoiced => Text("Partially invoiced", "مفوتر جزئيا"),
-        SalesOrderStatus.Invoiced => Text("Invoiced", "مفوتر"),
-        SalesOrderStatus.Completed => Text("Completed", "مكتمل"),
-        SalesOrderStatus.Cancelled => Text("Cancelled", "ملغي"),
-        _ => Text("Draft", "مسودة")
+        SalesOrderStatus.Confirmed => Text("Confirmed", "Ù…Ø¤ÙƒØ¯"),
+        SalesOrderStatus.PartiallyReserved => Text("Partially reserved", "Ù…Ø­Ø¬ÙˆØ² Ø¬Ø²Ø¦ÙŠØ§"),
+        SalesOrderStatus.Reserved => Text("Reserved", "Ù…Ø­Ø¬ÙˆØ²"),
+        SalesOrderStatus.PartiallyDelivered => Text("Partially delivered", "Ù…Ø³Ù„Ù… Ø¬Ø²Ø¦ÙŠØ§"),
+        SalesOrderStatus.Delivered => Text("Delivered", "Ù…Ø³Ù„Ù…"),
+        SalesOrderStatus.PartiallyInvoiced => Text("Partially invoiced", "Ù…ÙÙˆØªØ± Ø¬Ø²Ø¦ÙŠØ§"),
+        SalesOrderStatus.Invoiced => Text("Invoiced", "Ù…ÙÙˆØªØ±"),
+        SalesOrderStatus.Completed => Text("Completed", "Ù…ÙƒØªÙ…Ù„"),
+        SalesOrderStatus.Cancelled => Text("Cancelled", "Ù…Ù„ØºÙŠ"),
+        _ => Text("Draft", "Ù…Ø³ÙˆØ¯Ø©")
     };
 
-    private static string StatusBadge(SalesOrderStatus status) => status switch
+    private static string StatusTone(SalesOrderStatus status) => status switch
     {
-        SalesOrderStatus.Completed or SalesOrderStatus.Invoiced or SalesOrderStatus.Delivered => "text-bg-success",
-        SalesOrderStatus.Cancelled or SalesOrderStatus.Rejected => "text-bg-danger",
-        SalesOrderStatus.Confirmed or SalesOrderStatus.PartiallyReserved or SalesOrderStatus.Reserved => "text-bg-primary",
-        _ => "text-bg-secondary"
+        SalesOrderStatus.Completed or SalesOrderStatus.Invoiced or SalesOrderStatus.Delivered => "success",
+        SalesOrderStatus.Cancelled or SalesOrderStatus.Rejected => "danger",
+        SalesOrderStatus.Confirmed or SalesOrderStatus.PartiallyReserved or SalesOrderStatus.Reserved => "primary",
+        _ => "muted"
     };
 
     private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
     private string BranchText(Guid? branchId)
     {
         if (!branchId.HasValue)
-            return Text("Company", "الشركة");
+            return Text("Company", "Ø§Ù„Ø´Ø±ÙƒØ©");
 
         var branch = branches.FirstOrDefault(x => x.Id == branchId.Value);
         return branch is null ? branchId.Value.ToString("N")[..8] : Text(branch.NameEng, branch.Name);
