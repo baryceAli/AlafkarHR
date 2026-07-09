@@ -3,7 +3,7 @@
 @inject SharedDataService SharedDataService
 <div class="col-md-3" dir="@SharedDataService.PageDirection">
     <button type="button"
-            class="card task-kpi-card task-kpi-@Tone @(IsActive ? "is-active" : "") p-3 h-100 w-100 text-start"
+            class="erp-stat-card task-kpi-card task-kpi-@Tone @(IsActive ? "is-active" : "") p-3 h-100 w-100 text-start"
             disabled="@(!Clickable)"
             @onclick="OnClick">
         <div class="d-flex justify-content-between align-items-center">

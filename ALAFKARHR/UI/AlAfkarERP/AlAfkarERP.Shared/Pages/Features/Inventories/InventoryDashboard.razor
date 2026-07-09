@@ -85,7 +85,7 @@
                                                 <div class="text-muted small">@operation.SourceDocumentType</div>
                                             </td>
                                             <td>@operation.OperationKind</td>
-                                            <td><span class="badge bg-secondary">@operation.Status</span></td>
+                                            <td><StatusChip Text="@operation.Status.ToString()" Tone="muted" /></td>
                                             <td>@operation.DoneQuantity / @operation.PlannedQuantity</td>
                                         </tr>
                                     }
@@ -113,7 +113,7 @@
                                         <span class="fw-semibold">@group.GroupNumber</span>
                                         <span class="text-muted small d-block">@group.GroupType - @group.Lines.Count @T("operations", "عمليات")</span>
                                     </span>
-                                    <span class="badge bg-primary align-self-center">@group.Status</span>
+                                    <StatusChip Text="@group.Status.ToString()" Tone="primary" CssClass="align-self-center" />
                                 </a>
                             }
                         </div>

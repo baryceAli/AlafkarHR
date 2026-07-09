@@ -232,9 +232,11 @@
                                         <td>@LocationName(count.WarehouseLocationId)</td>
                                         <td>@count.Lines.Count</td>
                                         <td>
-                                            <span class="badge @(count.IsPosted ? "bg-success" : "bg-warning text-dark")">
+                                            <StatusChip Text="@(count.IsPosted ? SharedDataService.SelectViewLang("Posted", "Posted") : SharedDataService.SelectViewLang("Draft", "Draft"))"
+                                                        Tone="@(count.IsPosted ? "success" : "warning")" />
+                                            @*
                                                 @(count.IsPosted ? SharedDataService.SelectViewLang("Posted", "مرحل") : SharedDataService.SelectViewLang("Draft", "مسودة"))
-                                            </span>
+                                            *@
                                         </td>
                                         <td class="text-end">
                                             @if (!count.IsPosted)

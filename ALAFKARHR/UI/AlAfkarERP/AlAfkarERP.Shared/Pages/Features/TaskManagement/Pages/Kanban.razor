@@ -16,7 +16,7 @@
 @inject SharedDataService SharedDataService
 @inject IJSRuntime JS
 
-<section class="task-page" dir="@SharedDataService.PageDirection">
+<section class="erp-page task-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
     {
         <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
@@ -30,7 +30,7 @@
             <div class="kanban-flex-wrapper">
                 @foreach (var status in Enum.GetValues<TaskWorkflowStatus>())
                 {
-                    <div class="card kanban-panel p-2 @KanbanPanelClass(status)" dir="@SharedDataService.PageDirection"
+                    <div class="erp-card kanban-panel p-2 @KanbanPanelClass(status)" dir="@SharedDataService.PageDirection"
                          @ondragover:preventDefault
                          @ondrop="() => DropOnStatus(status)">
                         <div class="d-flex justify-content-between align-items-center mb-2">

@@ -22,10 +22,10 @@
     return;
 }
 
-<section class="task-page" dir="@SharedDataService.PageDirection">
+<section class="erp-page task-page" dir="@SharedDataService.PageDirection">
     <h5 class="text-black">@Text("Task Reports", "تقارير المهام")</h5>
 
-    <div class="card p-3 mb-3">
+    <AppCard Title="@Text("Report Filters", "Report Filters")" CssClass="mb-3">
         <div class="row g-2 align-items-end">
             <div class="col-md-3">
                 <label class="form-label">@Text("Department", "القسم")</label>
@@ -76,7 +76,7 @@
                 <button class="btn btn-outline-secondary w-100" @onclick="ClearFilters"><i class="bi bi-x-circle"></i></button>
             </div>
         </div>
-    </div>
+    </AppCard>
 
     @if (summary is not null)
     {
@@ -90,7 +90,7 @@
 
     <div class="row g-3">
         <div class="col-lg-6">
-            <div class="card p-3">
+            <AppCard Title="@Text("Employee Productivity", "Employee Productivity")">
                 <h6>@Text("Employee Productivity", "إنتاجية الموظفين")</h6>
                 @if (!employeeReport.Any())
                 {
@@ -103,10 +103,10 @@
                         <span dir="ltr">@item.CompletedTasks / @item.AssignedTasks (@item.CompletionRate%)</span>
                     </div>
                 }
-            </div>
+            </AppCard>
         </div>
         <div class="col-lg-6">
-            <div class="card p-3">
+            <AppCard Title="@Text("Department Performance", "Department Performance")">
                 <h6>@Text("Department Performance", "أداء الأقسام")</h6>
                 @if (!departmentReport.Any())
                 {
@@ -119,7 +119,7 @@
                         <span dir="ltr">@Text($"{item.CompletionPercentage}% complete, {item.OverdueTasks} overdue", $"مكتملة {item.CompletionPercentage}%، متأخرة {item.OverdueTasks}")</span>
                     </div>
                 }
-            </div>
+            </AppCard>
         </div>
     </div>
 </section>

@@ -172,7 +172,7 @@
                                                 {
                                                     <span><i class="bi bi-clock"></i> @action.ExpectedCompletionAt.Value.ToLocalTime()</span>
                                                 }
-                                                <span class="badge rounded-pill @ActionStatusBadgeClass(action.Status)">@ActionStatusText(action.Status)</span>
+                                                <StatusChip Text="@ActionStatusText(action.Status)" Tone="@ActionStatusTone(action.Status)" />
                                             </div>
                                         }
                                     </div>
@@ -719,11 +719,11 @@
         _ => Text("Open", "مفتوح")
     };
 
-    private static string ActionStatusBadgeClass(TaskActionStatus status) => status switch
+    private static string ActionStatusTone(TaskActionStatus status) => status switch
     {
-        TaskActionStatus.Completed => "text-bg-success",
-        TaskActionStatus.Overdue => "text-bg-danger",
-        _ => "text-bg-light"
+        TaskActionStatus.Completed => "success",
+        TaskActionStatus.Overdue => "danger",
+        _ => "muted"
     };
 
     private static DateTime? ParseDateTimeLocal(string value)
