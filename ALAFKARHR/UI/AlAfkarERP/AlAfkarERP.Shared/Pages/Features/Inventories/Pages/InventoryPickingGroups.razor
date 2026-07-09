@@ -1,0 +1,360 @@
+@layout AdminLayout
+@page "/Inventory/Operations/PickingGroups"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
+
+@inject IInventoryService InventoryService
+@inject IWarehouseService WarehouseService
+@inject IBranchService BranchService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+@if (AuthState?.User?.Identity?.IsAuthenticated == true && !AuthState.User.Claims.Any(c => c.Value == PermissionList.InventoryPermissions.View))
+{
+    <div class="alert alert-warning">@T("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
+    return;
+}
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Picking Groups", "مجموعات الالتقاط")"
+                Subtitle="@T("Group open pick and delivery operations into practical batch or wave work.", "تجميع عمليات الالتقاط والتسليم المفتوحة في دفعات أو موجات عملية.")"
+                Overline="@T("Inventory", "المخزون")"
+                Icon="bi-collection">
+        <Actions>
+            <a class="btn btn-outline-secondary" href="/Inventory/Operations/Execution">
+                <i class="bi bi-list-check"></i>
+                @T("Operations", "العمليات")
+            </a>
+            <a class="btn btn-outline-secondary" href="/Inventory/Barcode">
+                <i class="bi bi-upc-scan"></i>
+                @T("Barcode", "الباركود")
+            </a>
+        </Actions>
+    </PageHeader>
+
+    <AppCard Title="@T("Create Group", "إنشاء مجموعة")" CssClass="mb-3">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label">@T("Warehouse", "المستودع")</label>
+                <InputSelect class="form-select" @bind-Value="filterWarehouseId">
+                    <option value="">@T("All warehouses", "كل المستودعات")</option>
+                    @foreach (var warehouse in warehouses)
+                    {
+                        <option value="@warehouse.Id">@WarehouseName(warehouse)</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">@T("Operation", "العملية")</label>
+                <InputSelect class="form-select" @bind-Value="filterKind">
+                    <option value="@InventoryOperationKind.Pick">@T("Pick", "التقاط")</option>
+                    <option value="@InventoryOperationKind.Delivery">@T("Delivery", "تسليم")</option>
+                </InputSelect>
+            </div>
+            <div class="col-lg-2 col-md-6">
+                <label class="form-label">@T("Group Type", "نوع المجموعة")</label>
+                <InputSelect class="form-select" @bind-Value="draft.GroupType">
+                    <option value="@PickingGroupType.Batch">@T("Batch", "دفعة")</option>
+                    <option value="@PickingGroupType.Wave">@T("Wave", "موجة")</option>
+                </InputSelect>
+            </div>
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label">@T("Name", "الاسم")</label>
+                <InputText class="form-control" @bind-Value="draft.Name" />
+            </div>
+            <div class="col-lg-2 col-md-6 d-flex gap-2">
+                <button class="btn btn-outline-primary flex-fill" type="button" @onclick="LoadOpenOperationsAsync" disabled="@isLoading">
+                    <i class="bi bi-search"></i>
+                    @T("Load", "تحميل")
+                </button>
+                <button class="btn btn-primary flex-fill" type="button" @onclick="CreateGroupAsync" disabled="@(selectedOperationIds.Count == 0 || isSaving)">
+                    <i class="bi bi-plus-lg"></i>
+                    @T("Create", "إنشاء")
+                </button>
+            </div>
+        </div>
+    </AppCard>
+
+    <div class="row g-3">
+        <div class="col-xl-7">
+            <AppCard Title="@T("Open Pick/Delivery Operations", "عمليات الالتقاط/التسليم المفتوحة")">
+                @if (isLoading)
+                {
+                    <div class="erp-loading">@T("Loading operations...", "جاري تحميل العمليات...")</div>
+                }
+                else if (openOperations.Count == 0)
+                {
+                    <EmptyState Title="@T("No matching operations", "لا توجد عمليات مطابقة")"
+                                Message="@T("Try another warehouse or operation type.", "جرّب مستودعاً أو نوع عملية آخر.")"
+                                Icon="bi-list-check" />
+                }
+                else
+                {
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>@T("Source", "المصدر")</th>
+                                    <th>@T("Warehouse", "المستودع")</th>
+                                    <th>@T("Status", "الحالة")</th>
+                                    <th>@T("Qty", "الكمية")</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var operation in openOperations)
+                                {
+                                    <tr>
+                                        <td>
+                                            <input class="form-check-input" type="checkbox" checked="@selectedOperationIds.Contains(operation.Id)" @onchange="args => ToggleOperation(operation.Id, args)" />
+                                        </td>
+                                        <td>
+                                            <a class="fw-semibold" href="@OperationUrl(operation)">@operation.SourceDocumentNumber</a>
+                                            <div class="text-muted small">@operation.OperationKind - @operation.SourceDocumentType</div>
+                                        </td>
+                                        <td>@WarehouseName(operation.WarehouseId)</td>
+                                        <td><span class="badge bg-secondary">@operation.Status</span></td>
+                                        <td>@operation.DoneQuantity / @operation.PlannedQuantity</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </AppCard>
+        </div>
+        <div class="col-xl-5">
+            <AppCard Title="@T("Groups", "المجموعات")">
+                @if (groups.Count == 0)
+                {
+                    <EmptyState Title="@T("No groups yet", "لا توجد مجموعات بعد")"
+                                Message="@T("Select operations and create a batch or wave.", "حدد العمليات وأنشئ دفعة أو موجة.")"
+                                Icon="bi-collection" />
+                }
+                else
+                {
+                    <div class="vstack gap-2">
+                        @foreach (var group in groups)
+                        {
+                            <div class="border rounded p-3">
+                                <div class="d-flex justify-content-between gap-2">
+                                    <div>
+                                        <div class="fw-semibold">@group.GroupNumber</div>
+                                        <div class="text-muted small">@group.GroupType - @group.Lines.Count @T("operations", "عمليات")</div>
+                                    </div>
+                                    <span class="badge @GroupStatusClass(group.Status)">@group.Status</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                    <button class="btn btn-sm btn-primary" type="button" disabled="@(group.Status != PickingGroupStatus.Ready || isSaving)" @onclick="() => ProcessGroupAsync(group.Id)">
+                                        <i class="bi bi-check2-circle"></i>
+                                        @T("Process", "تنفيذ")
+                                    </button>
+                                    <a class="btn btn-sm btn-outline-secondary" href="/Inventory/Operations/Execution">
+                                        <i class="bi bi-arrow-up-right"></i>
+                                        @T("Open Operations", "فتح العمليات")
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </AppCard>
+        </div>
+    </div>
+</div>
+
+@code {
+    private AuthenticationState? AuthState;
+    private Guid companyId;
+    private bool isLoading;
+    private bool isSaving;
+    private Guid? filterWarehouseId;
+    private InventoryOperationKind filterKind = InventoryOperationKind.Pick;
+    private CreatePickingGroupDto draft = new();
+    private List<InventoryOperationDto> openOperations = [];
+    private List<PickingGroupDto> groups = [];
+    private List<WarehouseDto> warehouses = [];
+    private List<BranchDto> branches = [];
+    private CurrentUserBranchAccessDto branchAccess = new();
+    private HashSet<Guid> selectedOperationIds = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
+        {
+            NavigationManager.NavigateTo("/Dashboard");
+            return;
+        }
+
+        draft = new CreatePickingGroupDto { CompanyId = companyId, GroupType = PickingGroupType.Batch };
+        await LoadLookupsAsync();
+        await LoadOpenOperationsAsync();
+        await LoadGroupsAsync();
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var accessResult = await BranchService.GetCurrentUserBranchAccessAsync(companyId);
+        branchAccess = accessResult.IsSuccess ? accessResult.Data ?? new CurrentUserBranchAccessDto() : new CurrentUserBranchAccessDto();
+
+        var warehouseResult = await WarehouseService.GetAsync(companyId, 0, 10000);
+        if (warehouseResult.IsSuccess)
+        {
+            var loadedWarehouses = warehouseResult.Data?.Data?.ToList() ?? [];
+            warehouses = branchAccess.CanViewAllBranches
+                ? loadedWarehouses
+                : loadedWarehouses.Where(warehouse => warehouse.BranchId == null || (warehouse.BranchId.HasValue && branchAccess.BranchIds.Contains(warehouse.BranchId.Value))).ToList();
+        }
+
+        var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (branchResult.IsSuccess)
+            branches = branchResult.Data?.Data?.ToList() ?? [];
+    }
+
+    private async Task LoadOpenOperationsAsync()
+    {
+        isLoading = true;
+        selectedOperationIds.Clear();
+        try
+        {
+            var result = await InventoryService.GetInventoryOperationsAsync(new InventoryOperationFilterDto
+            {
+                CompanyId = companyId,
+                WarehouseId = filterWarehouseId,
+                OperationKind = filterKind
+            });
+            openOperations = result.IsSuccess
+                ? result.Data?
+                    .Where(x => warehouses.Any(warehouse => warehouse.Id == x.WarehouseId))
+                    .Where(x => x.Status is InventoryOperationStatus.Ready or InventoryOperationStatus.InProgress or InventoryOperationStatus.PartiallyDone)
+                    .ToList() ?? []
+                : [];
+            if (!result.IsSuccess)
+                ShowToast(false, "Could not load open operations", "تعذر تحميل العمليات المفتوحة");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadGroupsAsync()
+    {
+        var result = await InventoryService.GetPickingGroupsAsync(new PickingGroupFilterDto
+        {
+            CompanyId = companyId,
+            WarehouseId = filterWarehouseId
+        });
+        groups = result.IsSuccess ? result.Data ?? [] : [];
+    }
+
+    private async Task CreateGroupAsync()
+    {
+        var selected = openOperations.Where(x => selectedOperationIds.Contains(x.Id)).ToList();
+        if (selected.Count == 0)
+            return;
+
+        if (selected.Select(x => x.WarehouseId).Distinct().Count() > 1)
+        {
+            ShowToast(false, "Select operations from one warehouse only", "حدد عمليات من مستودع واحد فقط");
+            return;
+        }
+
+        isSaving = true;
+        try
+        {
+            draft.CompanyId = companyId;
+            draft.WarehouseId = selected.First().WarehouseId;
+            draft.BranchId = selected.First().BranchId;
+            draft.InventoryOperationIds = selected.Select(x => x.Id).ToList();
+
+            var result = await InventoryService.CreatePickingGroupAsync(draft);
+            ShowToast(result.IsSuccess, "Picking group created", "تم إنشاء مجموعة الالتقاط");
+            if (result.IsSuccess)
+            {
+                draft = new CreatePickingGroupDto { CompanyId = companyId, GroupType = PickingGroupType.Batch };
+                selectedOperationIds.Clear();
+                await LoadGroupsAsync();
+                await LoadOpenOperationsAsync();
+            }
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task ProcessGroupAsync(Guid id)
+    {
+        isSaving = true;
+        try
+        {
+            var result = await InventoryService.ProcessPickingGroupAsync(id);
+            ShowToast(result.IsSuccess, "Picking group processed", "تم تنفيذ مجموعة الالتقاط");
+            await LoadGroupsAsync();
+            await LoadOpenOperationsAsync();
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private void ToggleOperation(Guid id, ChangeEventArgs args)
+    {
+        if (args.Value is bool selected && selected)
+            selectedOperationIds.Add(id);
+        else
+            selectedOperationIds.Remove(id);
+    }
+
+    private string OperationUrl(InventoryOperationDto operation) =>
+        $"/Inventory/Operations/Execution?sourceDocumentType={Uri.EscapeDataString(operation.SourceDocumentType)}&sourceDocumentId={operation.SourceDocumentId}";
+
+    private string WarehouseName(Guid id) => warehouses.FirstOrDefault(x => x.Id == id) is { } warehouse ? WarehouseName(warehouse) : id.ToString("N")[..8];
+
+    private string WarehouseName(WarehouseDto warehouse)
+    {
+        var name = T(warehouse.NameEng, warehouse.Name);
+        return warehouse.BranchId.HasValue ? $"{name} - {BranchName(warehouse.BranchId.Value)}" : name;
+    }
+
+    private string BranchName(Guid branchId) => branches.FirstOrDefault(x => x.Id == branchId) is { } branch ? T(branch.NameEng, branch.Name) : branchId.ToString("N")[..8];
+
+    private void ShowToast(bool success, string en, string ar) =>
+        ToastService.Show(new ToastMessage { Message = T(en, ar), Type = success ? "success" : "error" });
+
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private static string GroupStatusClass(PickingGroupStatus status) => status switch
+    {
+        PickingGroupStatus.Processed => "bg-success",
+        PickingGroupStatus.Cancelled => "bg-danger",
+        PickingGroupStatus.Ready => "bg-primary",
+        _ => "bg-secondary"
+    };
+
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose()
+    {
+        SharedDataService.OnChange1 -= HandleChangeAsync;
+    }
+}

@@ -1,0 +1,397 @@
+@page "/Procurement/PurchaseAgreements"
+@layout AdminLayout
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Procurement.Enums
+@using SharedWithUI.Suppliers.Dtos
+
+@implements IDisposable
+@inject IProcurementService ProcurementService
+@inject ISupplierService SupplierService
+@inject IProductService ProductService
+@inject IBranchService BranchService
+@inject ICurrencyService CurrencyService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Purchase Agreements", "Purchase Agreements")"
+                Subtitle="@Text("Manage purchase templates, blanket orders, and calls for tender.", "Manage purchase templates, blanket orders, and calls for tender.")"
+                Overline="@Text("Procurement", "Procurement")"
+                Icon="bi bi-file-earmark-text" />
+
+    @if (isLoading)
+    {
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary"></div>
+            <div class="mt-2">@Text("Loading purchase agreements...", "Loading purchase agreements...")</div>
+        </div>
+    }
+    else
+    {
+        <FilterBar>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var type in AgreementTypes)
+                {
+                    <button type="button" class="btn @(filterType == type ? "btn-primary" : "btn-outline-secondary")" @onclick="() => FilterAsync(type)">
+                        @AgreementTypeText(type)
+                    </button>
+                }
+            </div>
+        </FilterBar>
+
+        <div class="row g-3">
+            <div class="col-xl-5">
+                <AppCard Title="@Text(editing.Id == Guid.Empty ? "New Agreement" : "Edit Agreement", editing.Id == Guid.Empty ? "New Agreement" : "Edit Agreement")" CssClass="allow-overflow">
+                    <EditForm Model="editing" OnValidSubmit="SaveAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-3">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Type", "Type")</label>
+                                    <InputSelect class="form-select" @bind-Value="editing.Type">
+                                        @foreach (var type in AgreementTypes)
+                                        {
+                                            <option value="@type">@AgreementTypeText(type)</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Name", "Name")</label>
+                                    <InputText class="form-control" @bind-Value="editing.Name" />
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Supplier", "Supplier")</label>
+                                    <InputSelect class="form-select" @bind-Value="editing.SupplierId" @bind-Value:after="ApplySupplierName">
+                                        <option value="">@Text("Any supplier", "Any supplier")</option>
+                                        @foreach (var supplier in suppliers)
+                                        {
+                                            <option value="@supplier.Id">@supplier.Name</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Branch", "Branch")</label>
+                                    <InputSelect class="form-select" @bind-Value="editing.BranchId">
+                                        <option value="">@Text("Company-wide", "Company-wide")</option>
+                                        @foreach (var branch in branches)
+                                        {
+                                            <option value="@branch.Id">@Text(branch.NameEng, branch.Name)</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Agreement date", "Agreement date")</label>
+                                    <InputDate class="form-control" @bind-Value="editing.AgreementDate" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Valid until", "Valid until")</label>
+                                    <InputDate class="form-control" @bind-Value="editing.ValidUntil" />
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Currency", "Currency")</label>
+                                    <InputSelect class="form-select" @bind-Value="editing.CurrencyId">
+                                        <option value="">@Text("Default currency", "Default currency")</option>
+                                        @foreach (var currency in currencies)
+                                        {
+                                            <option value="@currency.Id">@currency.Code</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">@Text("Reference", "Reference")</label>
+                                    <InputText class="form-control" @bind-Value="editing.Reference" />
+                                </div>
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Notes", "Notes")</label>
+                                <InputTextArea class="form-control" rows="2" @bind-Value="editing.Notes" />
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>@Text("Lines", "Lines")</strong>
+                                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddLine">
+                                    <i class="bi bi-plus-lg"></i> @Text("Add", "Add")
+                                </button>
+                            </div>
+                            <div class="erp-table-wrap">
+                                <table class="erp-table table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>@Text("SKU", "SKU")</th>
+                                            <th>@Text("Qty", "Qty")</th>
+                                            <th>@Text("Cost", "Cost")</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var line in editing.Lines)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <select class="form-select form-select-sm" @onchange="e => SelectLineSku(line, e.Value?.ToString())">
+                                                        <option value="">@Text("Select SKU", "Select SKU")</option>
+                                                        @foreach (var sku in skus)
+                                                        {
+                                                            <option value="@sku.Id" selected="@(sku.Id == line.ProductSkuId)">@SkuText(sku)</option>
+                                                        }
+                                                    </select>
+                                                </td>
+                                                <td><InputNumber class="form-control form-control-sm" @bind-Value="line.Quantity" /></td>
+                                                <td><InputNumber class="form-control form-control-sm" @bind-Value="line.UnitCost" /></td>
+                                                <td class="text-end">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveLine(line)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save"></i> @Text("Save", "Save")
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm">
+                                    @Text("Reset", "Reset")
+                                </button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-7">
+                <AppCard Title="@AgreementTypeText(filterType)">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Name", "Name")</th>
+                                    <th>@Text("Supplier", "Supplier")</th>
+                                    <th>@Text("Status", "Status")</th>
+                                    <th>@Text("Valid Until", "Valid Until")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var agreement in agreements)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@agreement.Name</div>
+                                            <div class="text-muted small">@AgreementTypeText(agreement.Type)</div>
+                                        </td>
+                                        <td>@(agreement.SupplierName ?? Text("Any supplier", "Any supplier"))</td>
+                                        <td><StatusChip Text="@agreement.Status.ToString()" Tone="@StatusTone(agreement.Status)" /></td>
+                                        <td>@(agreement.ValidUntil?.ToString("yyyy-MM-dd") ?? "-")</td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => Edit(agreement)">@Text("Edit", "Edit")</button>
+                                            <button class="btn btn-sm btn-outline-primary" @onclick="() => ConfirmAsync(agreement.Id)">@Text("Confirm", "Confirm")</button>
+                                            <button class="btn btn-sm btn-outline-warning" @onclick="() => CloseAsync(agreement.Id)">@Text("Close", "Close")</button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => CancelAsync(agreement.Id)">@Text("Cancel", "Cancel")</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private readonly ProcurementAgreementType[] AgreementTypes = [ProcurementAgreementType.PurchaseTemplate, ProcurementAgreementType.BlanketOrder, ProcurementAgreementType.CallForTender];
+    private Guid companyId;
+    private bool isLoading = true;
+    private ProcurementAgreementType filterType = ProcurementAgreementType.PurchaseTemplate;
+    private ProcurementAgreementDto editing = new();
+    private List<ProcurementAgreementDto> agreements = [];
+    private List<SupplierDto> suppliers = [];
+    private List<ProductDto> products = [];
+    private List<ProductSkuDto> skus = [];
+    private List<BranchDto> branches = [];
+    private List<CurrencyDto> currencies = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        ResetForm();
+        await LoadLookupsAsync();
+        await LoadAgreementsAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var supplierResult = await SupplierService.GetByCompanyAsync(companyId, 0, 500);
+        if (supplierResult.IsSuccess)
+            suppliers = supplierResult.Data?.Data.ToList() ?? [];
+
+        var productResult = await ProductService.GetByCompanyAsync(companyId, 0, 500);
+        if (productResult.IsSuccess)
+        {
+            products = productResult.Data?.Data.ToList() ?? [];
+            skus = products.SelectMany(x => x.Skus ?? []).Where(x => x.IsActive && x.IsPurchasable).ToList();
+        }
+
+        var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
+        if (branchResult.IsSuccess)
+            branches = branchResult.Data?.Data.ToList() ?? [];
+
+        var currencyResult = await CurrencyService.GetAsync(companyId, 0, 500);
+        if (currencyResult.IsSuccess)
+            currencies = currencyResult.Data?.Data.ToList() ?? [];
+    }
+
+    private async Task LoadAgreementsAsync()
+    {
+        var result = await ProcurementService.GetPurchaseAgreementsAsync(companyId, filterType);
+        agreements = result.IsSuccess ? result.Data ?? [] : [];
+    }
+
+    private async Task FilterAsync(ProcurementAgreementType type)
+    {
+        filterType = type;
+        editing.Type = type;
+        await LoadAgreementsAsync();
+    }
+
+    private async Task SaveAsync()
+    {
+        editing.CompanyId = companyId;
+        editing.Lines = editing.Lines.Where(x => x.ProductSkuId != Guid.Empty && x.Quantity > 0).ToList();
+        var result = await ProcurementService.SavePurchaseAgreementAsync(editing);
+        ToastService.Show(new ToastMessage { Type = result.IsSuccess ? "success" : "error", Message = result.IsSuccess ? Text("Saved.", "Saved.") : result.Error?.Detail ?? Text("Save failed.", "Save failed.") });
+        if (result.IsSuccess)
+        {
+            ResetForm();
+            await LoadAgreementsAsync();
+        }
+    }
+
+    private async Task ActionAsync(Guid id, string action)
+    {
+        var result = await ProcurementService.PurchaseAgreementActionAsync(id, action);
+        ToastService.Show(new ToastMessage { Type = result.IsSuccess ? "success" : "error", Message = result.IsSuccess ? Text("Updated.", "Updated.") : result.Error?.Detail ?? Text("Action failed.", "Action failed.") });
+        if (result.IsSuccess)
+            await LoadAgreementsAsync();
+    }
+
+    private async Task ConfirmAsync(Guid id) => await ActionAsync(id, "confirm");
+    private async Task CloseAsync(Guid id) => await ActionAsync(id, "close");
+    private async Task CancelAsync(Guid id) => await ActionAsync(id, "cancel");
+
+    private void Edit(ProcurementAgreementDto agreement)
+    {
+        editing = new ProcurementAgreementDto
+        {
+            Id = agreement.Id,
+            Type = agreement.Type,
+            Status = agreement.Status,
+            CompanyId = companyId,
+            BranchId = agreement.BranchId,
+            SupplierId = agreement.SupplierId,
+            SupplierName = agreement.SupplierName,
+            Name = agreement.Name,
+            Reference = agreement.Reference,
+            CurrencyId = agreement.CurrencyId,
+            AgreementDate = agreement.AgreementDate,
+            ValidUntil = agreement.ValidUntil,
+            Notes = agreement.Notes,
+            Lines = agreement.Lines.Select(x => new ProcurementAgreementLineDto
+            {
+                Id = x.Id,
+                ProductId = x.ProductId,
+                ProductSkuId = x.ProductSkuId,
+                ProductName = x.ProductName,
+                ProductNameEng = x.ProductNameEng,
+                SkuCode = x.SkuCode,
+                UnitOfMeasureId = x.UnitOfMeasureId,
+                Quantity = x.Quantity,
+                UnitCost = x.UnitCost,
+                DiscountRate = x.DiscountRate,
+                TaxRate = x.TaxRate,
+                Notes = x.Notes
+            }).ToList()
+        };
+    }
+
+    private void ResetForm()
+    {
+        editing = new ProcurementAgreementDto { CompanyId = companyId, Type = filterType, AgreementDate = DateTime.Today, Lines = [] };
+    }
+
+    private void ApplySupplierName()
+    {
+        editing.SupplierName = suppliers.FirstOrDefault(x => x.Id == editing.SupplierId)?.Name;
+    }
+
+    private void AddLine() => editing.Lines.Add(new ProcurementAgreementLineDto { Quantity = 1 });
+    private void RemoveLine(ProcurementAgreementLineDto line) => editing.Lines.Remove(line);
+
+    private void SelectLineSku(ProcurementAgreementLineDto line, string? value)
+    {
+        if (!Guid.TryParse(value, out var skuId))
+            return;
+
+        var sku = skus.FirstOrDefault(x => x.Id == skuId);
+        if (sku is null)
+            return;
+
+        line.ProductId = sku.ProductId;
+        line.ProductSkuId = sku.Id;
+        line.ProductName = sku.Name;
+        line.ProductNameEng = sku.NameEng;
+        line.SkuCode = sku.SkuCode;
+        line.UnitOfMeasureId = sku.UnitId;
+        line.UnitCost = sku.BasePrice > 0 ? sku.BasePrice : sku.Price;
+        line.DiscountRate = sku.DiscountRate;
+        line.TaxRate = sku.TaxRate;
+    }
+
+    private string AgreementTypeText(ProcurementAgreementType type) => type switch
+    {
+        ProcurementAgreementType.BlanketOrder => Text("Blanket Orders", "Blanket Orders"),
+        ProcurementAgreementType.CallForTender => Text("Calls for Tender", "Calls for Tender"),
+        _ => Text("Purchase Templates", "Purchase Templates")
+    };
+
+    private string StatusTone(ProcurementAgreementStatus status) => status switch
+    {
+        ProcurementAgreementStatus.Confirmed => "success",
+        ProcurementAgreementStatus.Closed => "warning",
+        ProcurementAgreementStatus.Cancelled => "danger",
+        _ => "info"
+    };
+
+    private string SkuText(ProductSkuDto sku) => $"{Text(sku.NameEng, sku.Name)} - {sku.SkuCode}";
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

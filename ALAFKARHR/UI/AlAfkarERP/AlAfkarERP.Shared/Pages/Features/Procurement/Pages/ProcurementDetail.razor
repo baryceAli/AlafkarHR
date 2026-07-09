@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
 @using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.Permissions
 @using SharedWithUI.Procurement.Dtos
 @using SharedWithUI.Procurement.Enums
 
@@ -28,10 +29,38 @@
                 <i class="bi bi-arrow-return-left"></i>
                 @SharedDataService.SelectViewLang("Back", "رجوع")
             </button>
+            @if (kind == ProcurementDocumentKind.GoodsReceipt && document.Id != Guid.Empty)
+            {
+                <a class="btn btn-outline-secondary" href="@OperationLink("PurchaseReceipt", document.Id)">
+                    <i class="bi bi-list-check"></i>
+                    @SharedDataService.SelectViewLang("Operations", "العمليات")
+                </a>
+            }
             @foreach (var action in AvailableActions)
             {
                 <button class="btn btn-outline-primary" @onclick="() => RunAction(action.Key)">
                     @ActionLabel(action.Key)
+                </button>
+            }
+            @if (CanPrintDocument)
+            {
+                <a class="btn btn-outline-secondary" href="@($"/Procurement/{ProcurementUiText.Route(kind)}/Detail/{Id}/Print")">
+                    <i class="bi bi-printer"></i>
+                    @SharedDataService.SelectViewLang("Print", "طباعة")
+                </a>
+            }
+            @if (CanEmailDocument)
+            {
+                <button class="btn btn-outline-secondary" @onclick="EmailDocumentAsync">
+                    <i class="bi bi-envelope"></i>
+                    @SharedDataService.SelectViewLang("Email", "بريد إلكتروني")
+                </button>
+            }
+            @if (CanRecomputePurchaseControls)
+            {
+                <button class="btn btn-outline-secondary" @onclick="RecomputePurchaseControlsAsync" disabled="@isRecomputing">
+                    <i class="bi bi-arrow-repeat"></i>
+                    @SharedDataService.SelectViewLang("Recompute controls", "إعادة احتساب الضوابط")
                 </button>
             }
         </Actions>
@@ -76,6 +105,16 @@
                 <div class="col-md-4"><strong>@DisplaySourceReferenceLabel:</strong> @(document.SourceDocumentNumber ?? "-")</div>
                 <div class="col-md-4"><strong>@SharedDataService.SelectViewLang("Notes", "ملاحظات"):</strong> @(document.Notes ?? "-")</div>
             </div>
+            @if (ShowsPurchaseControlChips || document.SentAt.HasValue)
+            {
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <StatusChip Text="@StatusText(document.Status)" Tone="@StatusTone(document.Status)" />
+                    @foreach (var chip in ControlChips())
+                    {
+                        <StatusChip Text="@chip.Text" Tone="@chip.Tone" />
+                    }
+                </div>
+            }
             <div class="erp-table-wrap">
                 <table class="table erp-table mb-0">
                     <thead>
@@ -88,6 +127,13 @@
                                 <th>@SharedDataService.SelectViewLang("Cost", "التكلفة")</th>
                                 <th>@SharedDataService.SelectViewLang("Tax", "الضريبة")</th>
                                 <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
+                            }
+                            @if (ShowsPurchaseControlChips)
+                            {
+                                <th>@SharedDataService.SelectViewLang("Bill Control", "سياسة الفوترة")</th>
+                                <th>@SharedDataService.SelectViewLang("3-Way Match", "مطابقة ثلاثية")</th>
+                                <th>@SharedDataService.SelectViewLang("Received", "المستلم")</th>
+                                <th>@SharedDataService.SelectViewLang("Billed", "المفوتر")</th>
                             }
                         </tr>
                     </thead>
@@ -113,6 +159,13 @@
                                     <td>@line.TaxAmount.ToString("N2")</td>
                                     <td>@line.TotalAmount.ToString("N2")</td>
                                 }
+                                @if (ShowsPurchaseControlChips)
+                                {
+                                    <td>@BillControlPolicyText(line.BillControlPolicy ?? document.BillControlPolicy)</td>
+                                    <td><StatusChip Text="@ThreeWayMatchStatusText(line.ThreeWayMatchStatus)" Tone="@ThreeWayMatchTone(line.ThreeWayMatchStatus)" /></td>
+                                    <td>@line.ReceivedQuantity.ToString("N2")</td>
+                                    <td>@line.BilledQuantity.ToString("N2")</td>
+                                }
                             </tr>
                         }
                     </tbody>
@@ -132,19 +185,26 @@
     private AuthenticationState? authState;
     private readonly Dictionary<Guid, ProductSkuDto> skuLookups = [];
     private bool isLoading = true;
+    private bool isRecomputing;
 
     private bool CanView => HasPermission(Meta.Permission);
+    private bool CanPrintDocument => document.Id != Guid.Empty && kind is ProcurementDocumentKind.RequestForQuotation or ProcurementDocumentKind.PurchaseOrder;
+    private bool CanEmailDocument => AvailableActions.Any(action => action.Key == "send");
+    private bool CanRecomputePurchaseControls => document.CompanyId != Guid.Empty
+        && ShowsPurchaseControlChips
+        && HasPermission(PermissionList.PurchaseOrderPermissions.Edit);
     private bool ShowCommercialAmounts => kind is not ProcurementDocumentKind.PurchaseRequest and not ProcurementDocumentKind.RequestForQuotation;
     private string StatsColumnClass => ShowCommercialAmounts ? "col-md-3" : "col-md-4";
-    private int LineTableColumnCount => ShowCommercialAmounts ? 6 : 3;
+    private bool ShowsPurchaseControlChips => kind is ProcurementDocumentKind.PurchaseOrder or ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.SupplierInvoice;
+    private int LineTableColumnCount => 3 + (ShowCommercialAmounts ? 3 : 0) + (ShowsPurchaseControlChips ? 4 : 0);
     private string DisplaySourceReferenceLabel => kind switch
     {
-        ProcurementDocumentKind.RequestForQuotation => SharedDataService.SelectViewLang("Purchase Request", "Purchase Request"),
-        ProcurementDocumentKind.SupplierQuotation => SharedDataService.SelectViewLang("RFQ", "RFQ"),
-        ProcurementDocumentKind.PurchaseOrder => SharedDataService.SelectViewLang("Supplier Quotation", "Supplier Quotation"),
-        ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Purchase Order", "Purchase Order"),
+        ProcurementDocumentKind.RequestForQuotation => SharedDataService.SelectViewLang("Purchase Request", "طلب الشراء"),
+        ProcurementDocumentKind.SupplierQuotation => SharedDataService.SelectViewLang("RFQ", "طلب عرض سعر"),
+        ProcurementDocumentKind.PurchaseOrder => SharedDataService.SelectViewLang("Supplier Quotation", "عرض سعر المورد"),
+        ProcurementDocumentKind.GoodsReceipt => SharedDataService.SelectViewLang("Purchase Order", "أمر الشراء"),
         ProcurementDocumentKind.SupplierInvoice => SupplierInvoiceSourceLabel(),
-        _ => SharedDataService.SelectViewLang("Source", "Source")
+        _ => SharedDataService.SelectViewLang("Source", "المصدر")
     };
     private string SourceReferenceLabel => kind == ProcurementDocumentKind.RequestForQuotation
         ? SharedDataService.SelectViewLang("Purchase Request", "طلب الشراء")
@@ -214,6 +274,33 @@
         }
     }
 
+    private async Task EmailDocumentAsync()
+    {
+        await RunAction("send");
+        ToastService.ShowSuccess(SharedDataService.SelectViewLang(
+            "Document was marked as sent. Email delivery depends on the configured mail infrastructure.",
+            "تم تعيين المستند كمرسل. يعتمد إرسال البريد على إعدادات البنية البريدية."));
+    }
+
+    private async Task RecomputePurchaseControlsAsync()
+    {
+        isRecomputing = true;
+        var response = await ProcurementService.RecomputePurchaseControlsAsync(document.CompanyId);
+        if (response.IsSuccess)
+        {
+            var data = response.Data;
+            ToastService.ShowSuccess(SharedDataService.SelectViewLang(
+                $"{data?.UpdatedDocuments ?? 0} document(s) recomputed, {data?.ExceptionDocuments ?? 0} exception(s).",
+                $"تمت إعادة احتساب {data?.UpdatedDocuments ?? 0} مستند، مع {data?.ExceptionDocuments ?? 0} استثناء."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not recompute purchase controls.", "تعذرت إعادة احتساب ضوابط الشراء."));
+        }
+        isRecomputing = false;
+    }
+
     private List<ActionItem> ValidActions()
     {
         var status = document.Status ?? string.Empty;
@@ -254,14 +341,77 @@
         };
 
     private void Back() => NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}");
+    private static string OperationLink(string sourceDocumentType, Guid sourceDocumentId) =>
+        $"/Inventory/Operations/Execution?sourceDocumentType={Uri.EscapeDataString(sourceDocumentType)}&sourceDocumentId={sourceDocumentId}";
     private string SupplierInvoiceSourceLabel() =>
         LooksLikeGoodsReceiptNumber(document.SourceDocumentNumber)
-            ? SharedDataService.SelectViewLang("Goods Receipt", "Goods Receipt")
-            : SharedDataService.SelectViewLang("Purchase Order", "Purchase Order");
+            ? SharedDataService.SelectViewLang("Goods Receipt", "استلام بضائع")
+            : SharedDataService.SelectViewLang("Purchase Order", "أمر شراء");
 
     private static bool LooksLikeGoodsReceiptNumber(string? number) =>
         !string.IsNullOrWhiteSpace(number)
         && number.StartsWith("GR-", StringComparison.OrdinalIgnoreCase);
+
+    private IEnumerable<(string Text, string Tone)> ControlChips()
+    {
+        if (document.SentAt.HasValue)
+            yield return ($"{SharedDataService.SelectViewLang("Sent", "مرسل")} {document.SentAt.Value:yyyy-MM-dd HH:mm}", "info");
+
+        if (!string.IsNullOrWhiteSpace(document.SentBy))
+            yield return ($"{SharedDataService.SelectViewLang("By", "بواسطة")} {document.SentBy}", "muted");
+
+        if (ShowsPurchaseControlChips)
+        {
+            yield return (BillControlPolicyText(document.BillControlPolicy), "muted");
+            yield return (document.IsBillable
+                ? SharedDataService.SelectViewLang("Billable", "قابل للفوترة")
+                : SharedDataService.SelectViewLang("Not billable", "غير قابل للفوترة"), document.IsBillable ? "success" : "muted");
+            yield return (ThreeWayMatchStatusText(document.ThreeWayMatchStatus), ThreeWayMatchTone(document.ThreeWayMatchStatus));
+        }
+    }
+
+    private string StatusText(string? status) =>
+        string.IsNullOrWhiteSpace(status) ? SharedDataService.SelectViewLang("Unknown", "غير معروف") : status;
+
+    private static string StatusTone(string? status) =>
+        status switch
+        {
+            "Approved" or "Accepted" or "Posted" or "Matched" or "Received" => "success",
+            "Submitted" or "Sent" or "PartiallyReceived" => "info",
+            "Draft" => "muted",
+            "Rejected" or "Cancelled" => "danger",
+            "Closed" or "Converted" => "primary",
+            _ => "muted"
+        };
+
+    private string BillControlPolicyText(PurchaseBillControlPolicy policy) =>
+        policy switch
+        {
+            PurchaseBillControlPolicy.OrderedQuantities => SharedDataService.SelectViewLang("On ordered quantities", "على الكميات المطلوبة"),
+            PurchaseBillControlPolicy.ReceivedQuantities => SharedDataService.SelectViewLang("On received quantities", "على الكميات المستلمة"),
+            _ => policy.ToString()
+        };
+
+    private string ThreeWayMatchStatusText(ThreeWayMatchStatus status) =>
+        status switch
+        {
+            ThreeWayMatchStatus.NotRequired => SharedDataService.SelectViewLang("Not required", "غير مطلوب"),
+            ThreeWayMatchStatus.PendingReceipt => SharedDataService.SelectViewLang("Pending receipt", "بانتظار الاستلام"),
+            ThreeWayMatchStatus.ReadyToBill => SharedDataService.SelectViewLang("Ready to bill", "جاهز للفوترة"),
+            ThreeWayMatchStatus.Matched => SharedDataService.SelectViewLang("Matched", "مطابق"),
+            ThreeWayMatchStatus.Exception => SharedDataService.SelectViewLang("Exception", "استثناء"),
+            _ => status.ToString()
+        };
+
+    private static string ThreeWayMatchTone(ThreeWayMatchStatus status) =>
+        status switch
+        {
+            ThreeWayMatchStatus.Matched => "success",
+            ThreeWayMatchStatus.ReadyToBill => "info",
+            ThreeWayMatchStatus.PendingReceipt => "warning",
+            ThreeWayMatchStatus.Exception => "danger",
+            _ => "muted"
+        };
 
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private bool IsPurchaseOrderCloseAction(string action) =>

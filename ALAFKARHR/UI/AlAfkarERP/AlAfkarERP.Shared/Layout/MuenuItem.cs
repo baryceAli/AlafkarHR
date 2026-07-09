@@ -128,7 +128,13 @@ public class MenuItem
                     TextAr = "لوحة المبيعات",
                     Icon = "bi-speedometer2",
                     Url = "/Sales/Dashboard",
-                    PermissionPolicy = PermissionList.SalesOrderPermissions.ViewReports
+                    PermissionPolicy = PermissionList.SalesOrderPermissions.ViewReports,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupSales,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupStart,
+                    NavigationOrder = 10,
+                    KeywordsEn = "sales dashboard quotations orders conversion reports",
+                    KeywordsAr = "مبيعات لوحة عروض أوامر تحويل تقارير"
                 },
                 new MenuItem
                 {
@@ -136,7 +142,27 @@ public class MenuItem
                     TextAr = "عروض أسعار المبيعات",
                     Icon = "bi-file-earmark-text",
                     Url = "/Sales/Quotations",
-                    PermissionPolicy = PermissionList.SalesQuotationPermissions.View
+                    PermissionPolicy = PermissionList.SalesQuotationPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupSales,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                    NavigationOrder = 20,
+                    KeywordsEn = "sales quotations quotes optional products signature payment pro forma",
+                    KeywordsAr = "مبيعات عروض أسعار منتجات اختيارية توقيع دفع فاتورة شكلية"
+                },
+                new MenuItem
+                {
+                    TextEn = "Quotation Templates",
+                    TextAr = "قوالب عروض الأسعار",
+                    Icon = "bi-layout-text-window",
+                    Url = "/Sales/QuotationTemplates",
+                    PermissionPolicy = PermissionList.SalesQuotationPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupSales,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 120,
+                    KeywordsEn = "sales quotation templates reusable quote defaults",
+                    KeywordsAr = "مبيعات قوالب عروض الأسعار"
                 },
                 new MenuItem
                 {
@@ -144,7 +170,13 @@ public class MenuItem
                     TextAr = "طلبات البيع",
                     Icon = "bi-card-checklist",
                     Url = "/Orders/Intakes",
-                    PermissionPolicy = PermissionList.OrderIntakePermissions.View
+                    PermissionPolicy = PermissionList.OrderIntakePermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupSales,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                    NavigationOrder = 30,
+                    KeywordsEn = "sales order intake requests approvals",
+                    KeywordsAr = "مبيعات طلبات بيع اعتماد"
                 },
                 new MenuItem
                 {
@@ -152,7 +184,13 @@ public class MenuItem
                     TextAr = "أوامر البيع",
                     Icon = "bi-list-check",
                     Url = "/Sales/Orders",
-                    PermissionPolicy = PermissionList.SalesOrderPermissions.View
+                    PermissionPolicy = PermissionList.SalesOrderPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupSales,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                    NavigationOrder = 40,
+                    KeywordsEn = "sales orders converted quotations delivery invoice",
+                    KeywordsAr = "مبيعات أوامر بيع عروض محولة تسليم فاتورة"
                 },
                 new MenuItem
                 {
@@ -160,7 +198,13 @@ public class MenuItem
                     TextAr = "إشعارات التسليم",
                     Icon = "bi-truck",
                     Url = "/Sales/DeliveryNotes",
-                    PermissionPolicy = PermissionList.SalesDeliveryNotePermissions.View
+                    PermissionPolicy = PermissionList.SalesDeliveryNotePermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceSales,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.SalesFunctionalGroupSales,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                    NavigationOrder = 50,
+                    KeywordsEn = "sales delivery notes shipping operations warehouse",
+                    KeywordsAr = "مبيعات إشعارات تسليم شحن عمليات مستودع"
                 },
                 new MenuItem
                 {
@@ -1435,7 +1479,13 @@ public class MenuItem
                             TextAr = "لوحة المخزون",
                             Icon = "bi-speedometer2",
                             Url = "/Inventory/Dashboard",
-                            PermissionPolicy = PermissionList.InventoryPermissions.Select
+                            PermissionPolicy = PermissionList.InventoryPermissions.Select,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupInventory,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupStart,
+                            NavigationOrder = 10,
+                            KeywordsEn = "inventory dashboard warehouse operations replenishment scrap backorders",
+                            KeywordsAr = "مخزون لوحة مستودع عمليات تجديد إتلاف أوامر متأخرة"
                         },
                         new MenuItem
                         {
@@ -1444,6 +1494,12 @@ public class MenuItem
                             Icon = "bi-building",
                             Url = "/Inventory/Warehouse/List",
                             PermissionPolicy = PermissionList.WarehousePermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupInventory,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 20,
+                            KeywordsEn = "warehouses inbound outbound flow locations resupply",
+                            KeywordsAr = "مستودعات وارد صادر مسار مواقع إعادة تزويد"
                         },
                         new MenuItem
                         {
@@ -1452,6 +1508,12 @@ public class MenuItem
                             Icon = "bi-boxes",
                             Url = "/Inventories/List",
                             PermissionPolicy = PermissionList.InventoryPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupInventory,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 30,
+                            KeywordsEn = "current stock balances inventory quantities",
+                            KeywordsAr = "مخزون حالي أرصدة كميات"
                         },
                         new MenuItem
                         {
@@ -1484,6 +1546,12 @@ public class MenuItem
                             Icon = "bi-sliders",
                             Url = "/Inventory/Controls",
                             PermissionPolicy = PermissionList.InventoryPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupInventory,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 70,
+                            KeywordsEn = "inventory controls locations operation types routes rules putaway cycle count",
+                            KeywordsAr = "ضوابط مخزون مواقع أنواع عمليات مسارات قواعد جرد"
                         },
                         new MenuItem
                         {
@@ -1492,6 +1560,10 @@ public class MenuItem
                             Icon = "bi-upc-scan",
                             Url = "/Inventory/Barcode",
                             PermissionPolicy = PermissionList.InventoryPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupStockOperations,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 80,
                             KeywordsEn = "barcode scanner scan warehouse inventory locations batches cycle count",
                             KeywordsAr = "باركود ماسح مسح مستودع مخزون مواقع دفعات جرد",
                         },
@@ -1515,6 +1587,34 @@ public class MenuItem
                             {
                                 new MenuItem
                                 {
+                                    TextEn = "Operation Execution",
+                                    TextAr = "تنفيذ العمليات",
+                                    Icon = "bi-list-check",
+                                    Url = "/Inventory/Operations/Execution",
+                                    PermissionPolicy = PermissionList.InventoryPermissions.View,
+                                    WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                                    NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupStockOperations,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                                    NavigationOrder = 10,
+                                    KeywordsEn = "warehouse operations receipts deliveries pick pack ship quality",
+                                    KeywordsAr = "مستودع عمليات استلام تسليم التقاط تعبئة شحن جودة"
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Picking Groups",
+                                    TextAr = "مجموعات الالتقاط",
+                                    Icon = "bi-collection",
+                                    Url = "/Inventory/Operations/PickingGroups",
+                                    PermissionPolicy = PermissionList.InventoryPermissions.View,
+                                    WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                                    NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupStockOperations,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                                    NavigationOrder = 20,
+                                    KeywordsEn = "batch wave picking groups warehouse delivery operations",
+                                    KeywordsAr = "دفعة موجة التقاط مجموعات مستودع تسليم عمليات"
+                                },
+                                new MenuItem
+                                {
                                     TextEn = "Stock In",
                                     TextAr = "مخزون وارد",
                                     Icon = "bi-box-arrow-in-down",
@@ -1528,6 +1628,20 @@ public class MenuItem
                                     Icon = "bi-box-arrow-up",
                                     Url = "/Inventory/Operations/StockOut",
                                     PermissionPolicy = PermissionList.InventoryPermissions.View,
+                                },
+                                new MenuItem
+                                {
+                                    TextEn = "Scrap Orders",
+                                    TextAr = "أوامر الإتلاف",
+                                    Icon = "bi-scissors",
+                                    Url = "/Inventory/Operations/Scrap",
+                                    PermissionPolicy = PermissionList.InventoryPermissions.View,
+                                    WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                                    NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupStockOperations,
+                                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupAdjustments,
+                                    NavigationOrder = 50,
+                                    KeywordsEn = "scrap damage shrinkage loss exception inventory operation",
+                                    KeywordsAr = "إتلاف تالف فاقد خسارة استثناء مخزون عملية"
                                 },
                                 new MenuItem
                                 {
@@ -1606,6 +1720,12 @@ public class MenuItem
                             Icon = "bi-speedometer2",
                             Url = "/Procurement/Dashboard",
                             PermissionPolicy = PermissionList.PurchaseOrderPermissions.Select,
+                            WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupStart,
+                            NavigationOrder = 10,
+                            KeywordsEn = "procurement dashboard rfq purchase orders receipts invoices tenders blanket",
+                            KeywordsAr = "مشتريات لوحة طلبات عروض أوامر شراء استلام فواتير مناقصات أوامر شاملة"
                         },
                         new MenuItem
                         {
@@ -1614,6 +1734,26 @@ public class MenuItem
                             Icon = "bi-diagram-3",
                             Url = "/Procurement/Enhancements",
                             PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 20,
+                            KeywordsEn = "procurement controls vendor pricelists supplier items scorecards tracker",
+                            KeywordsAr = "ضوابط مشتريات أسعار موردين أصناف تقييم تتبع"
+                        },
+                        new MenuItem
+                        {
+                            TextEn = "Purchase Agreements",
+                            TextAr = "اتفاقيات الشراء",
+                            Icon = "bi-file-earmark-text",
+                            Url = "/Procurement/PurchaseAgreements",
+                            PermissionPolicy = PermissionList.RequestForQuotationPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 125,
+                            KeywordsEn = "purchase agreements templates blanket orders tenders rfq",
+                            KeywordsAr = "اتفاقيات شراء قوالب أوامر شاملة مناقصات"
                         },
                         new MenuItem
                         {
@@ -1622,6 +1762,12 @@ public class MenuItem
                             Icon = "bi-box-seam",
                             Url = "/Procurement/SupplierItems",
                             PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupMasterData,
+                            NavigationOrder = 130,
+                            KeywordsEn = "supplier items vendor products procurement catalog",
+                            KeywordsAr = "أصناف الموردين منتجات كتالوج مشتريات"
                         },
                         new MenuItem
                         {
@@ -1630,6 +1776,12 @@ public class MenuItem
                             Icon = "bi-tags",
                             Url = "/Procurement/VendorPricelists",
                             PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupMasterData,
+                            NavigationOrder = 140,
+                            KeywordsEn = "vendor pricelists supplier costs purchase prices",
+                            KeywordsAr = "قوائم أسعار موردين تكاليف شراء"
                         },
                         new MenuItem
                         {
@@ -1638,6 +1790,12 @@ public class MenuItem
                             Icon = "bi-arrow-repeat",
                             Url = "/Procurement/ReorderingRules",
                             PermissionPolicy = PermissionList.PurchaseRequestPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 150,
+                            KeywordsEn = "reordering rules min max replenishment procurement",
+                            KeywordsAr = "قواعد إعادة طلب حد أدنى أقصى تجديد مشتريات"
                         },
                         new MenuItem
                         {
@@ -1646,6 +1804,12 @@ public class MenuItem
                             Icon = "bi-basket",
                             Url = "/Procurement/Replenishment",
                             PermissionPolicy = PermissionList.PurchaseRequestPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupDailyWork,
+                            NavigationOrder = 160,
+                            KeywordsEn = "replenishment suggestions forecast stock automatic purchase request",
+                            KeywordsAr = "تجديد مخزون اقتراحات توقع تلقائي طلب شراء"
                         },
                         new MenuItem
                         {
@@ -1654,6 +1818,12 @@ public class MenuItem
                             Icon = "bi-activity",
                             Url = "/Procurement/Tracker",
                             PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                            NavigationOrder = 170,
+                            KeywordsEn = "procurement tracker document activity purchase reports",
+                            KeywordsAr = "متتبع مشتريات نشاط مستندات تقارير شراء"
                         },
                         new MenuItem
                         {
@@ -1662,6 +1832,12 @@ public class MenuItem
                             Icon = "bi-clipboard2-data",
                             Url = "/Procurement/SupplierScorecard",
                             PermissionPolicy = PermissionList.PurchaseOrderPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspacePurchasing,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.PurchasingFunctionalGroupProcurement,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupReports,
+                            NavigationOrder = 180,
+                            KeywordsEn = "supplier scorecard performance vendor evaluation procurement",
+                            KeywordsAr = "تقييم الموردين أداء مورد مشتريات"
                         },
                         new MenuItem
                         {

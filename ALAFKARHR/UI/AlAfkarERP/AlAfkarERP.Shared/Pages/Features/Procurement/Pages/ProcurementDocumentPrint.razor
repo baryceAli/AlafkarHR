@@ -1,0 +1,164 @@
+@layout AdminLayout
+@page "/Procurement/{KindRoute}/Detail/{Id:guid}/Print"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Procurement.Enums
+
+@inject IProcurementService ProcurementService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject IJSRuntime JSRuntime
+
+<section class="erp-page erp-print-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@DocumentTitle"
+                Subtitle="@document.Number"
+                Overline="@SharedDataService.SelectViewLang("Procurement", "المشتريات")"
+                Icon="bi-printer">
+        <Actions>
+            <button class="btn btn-outline-secondary print-hidden" @onclick="Back">
+                <i class="bi bi-arrow-left"></i>
+                @SharedDataService.SelectViewLang("Back", "رجوع")
+            </button>
+            <button class="btn btn-primary print-hidden" @onclick="PrintAsync">
+                <i class="bi bi-printer"></i>
+                @SharedDataService.SelectViewLang("Print", "طباعة")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning print-hidden">@SharedDataService.SelectViewLang("You don't have permission to view this document.", "ليست لديك صلاحية عرض هذا المستند.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="erp-loading py-5 print-hidden">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <AppCard CssClass="erp-print-document">
+            <div class="print-document-header">
+                <div>
+                    <div class="text-muted small">@DocumentTitle</div>
+                    <h1>@document.Number</h1>
+                </div>
+                <StatusChip Text="@document.Status" Tone="info" />
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-3">
+                    <div class="print-field-label">@SharedDataService.SelectViewLang("Supplier", "المورد")</div>
+                    <div class="fw-semibold">@(document.SupplierName ?? "-")</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="print-field-label">@SharedDataService.SelectViewLang("Date", "التاريخ")</div>
+                    <div>@document.DocumentDate.ToString("yyyy-MM-dd")</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="print-field-label">@SharedDataService.SelectViewLang("Source", "المصدر")</div>
+                    <div>@(document.SourceDocumentNumber ?? "-")</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="print-field-label">@SharedDataService.SelectViewLang("Total", "الإجمالي")</div>
+                    <div>@document.TotalAmount.ToString("N2")</div>
+                </div>
+            </div>
+
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@SharedDataService.SelectViewLang("Product", "المنتج")</th>
+                            <th>@SharedDataService.SelectViewLang("SKU", "وحدة المنتج")</th>
+                            <th>@SharedDataService.SelectViewLang("Qty", "الكمية")</th>
+                            <th>@SharedDataService.SelectViewLang("Unit cost", "تكلفة الوحدة")</th>
+                            <th>@SharedDataService.SelectViewLang("Tax", "الضريبة")</th>
+                            <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in document.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@SharedDataService.SelectViewLang(line.ProductNameEng, line.ProductName)</div>
+                                </td>
+                                <td>@line.SkuCode</td>
+                                <td>@line.Quantity.ToString("N2")</td>
+                                <td>@line.UnitCost.ToString("N2")</td>
+                                <td>@line.TaxAmount.ToString("N2")</td>
+                                <td class="fw-semibold">@line.TotalAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="print-total-box">
+                <div><span>@SharedDataService.SelectViewLang("Subtotal", "المجموع الفرعي")</span><strong>@document.Subtotal.ToString("N2")</strong></div>
+                <div><span>@SharedDataService.SelectViewLang("Tax", "الضريبة")</span><strong>@document.TaxAmount.ToString("N2")</strong></div>
+                <div class="print-total"><span>@SharedDataService.SelectViewLang("Total", "الإجمالي")</span><strong>@document.TotalAmount.ToString("N2")</strong></div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(document.Notes))
+            {
+                <div class="print-notes">
+                    <h2>@SharedDataService.SelectViewLang("Notes", "ملاحظات")</h2>
+                    <p>@document.Notes</p>
+                </div>
+            }
+        </AppCard>
+    }
+</section>
+
+@code {
+    [Parameter] public string? KindRoute { get; set; }
+    [Parameter] public Guid Id { get; set; }
+
+    private ProcurementDocumentKind kind;
+    private bool CanView;
+    private bool isLoading = true;
+    private ProcurementDocumentDto document = new();
+    private string DocumentTitle => SharedDataService.SelectViewLang(ProcurementUiText.Meta(kind).En, ProcurementUiText.Meta(kind).Ar);
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        kind = ProcurementUiText.ParseKind(KindRoute);
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var permission = ProcurementUiText.Meta(kind).Permission;
+        CanView = authState.User.Claims.Any(c => c.Value == permission);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await ProcurementService.GetByIdAsync(kind, Id);
+        if (result.IsSuccess && result.Data is not null)
+            document = result.Data;
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not load document.", "تعذر تحميل المستند."));
+        isLoading = false;
+    }
+
+    private void Back() => NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}/Detail/{Id}");
+    private async Task PrintAsync() => await JSRuntime.InvokeVoidAsync("print");
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

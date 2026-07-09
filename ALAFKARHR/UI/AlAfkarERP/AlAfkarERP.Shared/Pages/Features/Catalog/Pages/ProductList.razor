@@ -5,15 +5,21 @@
 
 
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
+@using AlAfkarERP.Shared.Dtos
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.Catalog.Enums
 @using SharedWithUI.Permissions
+@using SharedWithUI.SharedDtos
 
 
 @inject IProductService ProductService
+@inject IProcurementService ProcurementService
+@inject ISalesService SalesService
 @inject IUnitService UnitService
 @inject ICategoryService CategoryService
 @inject ToastService ToastService
@@ -24,6 +30,7 @@
 
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
 
 @if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.View}"))
 {
@@ -110,6 +117,7 @@
                 <th @onclick="() => Sort(nameof(ProductDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
                 <th @onclick="() => Sort(nameof(ProductDto.CategoryName))">@SharedDataService.SelectViewLang("category", "الصنف")</th>
                 <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
+                <th>@SharedDataService.SelectViewLang("Commercial", "تجاري")</th>
                 <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                 @* <th @onclick="() => Sort(nameof(ProductDto.UnitName))">@SharedDataService.SelectViewLang("Unit", "الوحدة")</th> *@
                 <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
@@ -124,7 +132,7 @@
                 {
                     <tr>
                         
-                        <td colspan="6">
+                        <td colspan="7">
                             <EditForm Model="editingItem" OnValidSubmit="() => SaveProduct(editingItem)">
                                 <DataAnnotationsValidator />
                                 <ValidationSummary />
@@ -173,6 +181,55 @@
                                                     <option value="@productType">@GetProductTypeLabel(productType)</option>
                                                 }
                                             </InputSelect>
+                                        </div>
+                                    </div>
+
+                                    <div class="erp-subpanel mb-3">
+                                        <div class="fw-semibold mb-3">@SharedDataService.SelectViewLang("Odoo Commercial Metadata", "بيانات أودو التجارية")</div>
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Sales Description", "وصف المبيعات")</label>
+                                                <InputTextArea class="form-control" rows="2" @bind-Value="editingItem.SalesDescription" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Purchase Description", "وصف المشتريات")</label>
+                                                <InputTextArea class="form-control" rows="2" @bind-Value="editingItem.PurchaseDescription" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Customer Tax %", "ضريبة العميل %")</label>
+                                                <InputNumber class="form-control" @bind-Value="editingItem.CustomerTaxRate" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Vendor Tax %", "ضريبة المورد %")</label>
+                                                <InputNumber class="form-control" @bind-Value="editingItem.VendorTaxRate" />
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Costing Policy", "سياسة التكلفة")</label>
+                                                <InputSelect TValue="ProductCostingPolicy" class="form-select" @bind-Value="editingItem.CostingPolicy">
+                                                    @foreach (var policy in Enum.GetValues<ProductCostingPolicy>())
+                                                    {
+                                                        <option value="@policy">@GetCostingPolicyLabel(policy)</option>
+                                                    }
+                                                </InputSelect>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Image URL", "رابط الصورة")</label>
+                                                <InputText class="form-control" @bind-Value="editingItem.ImageUrl" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Income Account Id", "معرف حساب الإيراد")</label>
+                                                <input class="form-control"
+                                                       value="@FormatGuid(editingItem.IncomeAccountId)"
+                                                       @onchange="args => editingItem.IncomeAccountId = ParseNullableGuid(args.Value?.ToString())"
+                                                       placeholder="00000000-0000-0000-0000-000000000000" />
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Expense Account Id", "معرف حساب المصروف")</label>
+                                                <input class="form-control"
+                                                       value="@FormatGuid(editingItem.ExpenseAccountId)"
+                                                       @onchange="args => editingItem.ExpenseAccountId = ParseNullableGuid(args.Value?.ToString())"
+                                                       placeholder="00000000-0000-0000-0000-000000000000" />
+                                            </div>
                                         </div>
                                     </div>
 
@@ -238,10 +295,59 @@
                 }
                 { *@
                 <tr>
-                    <td>@product.Name</td>
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <img src="@GetProductImageSource(product)"
+                                 alt="@SharedDataService.SelectViewLang("Product image", "صورة المنتج")"
+                                 class="erp-sku-image" />
+                            <span>@product.Name</span>
+                        </div>
+                        <div class="erp-smart-button-row mt-2">
+                            @{
+                                var links = GetProductLinks(product.Id);
+                            }
+                            <SmartButton Label="@SharedDataService.SelectViewLang("SKUs", "وحدات")"
+                                         Icon="bi-upc-scan"
+                                         Count="@links.Skus"
+                                         Visible="@HasPermission(PermissionList.ProductPermissions.View)"
+                                         OnClick="@(() => NavigateProductLink($"/Catalog/Product/{product.Id}/ProductSku"))" />
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Vendor Prices", "أسعار الموردين")"
+                                         Icon="bi-tags"
+                                         Count="@links.VendorPricelists"
+                                         Visible="@HasPermission(PermissionList.PurchaseOrderPermissions.View)"
+                                         OnClick="@(() => NavigateProductLink($"/Procurement/VendorPricelists?productId={product.Id}"))" />
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Rules", "قواعد")"
+                                         Icon="bi-arrow-repeat"
+                                         Count="@links.ReorderingRules"
+                                         Visible="@HasPermission(PermissionList.PurchaseRequestPermissions.View)"
+                                         OnClick="@(() => NavigateProductLink($"/Procurement/ReorderingRules?productId={product.Id}"))" />
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Sales", "مبيعات")"
+                                         Icon="bi-receipt"
+                                         Count="@links.SalesLines"
+                                         Visible="@HasPermission(PermissionList.SalesOrderPermissions.View)"
+                                         OnClick="@(() => NavigateProductLink($"/Sales/Orders?productId={product.Id}"))" />
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Purchases", "مشتريات")"
+                                         Icon="bi-cart-check"
+                                         Count="@links.PurchaseLines"
+                                         Visible="@HasPermission(PermissionList.PurchaseOrderPermissions.View)"
+                                         OnClick="@(() => NavigateProductLink($"/Procurement/purchase-orders?productId={product.Id}"))" />
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                                         Icon="bi-boxes"
+                                         Count="@links.InventoryRecords"
+                                         Disabled="true"
+                                         Title="@SharedDataService.SelectViewLang("Inventory drill-down is not available yet.", "التنقل إلى المخزون غير متاح حالياً.")" />
+                        </div>
+                    </td>
                     <td>@product.NameEng</td>
                     <td>@product.CategoryName</td>
                     <td>@GetProductTypeLabel(product.ProductType)</td>
+                    <td>
+                        <div class="erp-chip-row">
+                            <StatusChip Tone="muted" Text="@GetCostingPolicyLabel(product.CostingPolicy)" />
+                            <StatusChip Tone="info" Text="@($"{SharedDataService.SelectViewLang("Sales Tax", "ضريبة بيع")} {product.CustomerTaxRate:N2}%")" />
+                            <StatusChip Tone="warning" Text="@($"{SharedDataService.SelectViewLang("Purchase Tax", "ضريبة شراء")} {product.VendorTaxRate:N2}%")" />
+                        </div>
+                    </td>
                     <td><StatusChip Tone="@GetActiveTone(product.IsActive)" Text="@GetActiveLabel(product.IsActive)" /></td>
                     @* <td>@product.UnitName</td> *@
                     <td>
@@ -291,6 +397,7 @@
 
 @code {
     private List<ProductDto> products = new();
+    private readonly Dictionary<Guid, ProductSmartLinkSummaryDto> productSmartLinks = new();
     private Guid? editingProductId;
     private Guid companyId;
     private bool isEdit = false;
@@ -339,6 +446,7 @@
             Id = Guid.NewGuid(),
             CompanyId = companyId,
             IsActive = true,
+            ImageUrl = string.Empty,
             //CategoryId=Guid.NewGuid(),//categories.Any()?categories[0].Id:Guid.NewGuid(),
             //UnitId=Guid.NewGuid()//units.Any()? units[0].Id:Guid.NewGuid()
         };
@@ -536,8 +644,62 @@
             products = response.Data?.Data.ToList() ?? [];
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
+            await LoadProductSmartLinksAsync();
         }
     }
+
+    private async Task LoadProductSmartLinksAsync()
+    {
+        productSmartLinks.Clear();
+
+        foreach (var product in products)
+        {
+            var links = new ProductSmartLinkSummaryDto
+            {
+                Skus = product.Skus?.Count ?? 0
+            };
+
+            if (HasPermission(PermissionList.ProductPermissions.View))
+            {
+                var catalogLinks = await ProductService.GetSmartLinksAsync(product.Id);
+                if (catalogLinks.IsSuccess && catalogLinks.Data is not null)
+                    links.Skus = catalogLinks.Data.Skus;
+            }
+
+            if (HasPermission(PermissionList.SalesOrderPermissions.View))
+            {
+                var salesLinks = await SalesService.GetOrderSmartLinksAsync(companyId, productId: product.Id);
+                if (salesLinks.IsSuccess && salesLinks.Data is not null)
+                    links.SalesLines = salesLinks.Data.ProductLinks.SalesLines;
+            }
+
+            if (HasPermission(PermissionList.PurchaseOrderPermissions.View))
+            {
+                var procurementLinks = await ProcurementService.GetSmartLinksAsync(companyId, productId: product.Id);
+                if (procurementLinks.IsSuccess && procurementLinks.Data is not null)
+                    links.PurchaseLines = procurementLinks.Data.ProductLinks.PurchaseLines;
+
+                var vendorPricelists = await ProcurementService.GetVendorPricelistsAsync(companyId, productId: product.Id);
+                if (vendorPricelists.IsSuccess)
+                    links.VendorPricelists = vendorPricelists.Data?.Count ?? 0;
+            }
+
+            if (HasPermission(PermissionList.PurchaseRequestPermissions.View))
+            {
+                var reorderingRules = await ProcurementService.GetReorderingRulesAsync(companyId, productId: product.Id);
+                if (reorderingRules.IsSuccess)
+                    links.ReorderingRules = reorderingRules.Data?.Count ?? 0;
+            }
+
+            productSmartLinks[product.Id] = links;
+        }
+    }
+
+    private ProductSmartLinkSummaryDto GetProductLinks(Guid productId)
+        => productSmartLinks.TryGetValue(productId, out var links) ? links : new ProductSmartLinkSummaryDto();
+
+    private void NavigateProductLink(string route) => NavigationManager.NavigateTo(route);
+
     async Task OnPageSizeChanged(ChangeEventArgs e)
     {
         pageSize = int.Parse(e.Value!.ToString()!);
@@ -640,6 +802,34 @@
             _ => SharedDataService.SelectViewLang("Goods", "بضائع")
         };
     }
+
+    private string GetCostingPolicyLabel(ProductCostingPolicy policy) => policy switch
+    {
+        ProductCostingPolicy.Average => SharedDataService.SelectViewLang("Average Cost", "متوسط التكلفة"),
+        ProductCostingPolicy.Fifo => SharedDataService.SelectViewLang("FIFO", "الوارد أولا صادر أولا"),
+        _ => SharedDataService.SelectViewLang("Standard Cost", "تكلفة معيارية")
+    };
+
+    private string GetProductImageSource(ProductDto product)
+    {
+        if (string.IsNullOrWhiteSpace(product.ImageUrl))
+            return "_content/AlAfkarERP.Shared/images/productPlaceHolder.jpg";
+
+        if (product.ImageUrl.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+            || product.ImageUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            || product.ImageUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return product.ImageUrl;
+        }
+
+        return $"{ApiConfig.BaseURL}/Images/Products/{product.ImageUrl}";
+    }
+
+    private static Guid? ParseNullableGuid(string? value)
+        => Guid.TryParse(value, out var id) ? id : null;
+
+    private static string FormatGuid(Guid? value)
+        => value?.ToString() ?? string.Empty;
     // private void onUnitSelected(UnitDto unit)
     // {
     //     selectedUnit = unit != null ? unit : new();

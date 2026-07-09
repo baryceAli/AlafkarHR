@@ -2,10 +2,16 @@
 @page "/Inventory/Dashboard"
 @implements IDisposable
 
+@using AlAfkarERP.Shared.Pages.Features.Inventories.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Inventory.Dtos
 
 @inject SharedDataService SharedDataService
+@inject IInventoryService InventoryService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@SharedDataService.SelectViewLang("Inventory Dashboard", "لوحة المخزون")"
@@ -27,6 +33,95 @@
             </a>
         </Actions>
     </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard CssClass="mb-3">
+            <div class="erp-loading">@T("Loading execution dashboard...", "جاري تحميل لوحة التنفيذ...")</div>
+        </AppCard>
+    }
+    else if (dashboard is not null)
+    {
+        <div class="row g-3 mb-3">
+            @foreach (var metric in dashboard.Metrics.Take(6))
+            {
+                <div class="col-xl-2 col-md-4 col-sm-6">
+                    <StatsCard Title="@T(metric.LabelEng, metric.Label)"
+                               Value="@metric.Value.ToString("0.##")"
+                               Icon="@metric.Icon"
+                               Tone="@metric.Tone"
+                               OnClick="@(() => NavigateMetric(metric))" />
+                </div>
+            }
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-xl-7">
+                <AppCard Title="@T("Operations To Process", "عمليات قيد التنفيذ")">
+                    @if (dashboard.OperationsToProcess.Count == 0)
+                    {
+                        <EmptyState Title="@T("No open operations", "لا توجد عمليات مفتوحة")"
+                                    Message="@T("Warehouse execution is currently clear.", "تنفيذ المستودعات واضح حالياً.")"
+                                    Icon="bi-list-check" />
+                    }
+                    else
+                    {
+                        <div class="erp-table-wrap">
+                            <table class="erp-table table">
+                                <thead>
+                                    <tr>
+                                        <th>@T("Source", "المصدر")</th>
+                                        <th>@T("Step", "المرحلة")</th>
+                                        <th>@T("Status", "الحالة")</th>
+                                        <th>@T("Qty", "الكمية")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var operation in dashboard.OperationsToProcess)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <a href="@OperationUrl(operation)" class="fw-semibold">@operation.SourceDocumentNumber</a>
+                                                <div class="text-muted small">@operation.SourceDocumentType</div>
+                                            </td>
+                                            <td>@operation.OperationKind</td>
+                                            <td><span class="badge bg-secondary">@operation.Status</span></td>
+                                            <td>@operation.DoneQuantity / @operation.PlannedQuantity</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </AppCard>
+            </div>
+            <div class="col-xl-5">
+                <AppCard Title="@T("Open Picking Groups", "مجموعات الالتقاط المفتوحة")">
+                    @if (dashboard.OpenPickingGroups.Count == 0)
+                    {
+                        <EmptyState Title="@T("No open picking groups", "لا توجد مجموعات مفتوحة")"
+                                    Message="@T("Create a batch or wave from the picking groups page.", "أنشئ دفعة أو موجة من صفحة مجموعات الالتقاط.")"
+                                    Icon="bi-collection" />
+                    }
+                    else
+                    {
+                        <div class="vstack gap-2">
+                            @foreach (var group in dashboard.OpenPickingGroups)
+                            {
+                                <a class="d-flex justify-content-between gap-2 border rounded p-2 text-decoration-none" href="/Inventory/Operations/PickingGroups">
+                                    <span>
+                                        <span class="fw-semibold">@group.GroupNumber</span>
+                                        <span class="text-muted small d-block">@group.GroupType - @group.Lines.Count @T("operations", "عمليات")</span>
+                                    </span>
+                                    <span class="badge bg-primary align-self-center">@group.Status</span>
+                                </a>
+                            }
+                        </div>
+                    }
+                </AppCard>
+            </div>
+        </div>
+    }
 
     <div class="row g-3">
         <div class="col-md-4">
@@ -87,10 +182,36 @@
 </div>
 
 @code {
-    protected override void OnInitialized()
+    private InventoryExecutionDashboardDto? dashboard;
+    private bool isLoading = true;
+    private Guid companyId;
+
+    protected override async Task OnInitializedAsync()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (CompanyContext.TryGetCompanyId(auth.User, out companyId))
+            await LoadDashboardAsync();
+        isLoading = false;
     }
+
+    private async Task LoadDashboardAsync()
+    {
+        var result = await InventoryService.GetExecutionDashboardAsync(companyId);
+        if (result.IsSuccess)
+            dashboard = result.Data;
+    }
+
+    private void NavigateMetric(InventoryExecutionMetricDto metric)
+    {
+        if (!string.IsNullOrWhiteSpace(metric.Url))
+            NavigationManager.NavigateTo(metric.Url);
+    }
+
+    private string OperationUrl(InventoryOperationDto operation) =>
+        $"/Inventory/Operations/Execution?sourceDocumentType={Uri.EscapeDataString(operation.SourceDocumentType)}&sourceDocumentId={operation.SourceDocumentId}";
+
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
 
     private async Task HandleChangeAsync()
     {

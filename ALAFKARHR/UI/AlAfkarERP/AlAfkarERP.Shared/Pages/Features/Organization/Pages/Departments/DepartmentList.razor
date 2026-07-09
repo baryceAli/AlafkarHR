@@ -38,8 +38,8 @@
     return;
 }
 
-<div class="org-list-page" dir="@SharedDataService.PageDirection">
-    <div class="org-list-header mb-4">
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <div class="erp-page-header">
         <div>
             <div class="text-uppercase text-primary fw-semibold small mb-1">@Text("Organization", "المنظمة")</div>
             <h3 class="mb-1">@Text("Departments Management", "ادارة الأقسام")</h3>
@@ -89,8 +89,7 @@
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
             <div class="org-toolbar mb-3">
                 <div class="org-selector">
                     <label class="form-label mb-1">@Text("Select Branch", "اختر الفرع")</label>
@@ -128,12 +127,12 @@
                 </div>
             </div>
 
-    <div class="table-responsive org-table-wrap">
+    <div class="erp-table-wrap">
             <div class="d-flex justify-content-end mb-2">
             <TableExportActions />
         </div>
 
-    <table class="table org-table align-middle mb-0">
+    <table class="erp-table">
         <thead>
             <tr>
                 <th @onclick="() => Sort(nameof(DepartmentDto.Name))" class="sortable">
@@ -348,8 +347,7 @@
 
         </div>
     </div>
-        </div>
-    </div>
+    </AppCard>
 </div>
 
 <style>
@@ -357,7 +355,7 @@
         max-width: 1400px;
     }
 
-    .org-list-header {
+    .erp-page-header {
         align-items: flex-start;
         display: flex;
         flex-wrap: wrap;

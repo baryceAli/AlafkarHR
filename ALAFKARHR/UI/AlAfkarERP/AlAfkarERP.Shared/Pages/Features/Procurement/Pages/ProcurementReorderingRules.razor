@@ -8,11 +8,13 @@
 @using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components
 @using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.Inventory.Dtos
 @using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Procurement.Enums
 @using SharedWithUI.Suppliers.Dtos
 
 @implements IDisposable
@@ -92,14 +94,27 @@
                                     <InputNumber class="form-control" @bind-Value="model.ReorderQuantity" />
                                 </div>
                                 <div class="col">
+                                    <label class="form-label">@Text("Multiple Qty", "مضاعف الكمية")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.MultipleQuantity" />
+                                </div>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col">
                                     <label class="form-label">@Text("Lead Days", "أيام التوريد")</label>
                                     <InputNumber class="form-control" @bind-Value="model.LeadTimeDays" />
                                 </div>
+                                <div class="col">
+                                    <label class="form-label">@Text("Horizon Days", "أيام الأفق")</label>
+                                    <InputNumber class="form-control" @bind-Value="model.HorizonDays" />
+                                </div>
                             </div>
-                            <label class="form-check">
-                                <InputCheckbox class="form-check-input" @bind-Value="model.AutoCreatePurchaseRequest" />
-                                <span class="form-check-label">@Text("Auto-create purchase request", "إنشاء طلب شراء تلقائيا")</span>
-                            </label>
+                            <div>
+                                <label class="form-label">@Text("Trigger", "المشغل")</label>
+                                <InputSelect class="form-select" @bind-Value="model.TriggerMode">
+                                    <option value="@ReplenishmentTriggerMode.Manual">@Text("Manual review", "مراجعة يدوية")</option>
+                                    <option value="@ReplenishmentTriggerMode.Automatic">@Text("Automatic purchase request", "طلب شراء تلقائي")</option>
+                                </InputSelect>
+                            </div>
                             <label class="form-check">
                                 <InputCheckbox class="form-check-input" @bind-Value="model.IsActive" />
                                 <span class="form-check-label">@Text("Active rule", "قاعدة نشطة")</span>
@@ -131,13 +146,24 @@
                             </button>
                         </Actions>
                     </FilterBar>
+                    @if (HasSmartFilter)
+                    {
+                        <div class="erp-chip-row mb-3">
+                            <StatusChip Tone="info" Text="@SmartFilterText()" />
+                            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearSmartFilter">
+                                <i class="bi bi-x-lg"></i>
+                                @Text("Clear", "مسح")
+                            </button>
+                        </div>
+                    }
                     <div class="erp-table-wrap">
                         <table class="table erp-table mb-0">
                             <thead>
                                 <tr>
                                     <th>@Text("Product", "المنتج")</th>
                                     <th>@Text("Warehouse", "المستودع")</th>
-                                    <th>@Text("Min/Max/Reorder", "أدنى/أقصى/إعادة")</th>
+                                    <th>@Text("Policy", "السياسة")</th>
+                                    <th>@Text("Lead / Horizon", "التوريد / الأفق")</th>
                                     <th>@Text("Automation", "الأتمتة")</th>
                                     <th>@Text("Status", "الحالة")</th>
                                     <th class="text-end">@Text("Actions", "الإجراءات")</th>
@@ -147,7 +173,7 @@
                                 @if (FilteredItems.Count == 0)
                                 {
                                     <tr>
-                                        <td colspan="6" class="text-center text-muted py-4">@Text("No reordering rules found.", "لا توجد قواعد إعادة طلب.")</td>
+                                        <td colspan="7" class="text-center text-muted py-4">@Text("No reordering rules found.", "لا توجد قواعد إعادة طلب.")</td>
                                     </tr>
                                 }
                                 @foreach (var item in FilteredItems)
@@ -155,8 +181,12 @@
                                     <tr>
                                         <td>@DisplaySku(item)</td>
                                         <td>@Display(WarehouseName(item.WarehouseId))</td>
-                                        <td>@item.MinimumQuantity.ToString("N2") / @item.MaximumQuantity.ToString("N2") / @item.ReorderQuantity.ToString("N2")</td>
-                                        <td><StatusChip Text="@(item.AutoCreatePurchaseRequest ? Text("Auto PR", "طلب تلقائي") : Text("Manual", "يدوي"))" Tone="@(item.AutoCreatePurchaseRequest ? "info" : "muted")" /></td>
+                                        <td>
+                                            <div>@Text("Min", "الأدنى"): @item.MinimumQuantity.ToString("N2") / @Text("Max", "الأقصى"): @item.MaximumQuantity.ToString("N2")</div>
+                                            <div class="text-muted small">@Text("Reorder", "إعادة الطلب"): @item.ReorderQuantity.ToString("N2") / @Text("Multiple", "المضاعف"): @item.MultipleQuantity.ToString("N2")</div>
+                                        </td>
+                                        <td>@item.LeadTimeDays / @item.HorizonDays @Text("days", "أيام")</td>
+                                        <td><StatusChip Text="@(item.TriggerMode == ReplenishmentTriggerMode.Automatic ? Text("Auto PR", "طلب تلقائي") : Text("Manual", "يدوي"))" Tone="@(item.TriggerMode == ReplenishmentTriggerMode.Automatic ? "info" : "muted")" /></td>
                                         <td><StatusChip Text="@(item.IsActive ? Text("Active", "نشط") : Text("Inactive", "غير نشط"))" Tone="@(item.IsActive ? "success" : "muted")" /></td>
                                         <td>
                                             <div class="d-flex justify-content-end gap-2">
@@ -196,6 +226,11 @@
     private ProductSkuDto? selectedSku;
     private WarehouseDto? selectedWarehouse;
     private SupplierDto? selectedSupplier;
+
+    [SupplyParameterFromQuery] public Guid? SupplierId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductSkuId { get; set; }
+    private bool HasSmartFilter => SupplierId.HasValue || ProductId.HasValue || ProductSkuId.HasValue;
 
     private bool CanView => HasPermission(PermissionList.PurchaseRequestPermissions.View);
     private bool CanSave => HasPermission(PermissionList.PurchaseRequestPermissions.Create);
@@ -259,7 +294,7 @@
 
     private async Task LoadItemsAsync()
     {
-        var result = await ProcurementService.GetReorderingRulesAsync(companyId);
+        var result = await ProcurementService.GetReorderingRulesAsync(companyId, SupplierId, ProductId, ProductSkuId);
         if (result.IsSuccess)
             items = result.Data ?? [];
         else
@@ -272,6 +307,7 @@
             return;
 
         model.CompanyId = companyId;
+        model.AutoCreatePurchaseRequest = model.TriggerMode == ReplenishmentTriggerMode.Automatic;
         var result = await ProcurementService.SaveReorderingRuleAsync(model);
         if (result.IsSuccess)
         {
@@ -317,9 +353,18 @@
             MinimumQuantity = item.MinimumQuantity,
             MaximumQuantity = item.MaximumQuantity,
             ReorderQuantity = item.ReorderQuantity,
+            MultipleQuantity = item.MultipleQuantity,
             LeadTimeDays = item.LeadTimeDays,
+            HorizonDays = item.HorizonDays,
+            TriggerMode = item.TriggerMode == default
+                ? item.AutoCreatePurchaseRequest ? ReplenishmentTriggerMode.Automatic : ReplenishmentTriggerMode.Manual
+                : item.TriggerMode,
             AutoCreatePurchaseRequest = item.AutoCreatePurchaseRequest,
-            IsActive = item.IsActive
+            IsActive = item.IsActive,
+            LastRunAt = item.LastRunAt,
+            LastGeneratedDocumentId = item.LastGeneratedDocumentId,
+            LastGeneratedDocumentNumber = item.LastGeneratedDocumentNumber,
+            LastGeneratedAt = item.LastGeneratedAt
         };
         selectedProduct = products.FirstOrDefault(product => product.Id == item.ProductId);
         selectedSku = allSkus.FirstOrDefault(sku => sku.Id == item.ProductSkuId);
@@ -329,7 +374,7 @@
 
     private void ResetForm()
     {
-        model = new ReorderingRuleDto { CompanyId = companyId, IsActive = true, ReorderQuantity = 1 };
+        model = new ReorderingRuleDto { CompanyId = companyId, IsActive = true, ReorderQuantity = 1, TriggerMode = ReplenishmentTriggerMode.Manual };
         selectedProduct = null;
         selectedSku = null;
         selectedWarehouse = null;
@@ -373,6 +418,16 @@
     }
 
     private void Back() => NavigationManager.NavigateTo("/Procurement/Enhancements");
+    private string SmartFilterText()
+    {
+        if (SupplierId.HasValue)
+            return Text("Filtered by supplier", "مصفي حسب المورد");
+        if (ProductSkuId.HasValue)
+            return Text("Filtered by SKU", "مصفي حسب وحدة المنتج");
+        return Text("Filtered by product", "مصفي حسب المنتج");
+    }
+
+    private void ClearSmartFilter() => NavigationManager.NavigateTo("/Procurement/ReorderingRules");
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private string Display(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;

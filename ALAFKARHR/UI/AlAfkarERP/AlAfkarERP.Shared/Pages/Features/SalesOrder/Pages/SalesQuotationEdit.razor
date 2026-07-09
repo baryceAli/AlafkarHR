@@ -10,6 +10,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
 @using SharedWithUI.Customers.Dtos
+@using SharedWithUI.Customers.Enums
 @using SharedWithUI.Permissions
 @using SharedWithUI.SalesOrder.Dtos
 @using SharedWithUI.SalesOrder.Enums
@@ -26,17 +27,17 @@
 <section class="sales-page" dir="@SharedDataService.PageDirection">
     @if (!CanUsePage)
     {
-        <div class="alert alert-warning">@Text("You don't have permission to save quotations.", "You don't have permission to save quotations.")</div>
+        <div class="alert alert-warning">@Text("You don't have permission to save quotations.", "ليست لديك صلاحية حفظ عروض الأسعار.")</div>
         return;
     }
 
-    <PageHeader Title="@Text(IsEdit ? "Edit Quotation" : "New Quotation", IsEdit ? "Edit Quotation" : "New Quotation")"
-                Subtitle="@Text("Create and maintain customer quotations before converting them to sales orders.", "Create and maintain customer quotations before converting them to sales orders.")"
-                Overline="@Text("Sales", "Sales")"
+    <PageHeader Title="@Text(IsEdit ? "Edit Quotation" : "New Quotation", IsEdit ? "تعديل عرض السعر" : "عرض سعر جديد")"
+                Subtitle="@Text("Create and maintain customer quotations before converting them to sales orders.", "إنشاء عروض أسعار العملاء ومراجعتها قبل تحويلها إلى أوامر بيع.")"
+                Overline="@Text("Sales", "المبيعات")"
                 Icon="bi-file-earmark-plus">
         <Actions>
             <a class="btn btn-outline-secondary" href="/Sales/Quotations">
-                <i class="bi bi-arrow-left"></i> @Text("Back", "Back")
+                <i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")
             </a>
         </Actions>
     </PageHeader>
@@ -45,7 +46,7 @@
     {
         <div class="erp-loading py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <div class="mt-2">@Text("Loading quotation form...", "Loading quotation form...")</div>
+            <div class="mt-2">@Text("Loading quotation form...", "جاري تحميل نموذج عرض السعر...")</div>
         </div>
     }
     else
@@ -54,24 +55,24 @@
             <DataAnnotationsValidator />
             <div class="row g-3">
                 <div class="col-xl-8">
-                    <AppCard Title="@Text("Quotation Details", "Quotation Details")" CssClass="mb-3">
+                    <AppCard Title="@Text("Quotation Details", "تفاصيل عرض السعر")" CssClass="mb-3">
                         <div class="row g-3">
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Quotation number", "Quotation number")</label>
+                                <label class="form-label">@Text("Quotation number", "رقم عرض السعر")</label>
                                 <input class="form-control" @bind="quotation.Number" disabled="@IsEdit" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Quotation date", "Quotation date")</label>
+                                <label class="form-label">@Text("Quotation date", "تاريخ عرض السعر")</label>
                                 <InputDate class="form-control" @bind-Value="quotation.QuotationDate" />
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label">@Text("Valid until", "Valid until")</label>
+                                <label class="form-label">@Text("Valid until", "صالح حتى")</label>
                                 <InputDate class="form-control" @bind-Value="quotation.ValidUntil" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Customer", "Customer")</label>
+                                <label class="form-label">@Text("Customer", "العميل")</label>
                                 <select class="form-select" @onchange="OnCustomerChanged">
-                                    <option value="">@Text("Select customer", "Select customer")</option>
+                                    <option value="">@Text("Select customer", "اختر العميل")</option>
                                     @foreach (var customer in customers)
                                     {
                                         <option value="@customer.Id" selected="@(customer.Id == quotation.CustomerId)">@customer.Name</option>
@@ -79,46 +80,107 @@
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Coupon code", "Coupon code")</label>
+                                <label class="form-label">@Text("Quotation template", "قالب عرض السعر")</label>
+                                <select class="form-select" @onchange="OnQuotationTemplateChanged">
+                                    <option value="">@Text("Select quotation template", "اختر قالب عرض السعر")</option>
+                                    @foreach (var template in quotationTemplates)
+                                    {
+                                        <option value="@template.Id" selected="@(template.Id == quotation.QuotationTemplateId)">@template.Name</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Coupon code", "رمز القسيمة")</label>
                                 <input class="form-control" @bind="quotation.CouponCode" />
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Notes", "Notes")</label>
+                                <label class="form-label">@Text("Notes", "ملاحظات")</label>
                                 <textarea class="form-control" rows="3" @bind="quotation.Notes"></textarea>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">@Text("Terms", "Terms")</label>
+                                <label class="form-label">@Text("Terms", "الشروط")</label>
                                 <textarea class="form-control" rows="3" @bind="quotation.Terms"></textarea>
                             </div>
                         </div>
                     </AppCard>
 
-                    <AppCard Title="@Text("Quotation Lines", "Quotation Lines")">
+                    <AppCard Title="@Text("Commercial Controls", "الضوابط التجارية")" CssClass="mb-3">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Invoice address", "عنوان الفاتورة")</label>
+                                <select class="form-select" @bind="quotation.InvoiceAddressId" disabled="@(CustomerAddresses.Count == 0)">
+                                    <option value="">@Text("Default customer invoice address", "عنوان فاتورة العميل الافتراضي")</option>
+                                    @foreach (var address in CustomerAddresses)
+                                    {
+                                        <option value="@address.Id">@AddressLabel(address)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">@Text("Delivery address", "عنوان التسليم")</label>
+                                <select class="form-select" @bind="quotation.DeliveryAddressId" disabled="@(CustomerAddresses.Count == 0)">
+                                    <option value="">@Text("Default customer delivery address", "عنوان تسليم العميل الافتراضي")</option>
+                                    @foreach (var address in CustomerAddresses)
+                                    {
+                                        <option value="@address.Id">@AddressLabel(address)</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Down payment amount", "مبلغ الدفعة المقدمة")</label>
+                                <input class="form-control" type="number" min="0" step="0.01" @bind="quotation.DownPaymentAmount" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Down payment percent", "نسبة الدفعة المقدمة")</label>
+                                <input class="form-control" type="number" min="0" max="100" step="0.01" @bind="quotation.DownPaymentPercent" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">@Text("Quote requirements", "متطلبات عرض السعر")</label>
+                                <div class="quotation-switches">
+                                    <label class="form-check">
+                                        <InputCheckbox class="form-check-input" @bind-Value="quotation.RequiresCustomerSignature" />
+                                        <span class="form-check-label">@Text("Signature", "التوقيع")</span>
+                                    </label>
+                                    <label class="form-check">
+                                        <InputCheckbox class="form-check-input" @bind-Value="quotation.RequiresOnlinePayment" />
+                                        <span class="form-check-label">@Text("Online payment", "الدفع الإلكتروني")</span>
+                                    </label>
+                                    <label class="form-check">
+                                        <InputCheckbox class="form-check-input" @bind-Value="quotation.IsProForma" />
+                                        <span class="form-check-label">@Text("Pro-forma", "فاتورة شكلية")</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </AppCard>
+
+                    <AppCard Title="@Text("Quotation Lines", "بنود عرض السعر")">
                         <div class="d-flex justify-content-end mb-2">
                             <button class="btn btn-outline-primary btn-sm" type="button" @onclick="AddLine">
-                                <i class="bi bi-plus-lg"></i> @Text("Add line", "Add line")
+                                <i class="bi bi-plus-lg"></i> @Text("Add line", "إضافة بند")
                             </button>
                         </div>
                         <div class="erp-table-wrap">
                             <table class="table erp-table align-middle mb-0">
                                 <thead>
                                     <tr>
-                                        <th>@Text("SKU", "SKU")</th>
-                                        <th>@Text("Qty", "Qty")</th>
-                                        <th>@Text("Unit price", "Unit price")</th>
-                                        <th>@Text("Discount", "Discount")</th>
-                                        <th>@Text("Tax", "Tax")</th>
-                                        <th>@Text("Total", "Total")</th>
+                                        <th>@Text("SKU", "وحدة المنتج")</th>
+                                        <th>@Text("Qty", "الكمية")</th>
+                                        <th>@Text("Unit price", "سعر الوحدة")</th>
+                                        <th>@Text("Discount", "الخصم")</th>
+                                        <th>@Text("Tax", "الضريبة")</th>
+                                        <th>@Text("Optional", "اختياري")</th>
+                                        <th>@Text("Total", "الإجمالي")</th>
                                         <th></th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     @foreach (var line in quotation.Lines)
                                     {
-                                        <tr>
+                                        <tr class="@(line.IsOptional ? "optional-quote-line" : null)">
                                             <td>
                                                 <select class="form-select form-select-sm" @onchange="e => SelectSku(line, e.Value?.ToString())">
-                                                    <option value="">@Text("Select SKU", "Select SKU")</option>
+                                                    <option value="">@Text("Select SKU", "اختر وحدة المنتج")</option>
                                                     @foreach (var sku in skus)
                                                     {
                                                         <option value="@sku.Id" selected="@(sku.Id == line.ProductSkuId)">@Text(sku.NameEng, sku.Name) - @sku.SkuCode</option>
@@ -128,11 +190,18 @@
                                                 {
                                                     <div class="text-muted small mt-1">@Text(line.ProductNameEng, line.ProductName)</div>
                                                 }
+                                                @if (line.IsOptional)
+                                                {
+                                                    <span class="badge text-bg-info mt-1">@Text("Optional product", "منتج اختياري")</span>
+                                                }
                                             </td>
                                             <td><input class="form-control form-control-sm" type="number" min="0.01" step="0.01" @bind="line.Quantity" @bind:after="Recalculate" /></td>
                                             <td>@Money(line.UnitPrice)</td>
                                             <td>@($"{line.DiscountRate:N2}%")</td>
                                             <td>@($"{line.TaxRate:N2}%")</td>
+                                            <td>
+                                                <InputCheckbox class="form-check-input" @bind-Value="line.IsOptional" />
+                                            </td>
                                             <td class="fw-semibold">@Money(line.TotalAmount)</td>
                                             <td class="text-end">
                                                 <button class="btn btn-sm btn-outline-danger" type="button" @onclick="() => RemoveLine(line)">
@@ -147,12 +216,12 @@
                     </AppCard>
                 </div>
                 <div class="col-xl-4">
-                    <AppCard Title="@Text("Totals", "Totals")">
-                        <div class="summary-row"><span>@Text("Subtotal", "Subtotal")</span><strong>@Money(quotation.Subtotal)</strong></div>
-                        <div class="summary-row"><span>@Text("Tax", "Tax")</span><strong>@Money(quotation.TaxAmount)</strong></div>
-                        <div class="summary-row summary-total"><span>@Text("Total", "Total")</span><strong>@Money(quotation.TotalAmount)</strong></div>
+                    <AppCard Title="@Text("Totals", "الإجماليات")">
+                        <div class="summary-row"><span>@Text("Subtotal", "المجموع الفرعي")</span><strong>@Money(quotation.Subtotal)</strong></div>
+                        <div class="summary-row"><span>@Text("Tax", "الضريبة")</span><strong>@Money(quotation.TaxAmount)</strong></div>
+                        <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(quotation.TotalAmount)</strong></div>
                         <button class="btn btn-primary w-100 mt-3" type="submit" disabled="@isSaving">
-                            <i class="bi bi-save"></i> @Text("Save Quotation", "Save Quotation")
+                            <i class="bi bi-save"></i> @Text("Save Quotation", "حفظ عرض السعر")
                         </button>
                     </AppCard>
                 </div>
@@ -176,6 +245,7 @@
     private List<CustomerDto> customers = [];
     private List<ProductDto> products = [];
     private List<ProductSkuDto> skus = [];
+    private List<SalesQuotationTemplateDto> quotationTemplates = [];
 
     protected override async Task OnInitializedAsync()
     {
@@ -206,11 +276,13 @@
         var customerTask = CustomerService.GetByCompany(companyId, 0, 1000);
         var productTask = ProductService.GetPricedByCompanyAsync(companyId, null, 0, 1000);
         var currencyTask = CurrencyService.GetAsync(companyId, 0, 1000);
-        await Task.WhenAll(customerTask, productTask, currencyTask);
+        var templateTask = SalesService.GetQuotationTemplatesAsync(companyId, activeOnly: true);
+        await Task.WhenAll(customerTask, productTask, currencyTask, templateTask);
 
         customers = customerTask.Result.IsSuccess ? customerTask.Result.Data?.Data.ToList() ?? [] : [];
         products = productTask.Result.IsSuccess ? productTask.Result.Data?.Data.ToList() ?? [] : [];
         skus = products.SelectMany(x => x.Skus).Where(x => x.IsActive && x.IsSellable).OrderBy(x => Text(x.NameEng, x.Name)).ToList();
+        quotationTemplates = templateTask.Result.IsSuccess ? templateTask.Result.Data ?? [] : [];
         var currencies = currencyTask.Result.IsSuccess ? currencyTask.Result.Data?.Data.ToList() ?? [] : [];
         currencyCode = currencies.FirstOrDefault(c => c.IsDefault)?.Code ?? currencies.FirstOrDefault()?.Code ?? string.Empty;
 
@@ -218,6 +290,7 @@
         {
             var result = await SalesService.GetQuotationByIdAsync(Id!.Value);
             quotation = result.IsSuccess && result.Data is not null ? result.Data : NewQuotation();
+            ApplyCustomerDefaults(false);
             await ReloadProductsForCustomerAsync();
         }
         else
@@ -241,7 +314,45 @@
     private async Task OnCustomerChanged(ChangeEventArgs args)
     {
         quotation.CustomerId = Guid.TryParse(args.Value?.ToString(), out var id) ? id : Guid.Empty;
+        var selectedCustomer = customers.FirstOrDefault(x => x.Id == quotation.CustomerId);
+        quotation.CustomerName = selectedCustomer?.Name;
+        ApplyCustomerDefaults(true);
         await ReloadProductsForCustomerAsync();
+    }
+
+    private void OnQuotationTemplateChanged(ChangeEventArgs args)
+    {
+        quotation.QuotationTemplateId = Guid.TryParse(args.Value?.ToString(), out var templateId) ? templateId : null;
+        var template = quotationTemplates.FirstOrDefault(x => x.Id == quotation.QuotationTemplateId);
+        if (template is null)
+            return;
+
+        quotation.Notes = template.Notes;
+        quotation.Terms = template.Terms;
+        quotation.RequiresCustomerSignature = template.RequiresCustomerSignature;
+        quotation.RequiresOnlinePayment = template.RequiresOnlinePayment;
+        quotation.DownPaymentAmount = template.DownPaymentAmount;
+        quotation.DownPaymentPercent = template.DownPaymentPercent;
+        quotation.IsProForma = template.IsProForma;
+        if (template.ValidityDays > 0)
+            quotation.ValidUntil = (quotation.QuotationDate == default ? DateTime.Today : quotation.QuotationDate.Date).AddDays(template.ValidityDays);
+
+        quotation.Lines = template.Lines.Select(line => new SalesQuotationLineDto
+        {
+            ProductId = line.ProductId,
+            ProductSkuId = line.ProductSkuId,
+            ProductName = line.ProductName,
+            ProductNameEng = line.ProductNameEng,
+            SkuCode = line.SkuCode,
+            UnitOfMeasureId = line.UnitOfMeasureId,
+            Quantity = line.Quantity,
+            UnitPrice = line.UnitPrice,
+            DiscountRate = line.DiscountRate,
+            TaxRate = line.TaxRate,
+            Notes = line.Notes,
+            IsOptional = line.IsOptional
+        }).ToList();
+        Recalculate();
     }
 
     private async Task ReloadProductsForCustomerAsync()
@@ -292,7 +403,7 @@
     {
         if (quotation.CustomerId == Guid.Empty)
         {
-            ToastService.ShowWarning(Text("Select a customer.", "Select a customer."));
+            ToastService.ShowWarning(Text("Select a customer.", "اختر عميلا."));
             return;
         }
 
@@ -300,7 +411,7 @@
         quotation.Lines = quotation.Lines.Where(x => x.ProductSkuId != Guid.Empty && x.Quantity > 0).ToList();
         if (quotation.Lines.Count == 0)
         {
-            ToastService.ShowWarning(Text("Add at least one SKU line.", "Add at least one SKU line."));
+            ToastService.ShowWarning(Text("Add at least one SKU line.", "أضف بند وحدة منتج واحدا على الأقل."));
             AddLine();
             return;
         }
@@ -324,12 +435,12 @@
 
         if (isSuccess)
         {
-            ToastService.ShowSuccess(Text("Quotation saved.", "Quotation saved."));
+            ToastService.ShowSuccess(Text("Quotation saved.", "تم حفظ عرض السعر."));
             NavigationManager.NavigateTo("/Sales/Quotations");
         }
         else
         {
-            ToastService.ShowError(errorDetail ?? Text("Unable to save quotation.", "Unable to save quotation."));
+            ToastService.ShowError(errorDetail ?? Text("Unable to save quotation.", "تعذر حفظ عرض السعر."));
         }
         isSaving = false;
     }
@@ -343,6 +454,42 @@
 
     private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
     private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private CustomerDto? SelectedCustomer => customers.FirstOrDefault(x => x.Id == quotation.CustomerId);
+    private List<AddressDto> CustomerAddresses => SelectedCustomer?.Addresses
+        .Where(x => x.AddressType is PartnerAddressType.Invoice or PartnerAddressType.Delivery or PartnerAddressType.Contact or PartnerAddressType.Other)
+        .ToList() ?? [];
+
+    private void ApplyCustomerDefaults(bool overwrite)
+    {
+        var addresses = CustomerAddresses;
+        if (overwrite || !quotation.InvoiceAddressId.HasValue)
+            quotation.InvoiceAddressId = addresses.FirstOrDefault(x => x.IsDefaultBilling)?.Id
+                ?? addresses.FirstOrDefault(x => x.AddressType == PartnerAddressType.Invoice)?.Id;
+
+        if (overwrite || !quotation.DeliveryAddressId.HasValue)
+            quotation.DeliveryAddressId = addresses.FirstOrDefault(x => x.IsDefaultShipping)?.Id
+                ?? addresses.FirstOrDefault(x => x.AddressType == PartnerAddressType.Delivery)?.Id;
+
+        if (quotation.InvoiceAddressId.HasValue && !addresses.Any(x => x.Id == quotation.InvoiceAddressId.Value))
+            quotation.InvoiceAddressId = null;
+
+        if (quotation.DeliveryAddressId.HasValue && !addresses.Any(x => x.Id == quotation.DeliveryAddressId.Value))
+            quotation.DeliveryAddressId = null;
+    }
+
+    private string AddressLabel(AddressDto address)
+    {
+        var type = address.AddressType switch
+        {
+            PartnerAddressType.Invoice => Text("Invoice", "فاتورة"),
+            PartnerAddressType.Delivery => Text("Delivery", "تسليم"),
+            PartnerAddressType.Private => Text("Private", "خاص"),
+            PartnerAddressType.Other => Text("Other", "أخرى"),
+            _ => Text("Contact", "جهة اتصال")
+        };
+
+        return $"{type} - {address.Title} - {address.City}";
+    }
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
 
     public void Dispose()
@@ -363,5 +510,14 @@
     .summary-total {
         border-block-end: 0;
         font-size: 1.05rem;
+    }
+
+    .quotation-switches {
+        display: grid;
+        gap: var(--erp-space-1);
+    }
+
+    .optional-quote-line td {
+        background: var(--erp-surface-muted);
     }
 </style>

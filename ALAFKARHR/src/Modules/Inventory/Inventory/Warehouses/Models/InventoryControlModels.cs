@@ -11,6 +11,9 @@ public class WarehouseLocation : Aggregate<Guid>
     public string NameEng { get; private set; } = string.Empty;
     public string? ParentCode { get; private set; }
     public WarehouseLocationType LocationType { get; private set; }
+    public WarehouseLocationUsage LocationUsage { get; private set; } = WarehouseLocationUsage.Internal;
+    public bool IsVirtual { get; private set; }
+    public bool ExcludeFromPhysicalStock { get; private set; }
     public bool IsActive { get; private set; }
 
     public static WarehouseLocation Create(WarehouseLocationDto dto, string userId)
@@ -38,6 +41,9 @@ public class WarehouseLocation : Aggregate<Guid>
         NameEng = NameEng,
         ParentCode = ParentCode,
         LocationType = LocationType,
+        LocationUsage = LocationUsage,
+        IsVirtual = IsVirtual,
+        ExcludeFromPhysicalStock = ExcludeFromPhysicalStock,
         IsActive = IsActive
     };
 
@@ -50,6 +56,201 @@ public class WarehouseLocation : Aggregate<Guid>
         NameEng = dto.NameEng;
         ParentCode = dto.ParentCode;
         LocationType = dto.LocationType;
+        LocationUsage = dto.LocationUsage;
+        IsVirtual = dto.IsVirtual || dto.LocationUsage is WarehouseLocationUsage.Transit or WarehouseLocationUsage.VirtualScrap;
+        ExcludeFromPhysicalStock = dto.ExcludeFromPhysicalStock || IsVirtual;
+        IsActive = dto.IsActive;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+}
+
+public class InventoryOperationType : Aggregate<Guid>
+{
+    private InventoryOperationType() { }
+
+    public Guid CompanyId { get; private set; }
+    public Guid WarehouseId { get; private set; }
+    public string Code { get; private set; } = string.Empty;
+    public string Name { get; private set; } = string.Empty;
+    public string NameEng { get; private set; } = string.Empty;
+    public InventoryOperationKind OperationKind { get; private set; }
+    public Guid? DefaultSourceLocationId { get; private set; }
+    public Guid? DefaultDestinationLocationId { get; private set; }
+    public bool IsActive { get; private set; }
+
+    public static InventoryOperationType Create(InventoryOperationTypeDto dto, string userId)
+    {
+        var operationType = new InventoryOperationType { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow, CreatedBy = userId };
+        operationType.Apply(dto, userId);
+        return operationType;
+    }
+
+    public void Update(InventoryOperationTypeDto dto, string userId) => Apply(dto, userId);
+
+    public void Remove(string userId)
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        DeletedBy = userId;
+    }
+
+    public InventoryOperationTypeDto ToDto() => new()
+    {
+        Id = Id,
+        CompanyId = CompanyId,
+        WarehouseId = WarehouseId,
+        Code = Code,
+        Name = Name,
+        NameEng = NameEng,
+        OperationKind = OperationKind,
+        DefaultSourceLocationId = DefaultSourceLocationId,
+        DefaultDestinationLocationId = DefaultDestinationLocationId,
+        IsActive = IsActive
+    };
+
+    private void Apply(InventoryOperationTypeDto dto, string userId)
+    {
+        CompanyId = dto.CompanyId;
+        WarehouseId = dto.WarehouseId;
+        Code = dto.Code;
+        Name = dto.Name;
+        NameEng = dto.NameEng;
+        OperationKind = dto.OperationKind;
+        DefaultSourceLocationId = dto.DefaultSourceLocationId;
+        DefaultDestinationLocationId = dto.DefaultDestinationLocationId;
+        IsActive = dto.IsActive;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+}
+
+public class InventoryRoute : Aggregate<Guid>
+{
+    private InventoryRoute() { }
+
+    public Guid CompanyId { get; private set; }
+    public Guid? WarehouseId { get; private set; }
+    public string Code { get; private set; } = string.Empty;
+    public string Name { get; private set; } = string.Empty;
+    public string NameEng { get; private set; } = string.Empty;
+    public InventoryRouteApplicationScope ApplicationScope { get; private set; }
+    public Guid? ProductId { get; private set; }
+    public Guid? ProductSkuId { get; private set; }
+    public Guid? ProductCategoryId { get; private set; }
+    public bool IsActive { get; private set; }
+
+    public static InventoryRoute Create(InventoryRouteDto dto, string userId)
+    {
+        var route = new InventoryRoute { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow, CreatedBy = userId };
+        route.Apply(dto, userId);
+        return route;
+    }
+
+    public void Update(InventoryRouteDto dto, string userId) => Apply(dto, userId);
+
+    public void Remove(string userId)
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        DeletedBy = userId;
+    }
+
+    public InventoryRouteDto ToDto() => new()
+    {
+        Id = Id,
+        CompanyId = CompanyId,
+        WarehouseId = WarehouseId,
+        Code = Code,
+        Name = Name,
+        NameEng = NameEng,
+        ApplicationScope = ApplicationScope,
+        ProductId = ProductId,
+        ProductSkuId = ProductSkuId,
+        ProductCategoryId = ProductCategoryId,
+        IsActive = IsActive
+    };
+
+    private void Apply(InventoryRouteDto dto, string userId)
+    {
+        CompanyId = dto.CompanyId;
+        WarehouseId = dto.WarehouseId;
+        Code = dto.Code;
+        Name = dto.Name;
+        NameEng = dto.NameEng;
+        ApplicationScope = dto.ApplicationScope;
+        ProductId = dto.ProductId;
+        ProductSkuId = dto.ProductSkuId;
+        ProductCategoryId = dto.ProductCategoryId;
+        IsActive = dto.IsActive;
+        ModifiedAt = DateTime.UtcNow;
+        ModifiedBy = userId;
+    }
+}
+
+public class InventoryRouteRule : Aggregate<Guid>
+{
+    private InventoryRouteRule() { }
+
+    public Guid CompanyId { get; private set; }
+    public Guid RouteId { get; private set; }
+    public Guid WarehouseId { get; private set; }
+    public Guid OperationTypeId { get; private set; }
+    public InventoryRouteRuleAction Action { get; private set; }
+    public Guid SourceLocationId { get; private set; }
+    public Guid DestinationLocationId { get; private set; }
+    public Guid? ProductId { get; private set; }
+    public Guid? ProductSkuId { get; private set; }
+    public Guid? ProductCategoryId { get; private set; }
+    public int Priority { get; private set; }
+    public bool IsActive { get; private set; }
+
+    public static InventoryRouteRule Create(InventoryRouteRuleDto dto, string userId)
+    {
+        var rule = new InventoryRouteRule { Id = Guid.NewGuid(), CreatedAt = DateTime.UtcNow, CreatedBy = userId };
+        rule.Apply(dto, userId);
+        return rule;
+    }
+
+    public void Update(InventoryRouteRuleDto dto, string userId) => Apply(dto, userId);
+
+    public void Remove(string userId)
+    {
+        IsDeleted = true;
+        DeletedAt = DateTime.UtcNow;
+        DeletedBy = userId;
+    }
+
+    public InventoryRouteRuleDto ToDto() => new()
+    {
+        Id = Id,
+        CompanyId = CompanyId,
+        RouteId = RouteId,
+        WarehouseId = WarehouseId,
+        OperationTypeId = OperationTypeId,
+        Action = Action,
+        SourceLocationId = SourceLocationId,
+        DestinationLocationId = DestinationLocationId,
+        ProductId = ProductId,
+        ProductSkuId = ProductSkuId,
+        ProductCategoryId = ProductCategoryId,
+        Priority = Priority,
+        IsActive = IsActive
+    };
+
+    private void Apply(InventoryRouteRuleDto dto, string userId)
+    {
+        CompanyId = dto.CompanyId;
+        RouteId = dto.RouteId;
+        WarehouseId = dto.WarehouseId;
+        OperationTypeId = dto.OperationTypeId;
+        Action = dto.Action;
+        SourceLocationId = dto.SourceLocationId;
+        DestinationLocationId = dto.DestinationLocationId;
+        ProductId = dto.ProductId;
+        ProductSkuId = dto.ProductSkuId;
+        ProductCategoryId = dto.ProductCategoryId;
+        Priority = dto.Priority;
         IsActive = dto.IsActive;
         ModifiedAt = DateTime.UtcNow;
         ModifiedBy = userId;

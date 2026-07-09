@@ -59,6 +59,17 @@
                 </Actions>
             </FilterBar>
 
+            @if (HasSmartFilter)
+            {
+                <div class="erp-chip-row mb-3">
+                    <StatusChip Tone="info" Text="@SmartFilterText()" />
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="ClearSmartFilter">
+                        <i class="bi bi-x-lg"></i>
+                        @SharedDataService.SelectViewLang("Clear filter", "مسح التصفية")
+                    </button>
+                </div>
+            }
+
             <div class="erp-table-wrap">
                 <table class="table erp-table mb-0">
                     <thead>
@@ -67,6 +78,10 @@
                             <th>@SharedDataService.SelectViewLang("Date", "التاريخ")</th>
                             <th>@SharedDataService.SelectViewLang("Supplier", "المورد")</th>
                             <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
+                            @if (ShowsPurchaseControlChips)
+                            {
+                                <th>@SharedDataService.SelectViewLang("Controls", "الضوابط")</th>
+                            }
                             @if (ShowCommercialAmounts)
                             {
                                 <th>@SharedDataService.SelectViewLang("Total", "الإجمالي")</th>
@@ -93,7 +108,18 @@
                                 </td>
                                 <td>@document.DocumentDate.ToShortDateString()</td>
                                 <td>@(string.IsNullOrWhiteSpace(document.SupplierName) ? "-" : document.SupplierName)</td>
-                                <td><span class="badge text-bg-light">@document.Status</span></td>
+                                <td><StatusChip Text="@StatusText(document.Status)" Tone="@StatusTone(document.Status)" /></td>
+                                @if (ShowsPurchaseControlChips)
+                                {
+                                    <td>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @foreach (var chip in ControlChips(document))
+                                            {
+                                                <StatusChip Text="@chip.Text" Tone="@chip.Tone" />
+                                            }
+                                        </div>
+                                    </td>
+                                }
                                 @if (ShowCommercialAmounts)
                                 {
                                     <td>@document.TotalAmount.ToString("N2")</td>
@@ -122,6 +148,9 @@
 
 @code {
     [Parameter] public string? KindRoute { get; set; }
+    [SupplyParameterFromQuery] public Guid? SupplierId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductSkuId { get; set; }
 
     private ProcurementDocumentKind kind;
     private (string En, string Ar, string Icon, string Permission) Meta;
@@ -136,11 +165,13 @@
     private bool CanEdit => HasPermission(ProcurementUiText.EditPermission(kind));
     private bool CanDelete => HasPermission(ProcurementUiText.DeletePermission(kind));
     private bool ShowCommercialAmounts => kind is not ProcurementDocumentKind.PurchaseRequest and not ProcurementDocumentKind.RequestForQuotation;
-    private int TableColumnCount => ShowCommercialAmounts ? 6 : 5;
+    private bool ShowsPurchaseControlChips => kind is ProcurementDocumentKind.RequestForQuotation or ProcurementDocumentKind.PurchaseOrder or ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.SupplierInvoice;
+    private int TableColumnCount => 5 + (ShowCommercialAmounts ? 1 : 0) + (ShowsPurchaseControlChips ? 1 : 0);
     private List<ProcurementDocumentDto> FilteredDocuments => string.IsNullOrWhiteSpace(statusFilter)
         ? documents
         : documents.Where(x => string.Equals(x.Status, statusFilter, StringComparison.OrdinalIgnoreCase)).ToList();
     private List<string> StatusOptions => documents.Select(x => x.Status).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x => x).ToList();
+    private bool HasSmartFilter => SupplierId.HasValue || ProductId.HasValue || ProductSkuId.HasValue;
     private string DisplaySourceReferenceText(ProcurementDocumentDto document) =>
         kind switch
         {
@@ -176,7 +207,7 @@
 
     private async Task LoadAsync()
     {
-        var response = await ProcurementService.GetAsync(kind, companyId, 1, 50, searchText);
+        var response = await ProcurementService.GetAsync(kind, companyId, 1, 50, searchText, SupplierId, ProductId, ProductSkuId);
         if (response.IsSuccess)
             documents = response.Data?.Data?.ToList() ?? [];
         else
@@ -199,6 +230,20 @@
     }
 
     private void Open(Guid id) => NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}/Detail/{id}");
+
+    private string SmartFilterText()
+    {
+        if (SupplierId.HasValue)
+            return SharedDataService.SelectViewLang("Filtered by supplier", "مصفى حسب المورد");
+        if (ProductSkuId.HasValue)
+            return SharedDataService.SelectViewLang("Filtered by SKU", "مصفى حسب وحدة المنتج");
+        if (ProductId.HasValue)
+            return SharedDataService.SelectViewLang("Filtered by product", "مصفى حسب المنتج");
+        return SharedDataService.SelectViewLang("Filtered", "مصفى");
+    }
+
+    private void ClearSmartFilter() =>
+        NavigationManager.NavigateTo($"/Procurement/{ProcurementUiText.Route(kind)}");
 
     private async Task DeleteAsync(Guid id)
     {
@@ -237,6 +282,75 @@
 
     private bool CanDeleteDocument(ProcurementDocumentDto document) =>
         CanDelete && ProcurementUiText.CanDeleteDocument(kind, document.Status);
+
+    private IEnumerable<(string Text, string Tone)> ControlChips(ProcurementDocumentDto document)
+    {
+        if (kind == ProcurementDocumentKind.RequestForQuotation && document.SentAt.HasValue)
+            yield return (SharedDataService.SelectViewLang("Sent", "مرسل"), "info");
+
+        if (kind is ProcurementDocumentKind.PurchaseOrder or ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.SupplierInvoice)
+        {
+            yield return (BillControlPolicyText(document.BillControlPolicy), "muted");
+            yield return (document.IsBillable
+                ? SharedDataService.SelectViewLang("Billable", "قابل للفوترة")
+                : SharedDataService.SelectViewLang("Not billable", "غير قابل للفوترة"), document.IsBillable ? "success" : "muted");
+            yield return (ThreeWayMatchStatusText(document.ThreeWayMatchStatus), ThreeWayMatchTone(document.ThreeWayMatchStatus));
+        }
+
+        if (kind == ProcurementDocumentKind.PurchaseOrder)
+        {
+            var received = document.Lines.Sum(x => x.ReceivedQuantity);
+            var ordered = document.Lines.Sum(x => x.Quantity);
+            var billed = document.Lines.Sum(x => x.BilledQuantity);
+            if (received > 0 && received < ordered)
+                yield return (SharedDataService.SelectViewLang("Partially received", "مستلم جزئياً"), "warning");
+            if (billed > 0 && billed < ordered)
+                yield return (SharedDataService.SelectViewLang("Partially billed", "مفوتر جزئياً"), "warning");
+        }
+    }
+
+    private string StatusText(string? status) =>
+        string.IsNullOrWhiteSpace(status) ? SharedDataService.SelectViewLang("Unknown", "غير معروف") : status;
+
+    private static string StatusTone(string? status) =>
+        status switch
+        {
+            "Approved" or "Accepted" or "Posted" or "Matched" or "Received" => "success",
+            "Submitted" or "Sent" or "PartiallyReceived" => "info",
+            "Draft" => "muted",
+            "Rejected" or "Cancelled" => "danger",
+            "Closed" or "Converted" => "primary",
+            _ => "muted"
+        };
+
+    private string BillControlPolicyText(PurchaseBillControlPolicy policy) =>
+        policy switch
+        {
+            PurchaseBillControlPolicy.OrderedQuantities => SharedDataService.SelectViewLang("Ordered qty", "كميات الطلب"),
+            PurchaseBillControlPolicy.ReceivedQuantities => SharedDataService.SelectViewLang("Received qty", "كميات الاستلام"),
+            _ => policy.ToString()
+        };
+
+    private string ThreeWayMatchStatusText(ThreeWayMatchStatus status) =>
+        status switch
+        {
+            ThreeWayMatchStatus.NotRequired => SharedDataService.SelectViewLang("No 3-way", "لا توجد مطابقة"),
+            ThreeWayMatchStatus.PendingReceipt => SharedDataService.SelectViewLang("Pending receipt", "بانتظار الاستلام"),
+            ThreeWayMatchStatus.ReadyToBill => SharedDataService.SelectViewLang("Ready to bill", "جاهز للفوترة"),
+            ThreeWayMatchStatus.Matched => SharedDataService.SelectViewLang("Matched", "مطابق"),
+            ThreeWayMatchStatus.Exception => SharedDataService.SelectViewLang("Match exception", "استثناء مطابقة"),
+            _ => status.ToString()
+        };
+
+    private static string ThreeWayMatchTone(ThreeWayMatchStatus status) =>
+        status switch
+        {
+            ThreeWayMatchStatus.Matched => "success",
+            ThreeWayMatchStatus.ReadyToBill => "info",
+            ThreeWayMatchStatus.PendingReceipt => "warning",
+            ThreeWayMatchStatus.Exception => "danger",
+            _ => "muted"
+        };
 
     private string EditTitle(ProcurementDocumentDto document) =>
         CanEdit

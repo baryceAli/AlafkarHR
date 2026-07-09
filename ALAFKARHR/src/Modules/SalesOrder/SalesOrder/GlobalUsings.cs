@@ -20,5 +20,7 @@ global using Microsoft.AspNetCore.Builder;
 global using Microsoft.AspNetCore.Mvc;
 global using Microsoft.AspNetCore.Routing;
 global using SharedWithUI.Permissions;
+global using SharedWithUI.SharedDtos;
 global using Pricing.Contracts.Pricings.Features.ResolvePrice;
 global using Customers.Contracts.Customers.Features.GetCustomerSalesEligibility;
+global using Customers.Contracts.Customers.Features.ValidateCustomerAddresses;

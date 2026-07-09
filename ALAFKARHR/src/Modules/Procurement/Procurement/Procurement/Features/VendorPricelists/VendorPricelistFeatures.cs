@@ -1,6 +1,6 @@
 namespace Procurement.Procurement.Features;
 
-public record GetVendorPricelistsQuery(Guid CompanyId) : IQuery<GetVendorPricelistsResult>;
+public record GetVendorPricelistsQuery(Guid CompanyId, Guid? SupplierId = null, Guid? ProductId = null, Guid? ProductSkuId = null) : IQuery<GetVendorPricelistsResult>;
 public record GetVendorPricelistsResult(IReadOnlyCollection<VendorPricelistDto> Items);
 public record UpsertVendorPricelistCommand(VendorPricelistDto Item) : ICommand<CreateProcurementEnhancementResult>;
 public record DeleteVendorPricelistCommand(Guid Id) : ICommand;
@@ -24,8 +24,19 @@ public class GetVendorPricelistsHandler(ProcurementDbContext dbContext)
 {
     public async Task<GetVendorPricelistsResult> Handle(GetVendorPricelistsQuery request, CancellationToken cancellationToken)
     {
-        var items = await dbContext.VendorPricelists.AsNoTracking()
-            .Where(x => x.CompanyId == request.CompanyId)
+        var query = dbContext.VendorPricelists.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId);
+
+        if (request.SupplierId.HasValue)
+            query = query.Where(x => x.SupplierId == request.SupplierId.Value);
+
+        if (request.ProductId.HasValue)
+            query = query.Where(x => x.ProductId == request.ProductId.Value);
+
+        if (request.ProductSkuId.HasValue)
+            query = query.Where(x => x.ProductSkuId == request.ProductSkuId.Value);
+
+        var items = await query
             .OrderBy(x => x.SupplierName).ThenByDescending(x => x.ValidFrom)
             .ToListAsync(cancellationToken);
         return new GetVendorPricelistsResult(items.Select(x => x.ToDto()).ToList());

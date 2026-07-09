@@ -1,6 +1,6 @@
 namespace Procurement.Procurement.Features;
 
-public record GetSupplierItemsQuery(Guid CompanyId) : IQuery<GetSupplierItemsResult>;
+public record GetSupplierItemsQuery(Guid CompanyId, Guid? SupplierId = null, Guid? ProductId = null, Guid? ProductSkuId = null) : IQuery<GetSupplierItemsResult>;
 public record GetSupplierItemsResult(IReadOnlyCollection<SupplierItemDto> Items);
 public record UpsertSupplierItemCommand(SupplierItemDto Item) : ICommand<CreateProcurementEnhancementResult>;
 public record DeleteSupplierItemCommand(Guid Id) : ICommand;
@@ -24,8 +24,19 @@ public class GetSupplierItemsHandler(ProcurementDbContext dbContext)
 {
     public async Task<GetSupplierItemsResult> Handle(GetSupplierItemsQuery request, CancellationToken cancellationToken)
     {
-        var items = await dbContext.SupplierItems.AsNoTracking()
-            .Where(x => x.CompanyId == request.CompanyId)
+        var query = dbContext.SupplierItems.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId);
+
+        if (request.SupplierId.HasValue)
+            query = query.Where(x => x.SupplierId == request.SupplierId.Value);
+
+        if (request.ProductId.HasValue)
+            query = query.Where(x => x.ProductId == request.ProductId.Value);
+
+        if (request.ProductSkuId.HasValue)
+            query = query.Where(x => x.ProductSkuId == request.ProductSkuId.Value);
+
+        var items = await query
             .OrderBy(x => x.SupplierName).ThenBy(x => x.ProductNameEng ?? x.ProductName)
             .ToListAsync(cancellationToken);
         return new GetSupplierItemsResult(items.Select(x => x.ToDto()).ToList());

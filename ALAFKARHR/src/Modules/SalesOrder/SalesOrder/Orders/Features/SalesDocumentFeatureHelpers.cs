@@ -58,6 +58,7 @@ internal static class SalesDocumentFeatureHelpers
         CustomerId = quotation.CustomerId,
         CustomerName = quotation.CustomerName,
         PriceListId = quotation.PriceListId,
+        QuotationTemplateId = quotation.QuotationTemplateId,
         CouponCode = quotation.CouponCode,
         SalespersonId = quotation.SalespersonId,
         Status = quotation.Status,
@@ -65,6 +66,8 @@ internal static class SalesDocumentFeatureHelpers
         ValidUntil = quotation.ValidUntil,
         Notes = quotation.Notes,
         Terms = quotation.Terms,
+        InvoiceAddressId = quotation.InvoiceAddressId,
+        DeliveryAddressId = quotation.DeliveryAddressId,
         Subtotal = quotation.Subtotal,
         TaxAmount = quotation.TaxAmount,
         TotalAmount = quotation.TotalAmount,
@@ -74,6 +77,11 @@ internal static class SalesDocumentFeatureHelpers
         RejectedAt = quotation.RejectedAt,
         ConvertedAt = quotation.ConvertedAt,
         RejectionReason = quotation.RejectionReason,
+        RequiresCustomerSignature = quotation.RequiresCustomerSignature,
+        RequiresOnlinePayment = quotation.RequiresOnlinePayment,
+        DownPaymentAmount = quotation.DownPaymentAmount,
+        DownPaymentPercent = quotation.DownPaymentPercent,
+        IsProForma = quotation.IsProForma,
         Lines = quotation.Lines.OrderBy(x => x.LineNumber).Select(x => new SalesQuotationLineDto
         {
             Id = x.Id,
@@ -89,6 +97,7 @@ internal static class SalesDocumentFeatureHelpers
             DiscountRate = x.DiscountRate,
             TaxRate = x.TaxRate,
             Notes = x.Notes,
+            IsOptional = x.IsOptional,
             Pricing = x.ToPricing()
         }).ToList()
     };

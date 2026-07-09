@@ -1,6 +1,6 @@
 namespace Procurement.Procurement.Features;
 
-public record GetReorderingRulesQuery(Guid CompanyId) : IQuery<GetReorderingRulesResult>;
+public record GetReorderingRulesQuery(Guid CompanyId, Guid? SupplierId = null, Guid? ProductId = null, Guid? ProductSkuId = null) : IQuery<GetReorderingRulesResult>;
 public record GetReorderingRulesResult(IReadOnlyCollection<ReorderingRuleDto> Items);
 public record UpsertReorderingRuleCommand(ReorderingRuleDto Item) : ICommand<CreateProcurementEnhancementResult>;
 public record DeleteReorderingRuleCommand(Guid Id) : ICommand;
@@ -14,8 +14,11 @@ public class ReorderingRuleValidator : AbstractValidator<UpsertReorderingRuleCom
         RuleFor(x => x.Item.ProductSkuId).NotEmpty();
         RuleFor(x => x.Item.MinimumQuantity).GreaterThanOrEqualTo(0);
         RuleFor(x => x.Item.MaximumQuantity).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Item.MaximumQuantity).GreaterThanOrEqualTo(x => x.Item.MinimumQuantity);
         RuleFor(x => x.Item.ReorderQuantity).GreaterThan(0);
+        RuleFor(x => x.Item.MultipleQuantity).GreaterThanOrEqualTo(0);
         RuleFor(x => x.Item.LeadTimeDays).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Item.HorizonDays).GreaterThanOrEqualTo(0);
     }
 }
 
@@ -24,8 +27,19 @@ public class GetReorderingRulesHandler(ProcurementDbContext dbContext)
 {
     public async Task<GetReorderingRulesResult> Handle(GetReorderingRulesQuery request, CancellationToken cancellationToken)
     {
-        var items = await dbContext.ReorderingRules.AsNoTracking()
-            .Where(x => x.CompanyId == request.CompanyId)
+        var query = dbContext.ReorderingRules.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId);
+
+        if (request.SupplierId.HasValue)
+            query = query.Where(x => x.SupplierId == request.SupplierId.Value);
+
+        if (request.ProductId.HasValue)
+            query = query.Where(x => x.ProductId == request.ProductId.Value);
+
+        if (request.ProductSkuId.HasValue)
+            query = query.Where(x => x.ProductSkuId == request.ProductSkuId.Value);
+
+        var items = await query
             .OrderBy(x => x.ProductSkuId)
             .ToListAsync(cancellationToken);
         return new GetReorderingRulesResult(items.Select(x => x.ToDto()).ToList());

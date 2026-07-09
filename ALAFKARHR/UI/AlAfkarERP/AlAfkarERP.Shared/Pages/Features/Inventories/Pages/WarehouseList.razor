@@ -7,11 +7,13 @@
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Inventory.Dtos
+@using SharedWithUI.Inventory.Enums
 @using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 
 
 @inject IWarehouseService WarehouseService
+@inject IInventoryService InventoryService
 @inject IBranchService BranchService
 @inject ToastService ToastService
 @inject ModalService ModalService
@@ -83,6 +85,8 @@
             <table class="table erp-table mb-0">
         <thead>
             <tr>
+                <th>@SharedDataService.SelectViewLang("Code", "الرمز")</th>
+                <th>@SharedDataService.SelectViewLang("Flows", "المسارات")</th>
                 <th @onclick="() => Sort(nameof(WarehouseDto.Name))">
                     <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
                     @SharedDataService.SelectViewLang("Name", "الاسم")
@@ -132,6 +136,31 @@
                                         </div>
 
                                         <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Short code", "الرمز المختصر")</label>
+                                            <InputText class="form-control" @bind-Value="editingItem.ShortCode" maxlength="20" />
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Inbound flow", "مسار الاستلام")</label>
+                                            <InputSelect class="form-select" @bind-Value="editingItem.InboundFlow">
+                                                @foreach (var flow in Enum.GetValues<WarehouseOperationFlow>())
+                                                {
+                                                    <option value="@flow">@FlowLabel(flow)</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label class="form-label">@SharedDataService.SelectViewLang("Outbound flow", "مسار التسليم")</label>
+                                            <InputSelect class="form-select" @bind-Value="editingItem.OutboundFlow">
+                                                @foreach (var flow in Enum.GetValues<WarehouseOperationFlow>())
+                                                {
+                                                    <option value="@flow">@FlowLabel(flow)</option>
+                                                }
+                                            </InputSelect>
+                                        </div>
+
+                                        <div class="col-md-4">
                                             <label class="form-label">@SharedDataService.SelectViewLang("Longitude", "خط الطول")</label>
                                             <InputNumber class="form-control" @bind-Value="editingItem.Longitude" />
                                             <ValidationMessage For="()=> editingItem.Longitude"/>
@@ -159,6 +188,63 @@
 
                                         <div class="col-12">
                                             <label class="form-label">@SharedDataService.SelectViewLang("Address", "العنوان")</label>
+                                            <div class="fw-semibold mb-2">@SharedDataService.SelectViewLang("Resupply from", "إعادة الإمداد من")</div>
+                                            <div class="row g-2 mb-3">
+                                                @foreach (var sourceWarehouse in ResupplyCandidates(editingItem.Id))
+                                                {
+                                                    <div class="col-md-4 col-lg-3">
+                                                        <label class="form-check border rounded p-2 h-100">
+                                                            <input class="form-check-input"
+                                                                   type="checkbox"
+                                                                   checked="@IsResupplySelected(editingItem, sourceWarehouse.Id)"
+                                                                   @onchange="args => ToggleResupplyWarehouse(editingItem, sourceWarehouse.Id, args)" />
+                                                            <span class="form-check-label ms-1">@WarehouseName(sourceWarehouse)</span>
+                                                        </label>
+                                                    </div>
+                                                }
+                                            </div>
+
+                                            <div class="fw-semibold mb-2">@SharedDataService.SelectViewLang("Default operation locations", "مواقع العمليات الافتراضية")</div>
+                                            <div class="row g-3 mb-3">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">@SharedDataService.SelectViewLang("Source / Stock", "المصدر / المخزون")</label>
+                                                    <select class="form-select" value="@LocationEditValue(editingItem.DefaultSourceLocationId)" @onchange="args => editingItem.DefaultSourceLocationId = ParseLocationValue(args.Value?.ToString())">
+                                                        @LocationOptions(editingItem.Id)
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">@SharedDataService.SelectViewLang("Destination / Input", "الوجهة / الاستلام")</label>
+                                                    <select class="form-select" value="@LocationEditValue(editingItem.DefaultDestinationLocationId)" @onchange="args => editingItem.DefaultDestinationLocationId = ParseLocationValue(args.Value?.ToString())">
+                                                        @LocationOptions(editingItem.Id)
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">@SharedDataService.SelectViewLang("Quality", "الجودة")</label>
+                                                    <select class="form-select" value="@LocationEditValue(editingItem.DefaultQualityLocationId)" @onchange="args => editingItem.DefaultQualityLocationId = ParseLocationValue(args.Value?.ToString())">
+                                                        @LocationOptions(editingItem.Id)
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">@SharedDataService.SelectViewLang("Packing", "التعبئة")</label>
+                                                    <select class="form-select" value="@LocationEditValue(editingItem.DefaultPackingLocationId)" @onchange="args => editingItem.DefaultPackingLocationId = ParseLocationValue(args.Value?.ToString())">
+                                                        @LocationOptions(editingItem.Id)
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">@SharedDataService.SelectViewLang("Output", "الإخراج")</label>
+                                                    <select class="form-select" value="@LocationEditValue(editingItem.DefaultOutputLocationId)" @onchange="args => editingItem.DefaultOutputLocationId = ParseLocationValue(args.Value?.ToString())">
+                                                        @LocationOptions(editingItem.Id)
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-4">
+                                                    <label class="form-label">@SharedDataService.SelectViewLang("Transit", "النقل")</label>
+                                                    <select class="form-select" value="@LocationEditValue(editingItem.DefaultTransitLocationId)" @onchange="args => editingItem.DefaultTransitLocationId = ParseLocationValue(args.Value?.ToString())">
+                                                        @LocationOptions(editingItem.Id)
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="form-text mb-3">@SharedDataService.SelectViewLang("Required missing locations are created automatically from the short code when saving.", "يتم إنشاء المواقع المطلوبة الناقصة تلقائيا من الرمز المختصر عند الحفظ.")</div>
+
                                             <InputTextArea class="form-control" @bind-Value="editingItem.Address" />
                                         </div>
 
@@ -181,6 +267,11 @@
             {
                 
                 <tr>
+                    <td><span class="badge bg-light text-dark border">@(!string.IsNullOrWhiteSpace(warehouse.ShortCode) ? warehouse.ShortCode : "-")</span></td>
+                    <td>
+                        <div class="small">@SharedDataService.SelectViewLang("In", "وارد"): @FlowLabel(warehouse.InboundFlow)</div>
+                        <div class="small text-muted">@SharedDataService.SelectViewLang("Out", "صادر"): @FlowLabel(warehouse.OutboundFlow)</div>
+                    </td>
                     <td>@SharedDataService.SelectViewLang(warehouse.NameEng,warehouse.Name)</td>
                     <td>@warehouse.Location</td>
                     <td><span class="badge bg-light text-dark border">@BranchScopeLabel(warehouse.BranchId)</span></td>
@@ -235,11 +326,13 @@
 
 @code {
     private List<WarehouseDto> warehouses = new();
+    private List<WarehouseDto> resupplyWarehouses = new();
     private Guid? editingWarehouseId;
     private Guid companyId;
     private bool isEdit = false;
     private AuthenticationState AuthState;
     private List<BranchDto> branches = [];
+    private List<WarehouseLocationDto> warehouseLocations = [];
     private bool canViewAllBranches;
     private string branchFilterText = string.Empty;
     protected override async Task OnInitializedAsync()
@@ -257,6 +350,7 @@
         }
         await LoadBranchAccessAsync();
         await LoadWarehouse();
+        await LoadWarehouseLocations();
     }
     // Branch
     void CreateNew()
@@ -339,6 +433,7 @@
         }
 
         await LoadWarehouse();
+        await LoadWarehouseLocations();
         editingWarehouseId = null;
     }
 
@@ -445,7 +540,88 @@
             // TotalPages = (int)response.Data!.Count;
             TotalPages = (int)Math.Ceiling(response.Data!.Count / (double)pageSize);
         }
+
+        var resupplyResponse = await WarehouseService.GetAsync(companyId, 0, 1000, string.Empty, ParseBranchFilter());
+        if (resupplyResponse.IsSuccess)
+        {
+            resupplyWarehouses = resupplyResponse.Data?.Data.ToList() ?? [];
+        }
     }
+
+    private async Task LoadWarehouseLocations()
+    {
+        var response = await InventoryService.GetWarehouseLocationsAsync(companyId);
+        if (response.IsSuccess)
+        {
+            warehouseLocations = response.Data ?? [];
+        }
+    }
+
+    private IEnumerable<WarehouseLocationDto> ActiveLocationsFor(Guid warehouseId) =>
+        warehouseLocations
+            .Where(x => x.WarehouseId == warehouseId && x.IsActive)
+            .OrderBy(x => x.Code);
+
+    private RenderFragment LocationOptions(Guid warehouseId) => builder =>
+    {
+        var sequence = 0;
+        builder.OpenElement(sequence++, "option");
+        builder.AddAttribute(sequence++, "value", string.Empty);
+        builder.AddContent(sequence++, SharedDataService.SelectViewLang("Auto / none", "تلقائي / لا يوجد"));
+        builder.CloseElement();
+
+        foreach (var location in ActiveLocationsFor(warehouseId))
+        {
+            builder.OpenElement(sequence++, "option");
+            builder.AddAttribute(sequence++, "value", location.Id.ToString());
+            builder.AddContent(sequence++, LocationName(location));
+            builder.CloseElement();
+        }
+    };
+
+    private string LocationEditValue(Guid? locationId) => locationId?.ToString() ?? string.Empty;
+
+    private Guid? ParseLocationValue(string? value) =>
+        Guid.TryParse(value, out var locationId) ? locationId : null;
+
+    private string LocationName(WarehouseLocationDto location)
+    {
+        var name = SharedDataService.SelectViewLang(location.NameEng, location.Name);
+        return string.IsNullOrWhiteSpace(location.Code) ? name : $"{location.Code} - {name}";
+    }
+
+    private IEnumerable<WarehouseDto> ResupplyCandidates(Guid currentWarehouseId) =>
+        resupplyWarehouses.Where(x => x.Id != currentWarehouseId);
+
+    private bool IsResupplySelected(WarehouseDto warehouse, Guid sourceWarehouseId) =>
+        warehouse.ResupplyFromWarehouseIds?.Contains(sourceWarehouseId) == true;
+
+    private void ToggleResupplyWarehouse(WarehouseDto warehouse, Guid sourceWarehouseId, ChangeEventArgs args)
+    {
+        warehouse.ResupplyFromWarehouseIds ??= [];
+        var isChecked = args.Value is bool value && value;
+        if (isChecked)
+        {
+            if (!warehouse.ResupplyFromWarehouseIds.Contains(sourceWarehouseId))
+                warehouse.ResupplyFromWarehouseIds.Add(sourceWarehouseId);
+        }
+        else
+        {
+            warehouse.ResupplyFromWarehouseIds.Remove(sourceWarehouseId);
+        }
+    }
+
+    private string WarehouseName(WarehouseDto warehouse) =>
+        SharedDataService.SelectViewLang(warehouse.NameEng, warehouse.Name);
+
+    private string FlowLabel(WarehouseOperationFlow flow) =>
+        flow switch
+        {
+            WarehouseOperationFlow.TwoStep => SharedDataService.SelectViewLang("Two-step", "خطوتان"),
+            WarehouseOperationFlow.ThreeStep => SharedDataService.SelectViewLang("Three-step", "ثلاث خطوات"),
+            _ => SharedDataService.SelectViewLang("One-step", "خطوة واحدة")
+        };
+
     private Guid? ParseBranchFilter() =>
         Guid.TryParse(branchFilterText, out var branchId) ? branchId : null;
 

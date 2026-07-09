@@ -1,0 +1,309 @@
+@page "/Sales/QuotationTemplates"
+@layout AdminLayout
+
+@using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.SalesOrder.Dtos
+
+@implements IDisposable
+@inject ISalesService SalesService
+@inject IProductService ProductService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Quotation Templates", "Quotation Templates")"
+                Subtitle="@Text("Create reusable quotation defaults and optional product lines.", "Create reusable quotation defaults and optional product lines.")"
+                Overline="@Text("Sales", "Sales")"
+                Icon="bi bi-layout-text-window" />
+
+    @if (isLoading)
+    {
+        <div class="erp-loading py-5">
+            <div class="spinner-border text-primary"></div>
+            <div class="mt-2">@Text("Loading quotation templates...", "Loading quotation templates...")</div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3">
+            <div class="col-xl-5">
+                <AppCard Title="@Text(editing.Id == Guid.Empty ? "New Template" : "Edit Template", editing.Id == Guid.Empty ? "New Template" : "Edit Template")">
+                    <EditForm Model="editing" OnValidSubmit="SaveAsync">
+                        <DataAnnotationsValidator />
+                        <div class="vstack gap-3">
+                            <div>
+                                <label class="form-label">@Text("Name", "Name")</label>
+                                <InputText class="form-control" @bind-Value="editing.Name" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Description", "Description")</label>
+                                <InputText class="form-control" @bind-Value="editing.Description" />
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <label class="form-label">@Text("Validity days", "Validity days")</label>
+                                    <InputNumber class="form-control" @bind-Value="editing.ValidityDays" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">@Text("Down amount", "Down amount")</label>
+                                    <InputNumber class="form-control" @bind-Value="editing.DownPaymentAmount" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">@Text("Down %", "Down %")</label>
+                                    <InputNumber class="form-control" @bind-Value="editing.DownPaymentPercent" />
+                                </div>
+                            </div>
+                            <div class="d-flex flex-wrap gap-3">
+                                <label class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="editing.RequiresCustomerSignature" />
+                                    <span class="form-check-label">@Text("Signature", "Signature")</span>
+                                </label>
+                                <label class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="editing.RequiresOnlinePayment" />
+                                    <span class="form-check-label">@Text("Online payment", "Online payment")</span>
+                                </label>
+                                <label class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="editing.IsProForma" />
+                                    <span class="form-check-label">@Text("Pro-forma", "Pro-forma")</span>
+                                </label>
+                                <label class="form-check">
+                                    <InputCheckbox class="form-check-input" @bind-Value="editing.IsActive" />
+                                    <span class="form-check-label">@Text("Active", "Active")</span>
+                                </label>
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Notes", "Notes")</label>
+                                <InputTextArea class="form-control" rows="2" @bind-Value="editing.Notes" />
+                            </div>
+                            <div>
+                                <label class="form-label">@Text("Terms", "Terms")</label>
+                                <InputTextArea class="form-control" rows="2" @bind-Value="editing.Terms" />
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>@Text("Lines", "Lines")</strong>
+                                <button type="button" class="btn btn-sm btn-outline-primary" @onclick="AddLine">
+                                    <i class="bi bi-plus-lg"></i> @Text("Add", "Add")
+                                </button>
+                            </div>
+                            <div class="erp-table-wrap">
+                                <table class="erp-table table align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>@Text("SKU", "SKU")</th>
+                                            <th>@Text("Qty", "Qty")</th>
+                                            <th>@Text("Price", "Price")</th>
+                                            <th>@Text("Optional", "Optional")</th>
+                                            <th></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var line in editing.Lines)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <select class="form-select form-select-sm" @onchange="e => SelectLineSku(line, e.Value?.ToString())">
+                                                        <option value="">@Text("Select SKU", "Select SKU")</option>
+                                                        @foreach (var sku in skus)
+                                                        {
+                                                            <option value="@sku.Id" selected="@(sku.Id == line.ProductSkuId)">@SkuText(sku)</option>
+                                                        }
+                                                    </select>
+                                                </td>
+                                                <td><InputNumber class="form-control form-control-sm" @bind-Value="line.Quantity" /></td>
+                                                <td><InputNumber class="form-control form-control-sm" @bind-Value="line.UnitPrice" /></td>
+                                                <td><InputCheckbox class="form-check-input" @bind-Value="line.IsOptional" /></td>
+                                                <td class="text-end">
+                                                    <button type="button" class="btn btn-sm btn-outline-danger" @onclick="() => RemoveLine(line)">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-save"></i> @Text("Save", "Save")
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" @onclick="ResetForm">
+                                    @Text("Reset", "Reset")
+                                </button>
+                            </div>
+                        </div>
+                    </EditForm>
+                </AppCard>
+            </div>
+            <div class="col-xl-7">
+                <AppCard Title="@Text("Saved Templates", "Saved Templates")">
+                    <div class="erp-table-wrap">
+                        <table class="erp-table table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>@Text("Template", "Template")</th>
+                                    <th>@Text("Validity", "Validity")</th>
+                                    <th>@Text("Lines", "Lines")</th>
+                                    <th>@Text("Status", "Status")</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var template in templates)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">@template.Name</div>
+                                            <div class="text-muted small">@template.Description</div>
+                                        </td>
+                                        <td>@template.ValidityDays</td>
+                                        <td>@template.Lines.Count</td>
+                                        <td><StatusChip Text="@(template.IsActive ? Text("Active", "Active") : Text("Inactive", "Inactive"))" Tone="@(template.IsActive ? "success" : "warning")" /></td>
+                                        <td class="text-end">
+                                            <button class="btn btn-sm btn-outline-secondary" @onclick="() => Edit(template)">@Text("Edit", "Edit")</button>
+                                            <button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteAsync(template.Id)">@Text("Delete", "Delete")</button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private Guid companyId;
+    private bool isLoading = true;
+    private SalesQuotationTemplateDto editing = new();
+    private List<SalesQuotationTemplateDto> templates = [];
+    private List<ProductDto> products = [];
+    private List<ProductSkuDto> skus = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var auth = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (!CompanyContext.TryGetCompanyId(auth.User, out companyId))
+        {
+            isLoading = false;
+            return;
+        }
+
+        ResetForm();
+        await LoadLookupsAsync();
+        await LoadTemplatesAsync();
+        isLoading = false;
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        var productResult = await ProductService.GetPricedByCompanyAsync(companyId, null, 0, 500);
+        if (productResult.IsSuccess)
+        {
+            products = productResult.Data?.Data.ToList() ?? [];
+            skus = products.SelectMany(x => x.Skus ?? []).Where(x => x.IsActive && x.IsSellable).ToList();
+        }
+    }
+
+    private async Task LoadTemplatesAsync()
+    {
+        var result = await SalesService.GetQuotationTemplatesAsync(companyId);
+        templates = result.IsSuccess ? result.Data ?? [] : [];
+    }
+
+    private async Task SaveAsync()
+    {
+        editing.CompanyId = companyId;
+        editing.Lines = editing.Lines.Where(x => x.ProductSkuId != Guid.Empty && x.Quantity > 0).ToList();
+        var result = await SalesService.SaveQuotationTemplateAsync(editing);
+        ToastService.Show(new ToastMessage { Type = result.IsSuccess ? "success" : "error", Message = result.IsSuccess ? Text("Saved.", "Saved.") : result.Error?.Detail ?? Text("Save failed.", "Save failed.") });
+        if (result.IsSuccess)
+        {
+            ResetForm();
+            await LoadTemplatesAsync();
+        }
+    }
+
+    private async Task DeleteAsync(Guid id)
+    {
+        var result = await SalesService.DeleteQuotationTemplateAsync(id);
+        ToastService.Show(new ToastMessage { Type = result.IsSuccess ? "success" : "error", Message = result.IsSuccess ? Text("Deleted.", "Deleted.") : result.Error?.Detail ?? Text("Delete failed.", "Delete failed.") });
+        if (result.IsSuccess)
+            await LoadTemplatesAsync();
+    }
+
+    private void Edit(SalesQuotationTemplateDto template)
+    {
+        editing = new SalesQuotationTemplateDto
+        {
+            Id = template.Id,
+            CompanyId = companyId,
+            Name = template.Name,
+            Description = template.Description,
+            ValidityDays = template.ValidityDays,
+            Notes = template.Notes,
+            Terms = template.Terms,
+            RequiresCustomerSignature = template.RequiresCustomerSignature,
+            RequiresOnlinePayment = template.RequiresOnlinePayment,
+            DownPaymentAmount = template.DownPaymentAmount,
+            DownPaymentPercent = template.DownPaymentPercent,
+            IsProForma = template.IsProForma,
+            IsActive = template.IsActive,
+            Lines = template.Lines.Select(x => new SalesQuotationTemplateLineDto
+            {
+                Id = x.Id,
+                ProductId = x.ProductId,
+                ProductSkuId = x.ProductSkuId,
+                ProductName = x.ProductName,
+                ProductNameEng = x.ProductNameEng,
+                SkuCode = x.SkuCode,
+                UnitOfMeasureId = x.UnitOfMeasureId,
+                Quantity = x.Quantity,
+                UnitPrice = x.UnitPrice,
+                DiscountRate = x.DiscountRate,
+                TaxRate = x.TaxRate,
+                Notes = x.Notes,
+                IsOptional = x.IsOptional
+            }).ToList()
+        };
+    }
+
+    private void ResetForm()
+    {
+        editing = new SalesQuotationTemplateDto { CompanyId = companyId, IsActive = true, ValidityDays = 14, Lines = [] };
+    }
+
+    private void AddLine() => editing.Lines.Add(new SalesQuotationTemplateLineDto { Quantity = 1 });
+    private void RemoveLine(SalesQuotationTemplateLineDto line) => editing.Lines.Remove(line);
+
+    private void SelectLineSku(SalesQuotationTemplateLineDto line, string? value)
+    {
+        if (!Guid.TryParse(value, out var skuId))
+            return;
+
+        var sku = skus.FirstOrDefault(x => x.Id == skuId);
+        if (sku is null)
+            return;
+
+        line.ProductId = sku.ProductId;
+        line.ProductSkuId = sku.Id;
+        line.ProductName = sku.Name;
+        line.ProductNameEng = sku.NameEng;
+        line.SkuCode = sku.SkuCode;
+        line.UnitOfMeasureId = sku.UnitId ?? Guid.Empty;
+        line.UnitPrice = sku.Price;
+        line.DiscountRate = sku.DiscountRate;
+        line.TaxRate = sku.TaxRate;
+    }
+
+    private string SkuText(ProductSkuDto sku) => $"{Text(sku.NameEng, sku.Name)} - {sku.SkuCode}";
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

@@ -1,0 +1,167 @@
+@layout AdminLayout
+@page "/Sales/Quotations/{Id:guid}/Print"
+@implements IDisposable
+
+@using AlAfkarERP.Shared.Pages.Features.SalesOrder.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.JSInterop
+@using SharedWithUI.Permissions
+@using SharedWithUI.SalesOrder.Dtos
+
+@inject ISalesService SalesService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+@inject IJSRuntime JSRuntime
+
+<section class="erp-page erp-print-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Quotation", "عرض سعر")"
+                Subtitle="@quotation.Number"
+                Overline="@Text("Sales", "المبيعات")"
+                Icon="bi-printer">
+        <Actions>
+            <button class="btn btn-outline-secondary print-hidden" @onclick='() => NavigationManager.NavigateTo("/Sales/Quotations")'>
+                <i class="bi bi-arrow-left"></i>
+                @Text("Back", "رجوع")
+            </button>
+            <button class="btn btn-primary print-hidden" @onclick="PrintAsync">
+                <i class="bi bi-printer"></i>
+                @Text("Print", "طباعة")
+            </button>
+        </Actions>
+    </PageHeader>
+
+    @if (!CanView)
+    {
+        <div class="alert alert-warning print-hidden">@Text("You don't have permission to view quotations.", "ليست لديك صلاحية عرض عروض الأسعار.")</div>
+    }
+    else if (isLoading)
+    {
+        <div class="erp-loading py-5 print-hidden">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+    }
+    else
+    {
+        <AppCard CssClass="erp-print-document">
+            <div class="print-document-header">
+                <div>
+                    <div class="text-muted small">@Text("Sales quotation", "عرض سعر مبيعات")</div>
+                    <h1>@quotation.Number</h1>
+                </div>
+                <StatusChip Text="@quotation.Status.ToString()" Tone="info" />
+            </div>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="print-field-label">@Text("Customer", "العميل")</div>
+                    <div class="fw-semibold">@(quotation.CustomerName ?? "-")</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="print-field-label">@Text("Quotation date", "تاريخ عرض السعر")</div>
+                    <div>@quotation.QuotationDate.ToString("yyyy-MM-dd")</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="print-field-label">@Text("Valid until", "صالح حتى")</div>
+                    <div>@(quotation.ValidUntil?.ToString("yyyy-MM-dd") ?? "-")</div>
+                </div>
+            </div>
+
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>@Text("Product", "المنتج")</th>
+                            <th>@Text("SKU", "وحدة المنتج")</th>
+                            <th>@Text("Qty", "الكمية")</th>
+                            <th>@Text("Unit price", "سعر الوحدة")</th>
+                            <th>@Text("Tax", "الضريبة")</th>
+                            <th>@Text("Total", "الإجمالي")</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in quotation.Lines)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@Text(line.ProductNameEng, line.ProductName)</div>
+                                    @if (line.IsOptional)
+                                    {
+                                        <span class="badge text-bg-info">@Text("Optional", "اختياري")</span>
+                                    }
+                                </td>
+                                <td>@line.SkuCode</td>
+                                <td>@line.Quantity.ToString("N2")</td>
+                                <td>@line.UnitPrice.ToString("N2")</td>
+                                <td>@line.TaxAmount.ToString("N2")</td>
+                                <td class="fw-semibold">@line.TotalAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="print-total-box">
+                <div><span>@Text("Subtotal", "المجموع الفرعي")</span><strong>@quotation.Subtotal.ToString("N2")</strong></div>
+                <div><span>@Text("Tax", "الضريبة")</span><strong>@quotation.TaxAmount.ToString("N2")</strong></div>
+                <div class="print-total"><span>@Text("Total", "الإجمالي")</span><strong>@quotation.TotalAmount.ToString("N2")</strong></div>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(quotation.Terms) || !string.IsNullOrWhiteSpace(quotation.Notes))
+            {
+                <div class="print-notes">
+                    @if (!string.IsNullOrWhiteSpace(quotation.Terms))
+                    {
+                        <h2>@Text("Terms", "الشروط")</h2>
+                        <p>@quotation.Terms</p>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(quotation.Notes))
+                    {
+                        <h2>@Text("Notes", "ملاحظات")</h2>
+                        <p>@quotation.Notes</p>
+                    }
+                </div>
+            }
+        </AppCard>
+    }
+</section>
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private bool CanView;
+    private bool isLoading = true;
+    private SalesQuotationDto quotation = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        SharedDataService.OnChange1 += HandleChangeAsync;
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CanView = authState.User.Claims.Any(c => c.Value == PermissionList.SalesQuotationPermissions.View);
+        if (!authState.User.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        if (CanView)
+            await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        var result = await SalesService.GetQuotationByIdAsync(Id);
+        if (result.IsSuccess && result.Data is not null)
+            quotation = result.Data;
+        else
+            ToastService.ShowError(result.Error?.Detail ?? Text("Could not load quotation.", "تعذر تحميل عرض السعر."));
+        isLoading = false;
+    }
+
+    private async Task PrintAsync() => await JSRuntime.InvokeVoidAsync("print");
+    private string Text(string? en, string? ar) => SharedDataService.SelectViewLang(en ?? string.Empty, ar ?? string.Empty);
+    private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
+}

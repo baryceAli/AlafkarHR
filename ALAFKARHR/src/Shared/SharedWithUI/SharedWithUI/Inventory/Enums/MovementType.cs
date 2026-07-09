@@ -16,5 +16,6 @@ public enum MovementType
     ProductionIn=9,
     ProductionOut=10,
     ReserveAmount=11,
-    ReleaseAmount=12
+    ReleaseAmount=12,
+    Scrap=13
 }

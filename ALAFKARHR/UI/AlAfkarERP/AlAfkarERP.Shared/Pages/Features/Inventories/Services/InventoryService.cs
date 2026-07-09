@@ -139,11 +139,197 @@ public class InventoryService : BaseApiService, IInventoryService
     public async Task<ApiResult<List<WarehouseLocationDto>>> GetWarehouseLocationsAsync(Guid companyId) =>
         await GetControlListAsync<WarehouseLocationDto>("warehouse-locations", companyId);
 
+    public async Task<ApiResult<List<InventoryOperationDto>>> GetInventoryOperationsAsync(InventoryOperationFilterDto filter)
+    {
+        var url = $"api/{_apiConfig.Version}/inventory/operations/company/{filter.CompanyId}";
+        var query = new List<string>();
+        if (filter.BranchId.HasValue)
+            query.Add($"branchId={filter.BranchId.Value}");
+        if (filter.WarehouseId.HasValue)
+            query.Add($"warehouseId={filter.WarehouseId.Value}");
+        if (filter.Status.HasValue)
+            query.Add($"status={filter.Status.Value}");
+        if (filter.OperationKind.HasValue)
+            query.Add($"operationKind={filter.OperationKind.Value}");
+        if (filter.FlowDirection.HasValue)
+            query.Add($"flowDirection={filter.FlowDirection.Value}");
+        if (!string.IsNullOrWhiteSpace(filter.SourceDocumentType))
+            query.Add($"sourceDocumentType={Uri.EscapeDataString(filter.SourceDocumentType)}");
+        if (filter.SourceDocumentId.HasValue)
+            query.Add($"sourceDocumentId={filter.SourceDocumentId.Value}");
+        if (query.Count > 0)
+            url += $"?{string.Join("&", query)}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<List<InventoryOperationDto>>(request, "operations");
+    }
+
+    public async Task<ApiResult<string>> ValidateInventoryOperationAsync(Guid id, ValidateInventoryOperationDto validation)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/operations/{id}/validate")
+        {
+            Content = JsonContent.Create(validation)
+        };
+        return await SendAsync<string>(request, null);
+    }
+
+    public async Task<ApiResult<InventoryExecutionDashboardDto>> GetExecutionDashboardAsync(Guid companyId, Guid? branchId = null)
+    {
+        var url = $"api/{_apiConfig.Version}/inventory/execution-dashboard/company/{companyId}";
+        if (branchId.HasValue)
+            url += $"?branchId={branchId.Value}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<InventoryExecutionDashboardDto>(request, "dashboard");
+    }
+
+    public async Task<ApiResult<List<PickingGroupDto>>> GetPickingGroupsAsync(PickingGroupFilterDto filter)
+    {
+        var url = $"api/{_apiConfig.Version}/inventory/picking-groups/company/{filter.CompanyId}";
+        var query = new List<string>();
+        if (filter.BranchId.HasValue)
+            query.Add($"branchId={filter.BranchId.Value}");
+        if (filter.WarehouseId.HasValue)
+            query.Add($"warehouseId={filter.WarehouseId.Value}");
+        if (filter.Status.HasValue)
+            query.Add($"status={filter.Status.Value}");
+        if (filter.GroupType.HasValue)
+            query.Add($"groupType={filter.GroupType.Value}");
+        if (query.Count > 0)
+            url += $"?{string.Join("&", query)}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<List<PickingGroupDto>>(request, "groups");
+    }
+
+    public async Task<ApiResult<CreateResponseDto>> CreatePickingGroupAsync(CreatePickingGroupDto item)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/picking-groups")
+        {
+            Content = JsonContent.Create(item)
+        };
+        return await SendAsync<CreateResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<string>> ProcessPickingGroupAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/picking-groups/{id}/process");
+        return await SendAsync<string>(request, null);
+    }
+
+    public async Task<ApiResult<List<ScrapOrderDto>>> GetScrapOrdersAsync(ScrapOrderFilterDto filter)
+    {
+        var url = $"api/{_apiConfig.Version}/inventory/scrap-orders/company/{filter.CompanyId}";
+        var query = new List<string>();
+        if (filter.BranchId.HasValue)
+            query.Add($"branchId={filter.BranchId.Value}");
+        if (filter.WarehouseId.HasValue)
+            query.Add($"warehouseId={filter.WarehouseId.Value}");
+        if (filter.Status.HasValue)
+            query.Add($"status={filter.Status.Value}");
+        if (!string.IsNullOrWhiteSpace(filter.SourceDocumentType))
+            query.Add($"sourceDocumentType={Uri.EscapeDataString(filter.SourceDocumentType)}");
+        if (filter.SourceDocumentId.HasValue)
+            query.Add($"sourceDocumentId={filter.SourceDocumentId.Value}");
+        if (query.Count > 0)
+            url += $"?{string.Join("&", query)}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<List<ScrapOrderDto>>(request, "items");
+    }
+
+    public async Task<ApiResult<ScrapOrderDto>> GetScrapOrderAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, $"api/{_apiConfig.Version}/inventory/scrap-orders/{id}");
+        return await SendAsync<ScrapOrderDto>(request, "item");
+    }
+
+    public async Task<ApiResult<CreateResponseDto>> CreateScrapOrderAsync(CreateScrapOrderDto item)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/scrap-orders")
+        {
+            Content = JsonContent.Create(item)
+        };
+        return await SendAsync<CreateResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<CreateResponseDto>> CreateScrapOrderFromOperationAsync(CreateScrapOrderDto item)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/scrap-orders/from-operation")
+        {
+            Content = JsonContent.Create(item)
+        };
+        return await SendAsync<CreateResponseDto>(request, null);
+    }
+
+    public async Task<ApiResult<string>> ValidateScrapOrderAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/scrap-orders/{id}/validate")
+        {
+            Content = JsonContent.Create(new ValidateScrapOrderDto())
+        };
+        return await SendAsync<string>(request, null);
+    }
+
+    public async Task<ApiResult<string>> CancelScrapOrderAsync(Guid id)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"api/{_apiConfig.Version}/inventory/scrap-orders/{id}/cancel");
+        return await SendAsync<string>(request, null);
+    }
+
     public async Task<ApiResult<CreateResponseDto>> SaveWarehouseLocationAsync(WarehouseLocationDto item) =>
         await SaveControlAsync("warehouse-locations", item);
 
     public async Task<ApiResult<string>> DeleteWarehouseLocationAsync(Guid id) =>
         await DeleteControlAsync("warehouse-locations", id);
+
+    public async Task<ApiResult<List<InventoryOperationTypeDto>>> GetOperationTypesAsync(Guid companyId) =>
+        await GetControlListAsync<InventoryOperationTypeDto>("operation-types", companyId);
+
+    public async Task<ApiResult<CreateResponseDto>> SaveOperationTypeAsync(InventoryOperationTypeDto item) =>
+        await SaveControlAsync("operation-types", item);
+
+    public async Task<ApiResult<string>> DeleteOperationTypeAsync(Guid id) =>
+        await DeleteControlAsync("operation-types", id);
+
+    public async Task<ApiResult<List<InventoryRouteDto>>> GetRoutesAsync(Guid companyId) =>
+        await GetControlListAsync<InventoryRouteDto>("routes", companyId);
+
+    public async Task<ApiResult<CreateResponseDto>> SaveRouteAsync(InventoryRouteDto item) =>
+        await SaveControlAsync("routes", item);
+
+    public async Task<ApiResult<string>> DeleteRouteAsync(Guid id) =>
+        await DeleteControlAsync("routes", id);
+
+    public async Task<ApiResult<List<InventoryRouteRuleDto>>> GetRouteRulesAsync(Guid companyId) =>
+        await GetControlListAsync<InventoryRouteRuleDto>("route-rules", companyId);
+
+    public async Task<ApiResult<CreateResponseDto>> SaveRouteRuleAsync(InventoryRouteRuleDto item) =>
+        await SaveControlAsync("route-rules", item);
+
+    public async Task<ApiResult<string>> DeleteRouteRuleAsync(Guid id) =>
+        await DeleteControlAsync("route-rules", id);
+
+    public async Task<ApiResult<List<InventoryRouteProposalDto>>> GetRouteProposalsAsync(
+        Guid companyId,
+        Guid warehouseId,
+        Guid locationId,
+        InventoryRouteRuleAction action,
+        Guid? productId = null,
+        Guid? productSkuId = null,
+        Guid? productCategoryId = null)
+    {
+        var url = $"api/{_apiConfig.Version}/inventory/controls/route-proposals/company/{companyId}/warehouse/{warehouseId}/location/{locationId}?action={action}";
+        if (productId.HasValue)
+            url += $"&productId={productId.Value}";
+        if (productSkuId.HasValue)
+            url += $"&productSkuId={productSkuId.Value}";
+        if (productCategoryId.HasValue)
+            url += $"&productCategoryId={productCategoryId.Value}";
+
+        var request = new HttpRequestMessage(HttpMethod.Get, url);
+        return await SendAsync<List<InventoryRouteProposalDto>>(request, "proposals");
+    }
 
     public async Task<ApiResult<List<PutawayRuleDto>>> GetPutawayRulesAsync(Guid companyId) =>
         await GetControlListAsync<PutawayRuleDto>("putaway-rules", companyId);

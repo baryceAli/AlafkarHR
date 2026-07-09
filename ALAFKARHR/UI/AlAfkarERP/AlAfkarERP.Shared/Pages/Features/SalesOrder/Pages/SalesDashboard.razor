@@ -42,6 +42,7 @@
             <div class="spinner-border text-primary" role="status"></div>
             <div class="mt-2">@Text("Loading dashboard...", "جاري تحميل اللوحة...")</div>
         </div>
+
     }
     else if (dashboard is null)
     {
@@ -58,7 +59,14 @@
             <div class="col-md-3"><StatsCard Title="@Text("Completed", "مكتملة")" Value="@dashboard.CompletedOrders.ToString()" Icon="bi-patch-check" /></div>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-3 mb-3">
+            <div class="col-md-3"><StatsCard Title="@Text("Expiring Soon", "Expiring Soon")" Value="@dashboard.QuotationsExpiringSoon.ToString("N0")" Subtitle="@Text("Draft or sent quotes", "Draft or sent quotes")" Icon="bi-hourglass-split" Tone="warning" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Expired Quotes", "Expired Quotes")" Value="@dashboard.ExpiredQuotations.ToString("N0")" Subtitle="@Text("Needs follow-up", "Needs follow-up")" Icon="bi-calendar-x" Tone="danger" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Optional Adoption", "Optional Adoption")" Value="@Percent(OptionalAdoptionRate)" Subtitle="@Text("Optional quote lines accepted", "Optional quote lines accepted")" Icon="bi-bag-plus" Tone="info" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Pro-forma Quotes", "Pro-forma Quotes")" Value="@dashboard.ProFormaQuotations.ToString("N0")" Subtitle="@Text("Commercial document requests", "Commercial document requests")" Icon="bi-file-earmark-text" Tone="primary" /></div>
+        </div>
+
+        <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <AppCard Title="@Text("Open Order Value", "قيمة الأوامر المفتوحة")">
                     <div class="sales-value">@Money(dashboard.OpenOrderValue)</div>
@@ -67,6 +75,94 @@
             <div class="col-md-6">
                 <AppCard Title="@Text("Completed Order Value", "قيمة الأوامر المكتملة")">
                     <div class="sales-value">@Money(dashboard.CompletedOrderValue)</div>
+                </AppCard>
+            </div>
+        </div>
+
+        <div class="row g-3 mb-3">
+            <div class="col-md-3"><StatsCard Title="@Text("Conversion Rate", "Conversion Rate")" Value="@Percent(dashboard.QuotationConversionRate)" Icon="bi-arrow-left-right" Tone="success" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Open Quote Value", "Open Quote Value")" Value="@Money(dashboard.OpenQuotationValue)" Icon="bi-file-earmark-ruled" Tone="primary" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Down Payments", "Down Payments")" Value="@dashboard.DownPaymentQuotations.ToString("N0")" Subtitle="@Money(dashboard.DownPaymentValue)" Icon="bi-cash-coin" Tone="success" /></div>
+            <div class="col-md-3"><StatsCard Title="@Text("Delivery Backlog", "Delivery Backlog")" Value="@dashboard.DeliveryBacklogOrders.ToString("N0")" Icon="bi-truck-flatbed" Tone="warning" /></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-lg-6">
+                <AppCard Title="@Text("Top Customers", "Top Customers")" Subtitle="@Text("Sales order value by customer.", "Sales order value by customer.")" CssClass="h-100">
+                    @if (dashboard.TopCustomers.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No customer sales", "No customer sales")"
+                                    Message="@Text("Customer activity will appear here once orders are available.", "Customer activity will appear here once orders are available.")"
+                                    Icon="bi-people" />
+                    }
+                    else
+                    {
+                        @foreach (var item in dashboard.TopCustomers)
+                        {
+                            <div class="d-flex justify-content-between gap-3 border-bottom py-2">
+                                <span>@DisplayName(item.Name)</span>
+                                <span class="fw-semibold" dir="ltr">@Money(item.Value)</span>
+                            </div>
+                        }
+                    }
+                </AppCard>
+            </div>
+            <div class="col-lg-6">
+                <AppCard Title="@Text("Top Products", "Top Products")" Subtitle="@Text("Sales value and quantity by SKU.", "Sales value and quantity by SKU.")" CssClass="h-100">
+                    @if (dashboard.TopProducts.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No product sales", "No product sales")"
+                                    Message="@Text("Product performance will appear here once order lines are available.", "Product performance will appear here once order lines are available.")"
+                                    Icon="bi-box-seam" />
+                    }
+                    else
+                    {
+                        @foreach (var item in dashboard.TopProducts)
+                        {
+                            <div class="d-flex justify-content-between gap-3 border-bottom py-2">
+                                <span>@DisplayName(item.Name)</span>
+                                <span class="text-end" dir="ltr">@Money(item.Value) / @item.Quantity.ToString("N0")</span>
+                            </div>
+                        }
+                    }
+                </AppCard>
+            </div>
+            <div class="col-12">
+                <AppCard Title="@Text("Salesperson Performance", "Salesperson Performance")" Subtitle="@Text("Quotation and order value by salesperson.", "Quotation and order value by salesperson.")">
+                    @if (dashboard.SalespersonPerformance.Count == 0)
+                    {
+                        <EmptyState Title="@Text("No salesperson activity", "No salesperson activity")"
+                                    Message="@Text("Performance rows will appear once quotations or orders are assigned.", "Performance rows will appear once quotations or orders are assigned.")"
+                                    Icon="bi-person-badge" />
+                    }
+                    else
+                    {
+                        <div class="erp-table-wrap">
+                            <table class="table erp-table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>@Text("Salesperson", "Salesperson")</th>
+                                        <th class="text-end">@Text("Quotes", "Quotes")</th>
+                                        <th class="text-end">@Text("Quote Value", "Quote Value")</th>
+                                        <th class="text-end">@Text("Orders", "Orders")</th>
+                                        <th class="text-end">@Text("Order Value", "Order Value")</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in dashboard.SalespersonPerformance)
+                                    {
+                                        <tr>
+                                            <td>@DisplayName(item.SalespersonId)</td>
+                                            <td class="text-end">@item.Quotations.ToString("N0")</td>
+                                            <td class="text-end">@Money(item.QuotationValue)</td>
+                                            <td class="text-end">@item.Orders.ToString("N0")</td>
+                                            <td class="text-end">@Money(item.OrderValue)</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
                 </AppCard>
             </div>
         </div>
@@ -80,6 +176,9 @@
     private Guid companyId;
     private string currencyCode = string.Empty;
     private SalesDashboardDto? dashboard;
+    private decimal OptionalAdoptionRate => dashboard is null || dashboard.OptionalLineQuotations == 0
+        ? 0
+        : (decimal)dashboard.OptionalLineAdoptions / dashboard.OptionalLineQuotations * 100m;
 
     protected override async Task OnInitializedAsync()
     {
@@ -124,6 +223,8 @@
     }
 
     private string Money(decimal value) => string.IsNullOrWhiteSpace(currencyCode) ? $"{value:N2}" : $"{value:N2} {currencyCode}";
+    private static string Percent(decimal value) => $"{value:N1}%";
+    private static string DisplayName(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
 

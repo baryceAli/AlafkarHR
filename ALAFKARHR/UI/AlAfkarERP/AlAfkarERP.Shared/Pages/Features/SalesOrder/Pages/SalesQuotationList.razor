@@ -35,10 +35,26 @@
             <a class="btn btn-outline-secondary" href="/Sales/Orders">
                 <i class="bi bi-list-check"></i> @Text("Sales Orders", "أوامر البيع")
             </a>
+            @if (CanEdit)
+            {
+                <button class="btn btn-outline-secondary" @onclick="ExpireOverdueAsync" disabled="@isExpiring">
+                    <i class="bi bi-clock-history"></i> @Text("Expire overdue", "إنهاء العروض المتأخرة")
+                </button>
+            }
         </Actions>
     </PageHeader>
 
     <AppCard Title="@Text("Quotations", "عروض الأسعار")">
+        @if (HasSmartFilter)
+        {
+            <div class="erp-chip-row mb-3">
+                <StatusChip Tone="info" Text="@SmartFilterText()" />
+                <button class="btn btn-outline-secondary btn-sm" @onclick='() => NavigationManager.NavigateTo("/Sales/Quotations")'>
+                    <i class="bi bi-x-lg"></i>
+                    @Text("Clear filter", "مسح التصفية")
+                </button>
+            </div>
+        }
         @if (isLoading)
         {
             <div class="erp-loading py-4"><div class="spinner-border text-primary" role="status"></div></div>
@@ -60,6 +76,7 @@
                             <th>@Text("Date", "التاريخ")</th>
                             <th>@Text("Valid until", "صالح حتى")</th>
                             <th>@Text("Total", "الإجمالي")</th>
+                            <th>@Text("Controls", "الضوابط")</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -68,10 +85,40 @@
                         {
                             <tr>
                                 <td class="fw-semibold">@quotation.Number</td>
-                                <td><span class="badge rounded-pill @StatusBadge(quotation.Status)">@quotation.Status</span></td>
+                                <td><span class="badge rounded-pill @StatusBadge(quotation.Status)">@StatusText(quotation.Status)</span></td>
                                 <td>@quotation.QuotationDate.ToString("yyyy-MM-dd")</td>
-                                <td>@(quotation.ValidUntil?.ToString("yyyy-MM-dd") ?? "-")</td>
+                                <td>
+                                    @(quotation.ValidUntil?.ToString("yyyy-MM-dd") ?? "-")
+                                    @if (IsExpiredDraftOrSent(quotation))
+                                    {
+                                        <span class="badge text-bg-danger ms-1">@Text("Expired", "منتهي")</span>
+                                    }
+                                </td>
                                 <td>@quotation.TotalAmount.ToString("N2")</td>
+                                <td>
+                                    <div class="quote-control-chips">
+                                        @if (quotation.RequiresCustomerSignature)
+                                        {
+                                            <span class="badge text-bg-secondary">@Text("Signature", "التوقيع")</span>
+                                        }
+                                        @if (quotation.RequiresOnlinePayment)
+                                        {
+                                            <span class="badge text-bg-primary">@Text("Payment", "الدفع")</span>
+                                        }
+                                        @if (quotation.IsProForma)
+                                        {
+                                            <span class="badge text-bg-info">@Text("Pro-forma", "فاتورة شكلية")</span>
+                                        }
+                                        @if (quotation.DownPaymentAmount > 0 || quotation.DownPaymentPercent > 0)
+                                        {
+                                            <span class="badge text-bg-warning">@Text("Down payment", "دفعة مقدمة")</span>
+                                        }
+                                        @if (quotation.Lines.Any(x => x.IsOptional))
+                                        {
+                                            <span class="badge text-bg-light">@Text("Optional lines", "بنود اختيارية")</span>
+                                        }
+                                    </div>
+                                </td>
                                 <td class="text-end">
                                     @if (CanEdit)
                                     {
@@ -81,8 +128,13 @@
                                     }
                                     @if (quotation.Status == SalesQuotationStatus.Draft && CanSend)
                                     {
-                                        <button class="btn btn-sm btn-outline-secondary" @onclick='() => SendAsync(quotation.Id)'>@Text("Send", "إرسال")</button>
+                                        <button class="btn btn-sm btn-outline-secondary" @onclick='() => SendAsync(quotation.Id)'>
+                                            <i class="bi bi-envelope"></i> @Text("Send", "إرسال")
+                                        </button>
                                     }
+                                    <a class="btn btn-sm btn-outline-secondary" href="@($"/Sales/Quotations/{quotation.Id}/Print")">
+                                        <i class="bi bi-printer"></i> @Text("Print", "طباعة")
+                                    </a>
                                     @if (quotation.Status is SalesQuotationStatus.Draft or SalesQuotationStatus.Sent && CanConvert)
                                     {
                                         <button class="btn btn-sm btn-primary" @onclick="() => ConvertAsync(quotation.Id)">
@@ -106,8 +158,13 @@
     private bool CanSend;
     private bool CanConvert;
     private bool isLoading;
+    private bool isExpiring;
     private Guid companyId;
     private List<SalesQuotationDto> quotations = [];
+    [SupplyParameterFromQuery] public Guid? CustomerId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductId { get; set; }
+    [SupplyParameterFromQuery] public Guid? ProductSkuId { get; set; }
+    private bool HasSmartFilter => CustomerId.HasValue || ProductId.HasValue || ProductSkuId.HasValue;
 
     protected override async Task OnInitializedAsync()
     {
@@ -136,9 +193,20 @@
     private async Task LoadAsync()
     {
         isLoading = true;
-        var result = await SalesService.GetQuotationsByCompanyAsync(companyId, 0, 50);
+        var result = await SalesService.GetQuotationsByCompanyAsync(companyId, 0, 50, CustomerId, ProductId, ProductSkuId);
         quotations = result.IsSuccess ? result.Data?.Data.ToList() ?? [] : [];
         isLoading = false;
+    }
+
+    private string SmartFilterText()
+    {
+        if (CustomerId.HasValue)
+            return Text("Filtered by customer", "مصفى حسب العميل");
+        if (ProductSkuId.HasValue)
+            return Text("Filtered by SKU", "مصفى حسب وحدة المنتج");
+        if (ProductId.HasValue)
+            return Text("Filtered by product", "مصفى حسب المنتج");
+        return Text("Filtered", "مصفى");
     }
 
     private async Task SendAsync(Guid id)
@@ -147,6 +215,7 @@
         if (result.IsSuccess)
         {
             ToastService.ShowSuccess(Text("Quotation updated.", "تم تحديث عرض السعر."));
+            ToastService.ShowSuccess(Text("Marked sent. Email delivery depends on the configured mail infrastructure.", "تم تعيينه كمرسل. يعتمد إرسال البريد على إعدادات البنية البريدية."));
             await LoadAsync();
         }
         else
@@ -164,6 +233,23 @@
             ToastService.ShowError(result.Error?.Detail ?? Text("Unable to convert quotation.", "تعذر تحويل عرض السعر."));
     }
 
+    private async Task ExpireOverdueAsync()
+    {
+        isExpiring = true;
+        var result = await SalesService.ExpireOverdueQuotationsAsync(companyId);
+        if (result.IsSuccess)
+        {
+            var count = result.Data?.ExpiredCount ?? 0;
+            ToastService.ShowSuccess(Text($"{count} overdue quotation(s) expired.", $"تم إنهاء {count} عرض سعر متأخر."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.Detail ?? Text("Could not expire overdue quotations.", "تعذر إنهاء عروض الأسعار المتأخرة."));
+        }
+        isExpiring = false;
+    }
+
     private static string StatusBadge(SalesQuotationStatus status) => status switch
     {
         SalesQuotationStatus.ConvertedToSalesOrder or SalesQuotationStatus.Accepted => "text-bg-success",
@@ -172,7 +258,32 @@
         _ => "text-bg-secondary"
     };
 
+    private string StatusText(SalesQuotationStatus status) => status switch
+    {
+        SalesQuotationStatus.Draft => Text("Draft", "مسودة"),
+        SalesQuotationStatus.Sent => Text("Sent", "مرسل"),
+        SalesQuotationStatus.Accepted => Text("Accepted", "مقبول"),
+        SalesQuotationStatus.Rejected => Text("Rejected", "مرفوض"),
+        SalesQuotationStatus.Expired => Text("Expired", "منتهي"),
+        SalesQuotationStatus.ConvertedToSalesOrder => Text("Converted", "محول"),
+        SalesQuotationStatus.Cancelled => Text("Cancelled", "ملغى"),
+        _ => status.ToString()
+    };
+
+    private static bool IsExpiredDraftOrSent(SalesQuotationDto quotation) =>
+        quotation.ValidUntil.HasValue
+        && quotation.ValidUntil.Value.Date < DateTime.Today
+        && quotation.Status is SalesQuotationStatus.Draft or SalesQuotationStatus.Sent;
+
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 }
+
+<style>
+    .quote-control-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--erp-space-1);
+    }
+</style>

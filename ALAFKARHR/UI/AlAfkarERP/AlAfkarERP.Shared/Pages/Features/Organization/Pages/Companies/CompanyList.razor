@@ -67,12 +67,10 @@
 
     @if (isLoading)
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-body py-5 text-center">
+        <AppCard BodyClass="py-5 text-center">
                 <div class="spinner-border text-primary mb-3" role="status"></div>
                 <div class="fw-semibold">@Text("Loading company profile...", "جاري تحميل ملف الشركة...")</div>
-            </div>
-        </div>
+        </AppCard>
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -83,16 +81,13 @@
     }
     else if (company is null)
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-body py-5 text-center text-muted">
+        <AppCard BodyClass="py-5 text-center text-muted">
                 @Text("No company profile was found.", "لم يتم العثور على ملف الشركة.")
-            </div>
-        </div>
+        </AppCard>
     }
     else
     {
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body">
+        <AppCard CssClass="mb-4">
                 <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
                     <div class="d-flex align-items-center gap-3">
                         <div class="company-logo">
@@ -116,16 +111,14 @@
                         <div><i class="bi bi-envelope"></i> @EmptyValue(company.Email)</div>
                     </div>
                 </div>
-            </div>
-        </div>
+        </AppCard>
 
         <EditForm Model="company" OnValidSubmit="SaveAsync">
             <DataAnnotationsValidator />
 
             <div class="row g-4">
                 <div class="col-xl-8">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
+                    <AppCard CssClass="h-100">
                             <div class="d-flex justify-content-between align-items-center mb-3">
                                 <h5 class="mb-0">@Text("Editable Information", "البيانات القابلة للتعديل")</h5>
                                 <span class="badge text-bg-light">@Text("Saved by API", "تحفظ عبر الواجهة البرمجية")</span>
@@ -224,13 +217,11 @@
                                     <span>@Text("Save Changes", "حفظ التغييرات")</span>
                                 </button>
                             </div>
-                        </div>
-                    </div>
+                    </AppCard>
                 </div>
 
                 <div class="col-xl-4">
-                    <div class="card border-0 shadow-sm h-100">
-                        <div class="card-body">
+                    <AppCard CssClass="h-100">
                             <h5 class="mb-3">@Text("System Details", "بيانات النظام")</h5>
                             <div class="locked-fields">
                                 <div>
@@ -257,8 +248,7 @@
                             <div class="text-muted small mt-3">
                                 @Text("These fields are shown for context because the current company update endpoint does not change them.", "تظهر هذه الحقول للمعرفة لأن واجهة تعديل الشركة الحالية لا تقوم بتغييرها.")
                             </div>
-                        </div>
-                    </div>
+                    </AppCard>
                 </div>
             </div>
         </EditForm>

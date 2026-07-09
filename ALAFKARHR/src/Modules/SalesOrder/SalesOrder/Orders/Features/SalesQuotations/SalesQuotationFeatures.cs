@@ -5,8 +5,17 @@ using Shared.Pagination;
 
 namespace SalesOrder.Orders.Features.SalesQuotations;
 
-public record GetSalesQuotationsQuery(Guid CompanyId, PaginationRequest PaginationRequest, SalesQuotationStatus? Status = null) : IQuery<GetSalesQuotationsResult>;
+public record GetSalesQuotationsQuery(
+    Guid CompanyId,
+    PaginationRequest PaginationRequest,
+    SalesQuotationStatus? Status = null,
+    Guid? CustomerId = null,
+    Guid? ProductId = null,
+    Guid? ProductSkuId = null) : IQuery<GetSalesQuotationsResult>;
 public record GetSalesQuotationsResult(PaginatedResult<SalesQuotationDto> Quotations);
+public record GetSalesQuotationSmartLinksQuery(Guid CompanyId, Guid? CustomerId = null, Guid? ProductId = null, Guid? ProductSkuId = null)
+    : IQuery<GetSalesQuotationSmartLinksResult>;
+public record GetSalesQuotationSmartLinksResult(PartnerSmartLinkSummaryDto PartnerLinks, ProductSmartLinkSummaryDto ProductLinks);
 public record GetSalesQuotationByIdQuery(Guid Id) : IQuery<GetSalesQuotationByIdResult>;
 public record GetSalesQuotationByIdResult(SalesQuotationDto Quotation);
 public record CreateSalesQuotationCommand(SalesQuotationDto Quotation) : ICommand<CreateSalesQuotationResult>;
@@ -15,6 +24,7 @@ public record UpdateSalesQuotationCommand(SalesQuotationDto Quotation) : IComman
 public record UpdateSalesQuotationResult(bool IsSuccess);
 public record SalesQuotationActionCommand(Guid Id, string Action, string? Reason) : ICommand<SalesQuotationActionResult>;
 public record SalesQuotationActionResult(bool IsSuccess, Guid? SalesOrderId = null);
+public record ExpireOverdueSalesQuotationsCommand(Guid CompanyId) : ICommand<SalesQuotationExpiryResultDto>;
 
 public class GetSalesQuotationsHandler(SalesOrderDbContext dbContext)
     : IQueryHandler<GetSalesQuotationsQuery, GetSalesQuotationsResult>
@@ -25,6 +35,15 @@ public class GetSalesQuotationsHandler(SalesOrderDbContext dbContext)
 
         if (request.Status.HasValue)
             query = query.Where(x => x.Status == request.Status.Value);
+
+        if (request.CustomerId.HasValue)
+            query = query.Where(x => x.CustomerId == request.CustomerId.Value);
+
+        if (request.ProductId.HasValue)
+            query = query.Where(x => x.Lines.Any(line => line.ProductId == request.ProductId.Value));
+
+        if (request.ProductSkuId.HasValue)
+            query = query.Where(x => x.Lines.Any(line => line.ProductSkuId == request.ProductSkuId.Value));
 
         if (!string.IsNullOrWhiteSpace(request.PaginationRequest.SearchText))
         {
@@ -64,6 +83,7 @@ public class CreateSalesQuotationHandler(SalesOrderDbContext dbContext, IHttpCon
     public async Task<CreateSalesQuotationResult> Handle(CreateSalesQuotationCommand request, CancellationToken cancellationToken)
     {
         var userId = SalesDocumentFeatureHelpers.CurrentUser(httpContextAccessor);
+        await SalesQuotationValidation.ValidateQuotationAddressesAsync(request.Quotation, sender, cancellationToken);
         await SalesDocumentFeatureHelpers.ResolveQuotationPricingAsync(request.Quotation, sender, cancellationToken);
         var quotation = SalesQuotation.Create(request.Quotation, userId);
         await dbContext.SalesQuotations.AddAsync(quotation, cancellationToken);
@@ -78,6 +98,7 @@ public class UpdateSalesQuotationHandler(SalesOrderDbContext dbContext, IHttpCon
     public async Task<UpdateSalesQuotationResult> Handle(UpdateSalesQuotationCommand request, CancellationToken cancellationToken)
     {
         var userId = SalesDocumentFeatureHelpers.CurrentUser(httpContextAccessor);
+        await SalesQuotationValidation.ValidateQuotationAddressesAsync(request.Quotation, sender, cancellationToken);
         var quotation = await dbContext.SalesQuotations.Include(x => x.Lines)
             .FirstOrDefaultAsync(x => x.Id == request.Quotation.Id, cancellationToken)
             ?? throw new NotFoundException($"Quotation not found: {request.Quotation.Id}");
@@ -123,6 +144,7 @@ public class SalesQuotationActionHandler(SalesOrderDbContext dbContext, IHttpCon
                     Number = $"SO-{quotation.Number}",
                     CustomerId = quotation.CustomerId,
                     PriceListId = quotation.PriceListId,
+                    QuotationTemplateId = quotation.QuotationTemplateId,
                     CouponCode = quotation.CouponCode,
                     SalespersonId = quotation.SalespersonId,
                     SourceQuotationId = quotation.Id,
@@ -130,7 +152,16 @@ public class SalesQuotationActionHandler(SalesOrderDbContext dbContext, IHttpCon
                     SourceDocumentId = quotation.Id,
                     SourceDocumentNumber = quotation.Number,
                     CompanyId = quotation.CompanyId,
-                    Lines = orderDto.Lines.Select(x => new SalesOrderLineDto
+                    InvoiceAddressId = quotation.InvoiceAddressId,
+                    DeliveryAddressId = quotation.DeliveryAddressId,
+                    Notes = quotation.Notes,
+                    Terms = quotation.Terms,
+                    RequiresCustomerSignature = quotation.RequiresCustomerSignature,
+                    RequiresOnlinePayment = quotation.RequiresOnlinePayment,
+                    DownPaymentAmount = quotation.DownPaymentAmount,
+                    DownPaymentPercent = quotation.DownPaymentPercent,
+                    IsProForma = quotation.IsProForma,
+                    Lines = orderDto.Lines.Where(x => !x.IsOptional).Select(x => new SalesOrderLineDto
                     {
                         ProductId = x.ProductId,
                         ProductSkuId = x.ProductSkuId,
@@ -146,6 +177,8 @@ public class SalesQuotationActionHandler(SalesOrderDbContext dbContext, IHttpCon
                         Pricing = x.Pricing
                     }).ToList()
                 };
+                if (order.Lines.Count == 0)
+                    throw new Exception("Quotation must include at least one mandatory line before conversion.");
                 var created = await sender.Send(new CreateOrderCommand(order), cancellationToken);
                 quotation.MarkConverted(created.Id, userId);
                 await dbContext.SaveChangesAsync(cancellationToken);
@@ -156,6 +189,79 @@ public class SalesQuotationActionHandler(SalesOrderDbContext dbContext, IHttpCon
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return new SalesQuotationActionResult(true);
+    }
+}
+
+public class ExpireOverdueSalesQuotationsHandler(SalesOrderDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+    : ICommandHandler<ExpireOverdueSalesQuotationsCommand, SalesQuotationExpiryResultDto>
+{
+    public async Task<SalesQuotationExpiryResultDto> Handle(ExpireOverdueSalesQuotationsCommand request, CancellationToken cancellationToken)
+    {
+        var userId = SalesDocumentFeatureHelpers.CurrentUser(httpContextAccessor);
+        var today = DateTime.UtcNow.Date;
+        var quotations = await dbContext.SalesQuotations
+            .Where(x => x.CompanyId == request.CompanyId
+                && x.ValidUntil.HasValue
+                && x.ValidUntil.Value.Date < today
+                && (x.Status == SalesQuotationStatus.Draft || x.Status == SalesQuotationStatus.Sent))
+            .ToListAsync(cancellationToken);
+
+        foreach (var quotation in quotations)
+        {
+            quotation.Expire(userId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new SalesQuotationExpiryResultDto { ExpiredCount = quotations.Count };
+    }
+}
+
+internal static class SalesQuotationValidation
+{
+    public static async Task ValidateQuotationAddressesAsync(SalesQuotationDto quotation, ISender sender, CancellationToken cancellationToken)
+    {
+        var addressIds = new[] { quotation.InvoiceAddressId, quotation.DeliveryAddressId }
+            .Where(x => x.HasValue && x.Value != Guid.Empty)
+            .Select(x => x!.Value)
+            .Distinct()
+            .ToList();
+
+        if (addressIds.Count == 0)
+            return;
+
+        var validation = await sender.Send(
+            new ValidateCustomerAddressesQuery(quotation.CustomerId, quotation.CompanyId, addressIds),
+            cancellationToken);
+
+        if (!validation.IsValid)
+            throw new Exception("Selected invoice or delivery address does not belong to the quotation customer.");
+    }
+}
+
+public class GetSalesQuotationSmartLinksHandler(SalesOrderDbContext dbContext)
+    : IQueryHandler<GetSalesQuotationSmartLinksQuery, GetSalesQuotationSmartLinksResult>
+{
+    public async Task<GetSalesQuotationSmartLinksResult> Handle(GetSalesQuotationSmartLinksQuery request, CancellationToken cancellationToken)
+    {
+        var quotations = dbContext.SalesQuotations.AsNoTracking().Where(x => x.CompanyId == request.CompanyId);
+
+        var partnerLinks = new PartnerSmartLinkSummaryDto();
+        if (request.CustomerId.HasValue)
+            partnerLinks.Quotations = await quotations.CountAsync(x => x.CustomerId == request.CustomerId.Value, cancellationToken);
+
+        var productLinks = new ProductSmartLinkSummaryDto();
+        if (request.ProductId.HasValue || request.ProductSkuId.HasValue)
+        {
+            productLinks.SalesLines = await dbContext.SalesQuotations.AsNoTracking()
+                .Where(x => x.CompanyId == request.CompanyId)
+                .SelectMany(x => x.Lines)
+                .CountAsync(line =>
+                    (!request.ProductId.HasValue || line.ProductId == request.ProductId.Value)
+                    && (!request.ProductSkuId.HasValue || line.ProductSkuId == request.ProductSkuId.Value),
+                    cancellationToken);
+        }
+
+        return new GetSalesQuotationSmartLinksResult(partnerLinks, productLinks);
     }
 }
 
@@ -173,14 +279,40 @@ public class SalesQuotationEndpoints : ICarterModule
             int PageSize,
             string? searchText,
             SalesQuotationStatus? status,
+            Guid? customerId,
+            Guid? productId,
+            Guid? productSkuId,
             ISender sender) =>
         {
-            var result = await sender.Send(new GetSalesQuotationsQuery(companyId, new PaginationRequest(PageIndex, PageSize, searchText), status));
+            var result = await sender.Send(new GetSalesQuotationsQuery(companyId, new PaginationRequest(PageIndex, PageSize, searchText), status, customerId, productId, productSkuId));
             return Results.Ok(result);
         })
         .WithName("GetSalesQuotations")
         .Produces<GetSalesQuotationsResult>(StatusCodes.Status200OK)
         .RequireAuthorization(PermissionList.SalesQuotationPermissions.View);
+
+        app.MapGet("/api/v1/sales/quotations/smart-links/company/{companyId}", async (
+            Guid companyId,
+            Guid? customerId,
+            Guid? productId,
+            Guid? productSkuId,
+            ISender sender) =>
+        {
+            var result = await sender.Send(new GetSalesQuotationSmartLinksQuery(companyId, customerId, productId, productSkuId));
+            return Results.Ok(new { partnerLinks = result.PartnerLinks, productLinks = result.ProductLinks });
+        })
+        .WithName("GetSalesQuotationSmartLinks")
+        .Produces<GetSalesQuotationSmartLinksResult>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.SalesQuotationPermissions.View);
+
+        app.MapPost("/api/v1/sales/quotations/expire-overdue", async (Guid companyId, ISender sender) =>
+        {
+            var result = await sender.Send(new ExpireOverdueSalesQuotationsCommand(companyId));
+            return Results.Ok(new { expiry = result });
+        })
+        .WithName("ExpireOverdueSalesQuotations")
+        .Produces<SalesQuotationExpiryResultDto>(StatusCodes.Status200OK)
+        .RequireAuthorization(PermissionList.SalesQuotationPermissions.Edit);
 
         app.MapGet("/api/v1/sales/quotations/{id:guid}", async (Guid id, ISender sender) =>
         {

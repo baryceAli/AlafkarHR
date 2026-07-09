@@ -1,6 +1,6 @@
 namespace Procurement.Procurement.Features;
 
-public record GetSupplierScorecardQuery(Guid CompanyId) : IQuery<GetSupplierScorecardResult>;
+public record GetSupplierScorecardQuery(Guid CompanyId, Guid? SupplierId = null) : IQuery<GetSupplierScorecardResult>;
 public record GetSupplierScorecardResult(IReadOnlyCollection<SupplierScorecardRowDto> Rows);
 
 public class GetSupplierScorecardHandler(ProcurementDbContext dbContext)
@@ -12,6 +12,9 @@ public class GetSupplierScorecardHandler(ProcurementDbContext dbContext)
             .Include(x => x.Lines)
             .Where(x => x.CompanyId == request.CompanyId && x.SupplierId.HasValue)
             .ToListAsync(cancellationToken);
+
+        if (request.SupplierId.HasValue)
+            documents = documents.Where(x => x.SupplierId == request.SupplierId.Value).ToList();
 
         var rows = documents.GroupBy(x => new { SupplierId = x.SupplierId!.Value, x.SupplierName })
             .Select(group =>

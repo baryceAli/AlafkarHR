@@ -46,8 +46,7 @@
             </div>
         </div>
 
-        <div class="card border-0 shadow-sm mb-4">
-            <div class="card-body">
+        <AppCard CssClass="mb-4 allow-overflow">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-8">
                         <label class="form-label">@Text("Search", "بحث")</label>
@@ -63,17 +62,14 @@
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
+        </AppCard>
 
         @if (isLoading)
         {
-            <div class="card border-0 shadow-sm">
-                <div class="card-body py-5 text-center">
+            <AppCard CssClass="allow-overflow" BodyClass="py-5 text-center">
                     <div class="spinner-border text-primary mb-3" role="status"></div>
                     <div class="fw-semibold">@Text("Loading child companies...", "جاري تحميل الشركات التابعة...")</div>
-                </div>
-            </div>
+            </AppCard>
         }
         else if (!string.IsNullOrWhiteSpace(errorMessage))
         {
@@ -84,18 +80,16 @@
         }
         else if (companies.Count == 0)
         {
-            <div class="card border-0 shadow-sm">
-                <div class="card-body py-5 text-center text-muted">
+            <AppCard CssClass="allow-overflow" BodyClass="py-5 text-center text-muted">
                     <i class="bi bi-buildings fs-2 d-block mb-2"></i>
                     @Text("No child companies were found.", "لم يتم العثور على شركات تابعة.")
-                </div>
-            </div>
+            </AppCard>
         }
         else
         {
-            <div class="card border-0 shadow-sm">
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
+            <AppCard CssClass="allow-overflow">
+                <div class="erp-table-wrap">
+                    <table class="erp-table">
                         <thead>
                             <tr>
                                 <th>@Text("Company", "الشركة")</th>
@@ -153,7 +147,7 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="card-footer bg-transparent d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div class="erp-table-toolbar mt-3">
                     <div class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</div>
                     <div class="btn-group">
                         <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousPageAsync" disabled="@(pageIndex == 0 || isLoading)">
@@ -167,7 +161,7 @@
                         </button>
                     </div>
                 </div>
-            </div>
+            </AppCard>
         }
     }
 </div>

@@ -2,13 +2,17 @@
 @page "/Suppliers/Supplier/View/{Id:guid}"
 
 @using AlAfkarERP.Shared.Pages.Features.Suppliers.Services
+@using AlAfkarERP.Shared.Pages.Features.Procurement.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.Customers.Enums
 @using SharedWithUI.Permissions
+@using SharedWithUI.SharedDtos
 @using SharedWithUI.Suppliers.Dtos
 @using SharedWithUI.Suppliers.Enums
 
 @implements IDisposable
 @inject ISupplierService SupplierService
+@inject IProcurementService ProcurementService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
@@ -61,13 +65,81 @@
             </div>
         </div>
 
+        <div class="row g-3 mb-3">
+            <div class="col-lg-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Commercial Defaults", "Commercial Defaults")"
+                         Subtitle="@SharedDataService.SelectViewLang("Accounting, currency, and payment defaults used by purchasing workflows.", "Accounting, currency, and payment defaults used by purchasing workflows.")"
+                         CssClass="h-100">
+                    <div class="row g-3">
+                        <div class="col-md-6"><strong>@SharedDataService.SelectViewLang("Fiscal Position", "Fiscal Position"):</strong> @(supplier.FiscalPosition ?? "-")</div>
+                        <div class="col-md-6"><strong>@SharedDataService.SelectViewLang("Payment Reference", "Payment Reference"):</strong> @(supplier.VendorPaymentReference ?? "-")</div>
+                        <div class="col-md-6"><strong>@SharedDataService.SelectViewLang("Payable Account", "Payable Account"):</strong> @FormatGuid(supplier.PayableAccountId)</div>
+                        <div class="col-md-6"><strong>@SharedDataService.SelectViewLang("Expense Account", "Expense Account"):</strong> @FormatGuid(supplier.ExpenseAccountId)</div>
+                        <div class="col-md-6"><strong>@SharedDataService.SelectViewLang("Currency", "Currency"):</strong> @FormatGuid(supplier.DefaultCurrencyId)</div>
+                    </div>
+                </AppCard>
+            </div>
+            <div class="col-lg-6">
+                <AppCard Title="@SharedDataService.SelectViewLang("Recent Procurement Activity", "Recent Procurement Activity")"
+                         Subtitle="@SharedDataService.SelectViewLang("Document counts available from existing smart-link summaries.", "Document counts available from existing smart-link summaries.")"
+                         CssClass="h-100">
+                    <div class="row g-3">
+                        <div class="col-6"><StatsCard Title="@SharedDataService.SelectViewLang("RFQs", "RFQs")" Value="@supplierLinks.RequestsForQuotation.ToString("N0")" Icon="bi-envelope-paper" Tone="info" /></div>
+                        <div class="col-6"><StatsCard Title="@SharedDataService.SelectViewLang("Purchase Orders", "Purchase Orders")" Value="@supplierLinks.PurchaseOrders.ToString("N0")" Icon="bi-cart-check" Tone="success" /></div>
+                        <div class="col-6"><StatsCard Title="@SharedDataService.SelectViewLang("Receipts", "Receipts")" Value="@supplierLinks.Receipts.ToString("N0")" Icon="bi-box-arrow-in-down" Tone="primary" /></div>
+                        <div class="col-6"><StatsCard Title="@SharedDataService.SelectViewLang("Bills", "Bills")" Value="@supplierLinks.Bills.ToString("N0")" Icon="bi-receipt" Tone="warning" /></div>
+                    </div>
+                </AppCard>
+            </div>
+        </div>
+
         <AppCard Title="@SharedDataService.SelectViewLang("Profile", "الملف")" CssClass="mb-3">
             <div class="row g-3">
                 <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Code", "الكود"):</strong> @(supplier.SupplierCode ?? "-")</div>
                 <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Commercial Name", "الاسم التجاري"):</strong> @(supplier.CommercialName ?? "-")</div>
                 <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Tax Number", "الرقم الضريبي"):</strong> @(supplier.TaxNumber ?? "-")</div>
                 <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Opening Balance", "الرصيد الافتتاحي"):</strong> @supplier.OpeningBalance.ToString("N2")</div>
+                <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Fiscal Position", "الوضع الضريبي"):</strong> @(supplier.FiscalPosition ?? "-")</div>
+                <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Payment Reference", "مرجع الدفع"):</strong> @(supplier.VendorPaymentReference ?? "-")</div>
+                <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Payable Account", "حساب الموردين"):</strong> @FormatGuid(supplier.PayableAccountId)</div>
+                <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Expense Account", "حساب المصروف"):</strong> @FormatGuid(supplier.ExpenseAccountId)</div>
+                <div class="col-md-3"><strong>@SharedDataService.SelectViewLang("Currency", "العملة"):</strong> @FormatGuid(supplier.DefaultCurrencyId)</div>
                 <div class="col-md-12"><strong>@SharedDataService.SelectViewLang("Notes", "ملاحظات"):</strong> @(supplier.Notes ?? "-")</div>
+            </div>
+        </AppCard>
+
+        <AppCard Title="@SharedDataService.SelectViewLang("Odoo Links", "روابط أودو")" CssClass="mb-3">
+            <div class="erp-smart-button-row">
+                <SmartButton Label="@SharedDataService.SelectViewLang("RFQs", "طلبات عروض")"
+                             Icon="bi-envelope-paper"
+                             Count="@supplierLinks.RequestsForQuotation"
+                             Visible="@HasPermission(PermissionList.RequestForQuotationPermissions.View)"
+                             OnClick="@(() => NavigateProcurement("requests-for-quotation"))" />
+                <SmartButton Label="@SharedDataService.SelectViewLang("Purchase Orders", "أوامر شراء")"
+                             Icon="bi-cart-check"
+                             Count="@supplierLinks.PurchaseOrders"
+                             Visible="@HasPermission(PermissionList.PurchaseOrderPermissions.View)"
+                             OnClick="@(() => NavigateProcurement("purchase-orders"))" />
+                <SmartButton Label="@SharedDataService.SelectViewLang("Receipts", "استلامات")"
+                             Icon="bi-box-arrow-in-down"
+                             Count="@supplierLinks.Receipts"
+                             Visible="@HasPermission(PermissionList.GoodsReceiptPermissions.View)"
+                             OnClick="@(() => NavigateProcurement("goods-receipts"))" />
+                <SmartButton Label="@SharedDataService.SelectViewLang("Bills", "فواتير")"
+                             Icon="bi-receipt"
+                             Count="@supplierLinks.Bills"
+                             Visible="@HasPermission(PermissionList.SupplierInvoicePermissions.View)"
+                             OnClick="@(() => NavigateProcurement("supplier-invoices"))" />
+                <SmartButton Label="@SharedDataService.SelectViewLang("Supplier Items", "أصناف المورد")"
+                             Icon="bi-tags"
+                             Count="@supplierItemsCount"
+                             Visible="@HasPermission(PermissionList.PurchaseOrderPermissions.View)"
+                             OnClick="@(() => NavigationManager.NavigateTo($"/Procurement/SupplierItems?supplierId={Id}"))" />
+                <SmartButton Label="@SharedDataService.SelectViewLang("Scorecard", "بطاقة التقييم")"
+                             Icon="bi-speedometer2"
+                             Count="@supplierScorecardCount"
+                             Visible="@HasPermission(PermissionList.PurchaseOrderPermissions.View)"
+                             OnClick="@(() => NavigationManager.NavigateTo($"/Procurement/SupplierScorecard?supplierId={Id}"))" />
             </div>
         </AppCard>
 
@@ -87,6 +159,7 @@
                                     <div class="text-muted small">@contact.JobTitle</div>
                                     <div class="small">@contact.Email</div>
                                     <div class="small">@contact.PhoneNumber</div>
+                                    <div class="text-muted small">@GetContactTypeLabel(contact.ContactType)</div>
                                 </div>
                                 @if (contact.IsPrimaryContact)
                                 {
@@ -111,6 +184,7 @@
                                     <div class="fw-semibold">@address.Title</div>
                                     <div class="small">@address.AddressLine1 @address.AddressLine2</div>
                                     <div class="text-muted small">@address.City, @address.State, @address.Country @address.PostalCode</div>
+                                    <div class="text-muted small">@GetAddressTypeLabel(address.AddressType)</div>
                                 </div>
                                 @if (address.IsDefaultBilling)
                                 {
@@ -129,6 +203,9 @@
     [Parameter] public Guid Id { get; set; }
 
     private SupplierDto supplier = new();
+    private PartnerSmartLinkSummaryDto supplierLinks = new();
+    private int supplierItemsCount;
+    private int supplierScorecardCount;
     private AuthenticationState? authState;
     private bool isLoading = true;
 
@@ -149,7 +226,11 @@
         {
             var response = await SupplierService.GetByIdAsync(Id);
             if (response.IsSuccess && response.Data is not null)
+            {
                 supplier = response.Data;
+                supplierLinks = supplier.SmartLinks ?? new();
+                await LoadSmartLinksAsync();
+            }
             else
                 ToastService.ShowError(response.Error?.GetDisplayMessage(SharedDataService.Language) ?? SharedDataService.SelectViewLang("Could not load supplier.", "تعذر تحميل المورد."));
         }
@@ -160,6 +241,50 @@
     private void Edit() => NavigationManager.NavigateTo($"/Suppliers/Supplier/Form/{Id}");
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    private async Task LoadSmartLinksAsync()
+    {
+        if (!supplier.CompanyId.HasValue)
+            return;
+
+        var companyId = supplier.CompanyId.Value;
+        if (HasPermission(PermissionList.PurchaseOrderPermissions.View))
+        {
+            var procurementLinks = await ProcurementService.GetSmartLinksAsync(companyId, supplierId: Id);
+            if (procurementLinks.IsSuccess && procurementLinks.Data is not null)
+                supplierLinks = procurementLinks.Data.PartnerLinks;
+
+            var supplierItems = await ProcurementService.GetSupplierItemsAsync(companyId, supplierId: Id);
+            supplierItemsCount = supplierItems.IsSuccess ? supplierItems.Data?.Count ?? 0 : 0;
+
+            var scorecard = await ProcurementService.GetSupplierScorecardAsync(companyId, supplierId: Id);
+            supplierScorecardCount = scorecard.IsSuccess ? scorecard.Data?.Count ?? 0 : 0;
+        }
+    }
+
+    private void NavigateProcurement(string route) =>
+        NavigationManager.NavigateTo($"/Procurement/{route}?supplierId={Id}");
+
+    private static string FormatGuid(Guid? value)
+        => value?.ToString() ?? "-";
+
+    private string GetAddressTypeLabel(PartnerAddressType type) => type switch
+    {
+        PartnerAddressType.Invoice => SharedDataService.SelectViewLang("Invoice", "فاتورة"),
+        PartnerAddressType.Delivery => SharedDataService.SelectViewLang("Delivery", "تسليم"),
+        PartnerAddressType.Other => SharedDataService.SelectViewLang("Other", "أخرى"),
+        PartnerAddressType.Private => SharedDataService.SelectViewLang("Private", "خاص"),
+        _ => SharedDataService.SelectViewLang("Contact", "اتصال")
+    };
+
+    private string GetContactTypeLabel(PartnerContactType type) => type switch
+    {
+        PartnerContactType.Sales => SharedDataService.SelectViewLang("Sales", "مبيعات"),
+        PartnerContactType.Purchase => SharedDataService.SelectViewLang("Purchase", "مشتريات"),
+        PartnerContactType.Accounting => SharedDataService.SelectViewLang("Accounting", "محاسبة"),
+        PartnerContactType.Operations => SharedDataService.SelectViewLang("Operations", "تشغيل"),
+        _ => SharedDataService.SelectViewLang("Contact", "اتصال")
+    };
 
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 }

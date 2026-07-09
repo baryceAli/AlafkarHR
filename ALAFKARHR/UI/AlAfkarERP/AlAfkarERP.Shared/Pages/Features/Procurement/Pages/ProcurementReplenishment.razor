@@ -10,6 +10,7 @@
 @using SharedWithUI.Organization.Dtos
 @using SharedWithUI.Permissions
 @using SharedWithUI.Procurement.Dtos
+@using SharedWithUI.Procurement.Enums
 
 @implements IDisposable
 @inject IProcurementService ProcurementService
@@ -29,6 +30,14 @@
             <button class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@isLoading">
                 <i class="bi bi-arrow-repeat"></i>
                 @Text("Refresh", "تحديث")
+            </button>
+            <button class="btn btn-outline-secondary" @onclick="LoadOrderToMaxAsync" disabled="@isLoading">
+                <i class="bi bi-box-arrow-up"></i>
+                @Text("Order to Max", "طلب حتى الحد الأقصى")
+            </button>
+            <button class="btn btn-outline-secondary" @onclick="RunAutomaticAsync" disabled="@(!CanCreate || isLoading)">
+                <i class="bi bi-lightning-charge"></i>
+                @Text("Run Automatic", "تشغيل التلقائي")
             </button>
             <button class="btn btn-primary" @onclick="CreatePurchaseRequestAsync" disabled="@(!CanCreateSelected)">
                 <i class="bi bi-card-checklist"></i>
@@ -56,7 +65,7 @@
             <FilterBar>
                 <ChildContent>
                     <div class="row g-2 align-items-end">
-                        <div class="col-12 col-lg-4">
+                        <div class="col-12 col-lg-3">
                             <label class="form-label">@Text("Branch", "الفرع")</label>
                             <select class="form-select" @bind="selectedBranchIdText">
                                 <option value="">@Text("All permitted branches", "كل الفروع المسموحة")</option>
@@ -66,7 +75,7 @@
                                 }
                             </select>
                         </div>
-                        <div class="col-12 col-lg-4">
+                        <div class="col-12 col-lg-3">
                             <label class="form-label">@Text("Warehouse", "المستودع")</label>
                             <select class="form-select" @bind="selectedWarehouseIdText">
                                 <option value="">@Text("All warehouses", "كل المستودعات")</option>
@@ -76,12 +85,26 @@
                                 }
                             </select>
                         </div>
-                        <div class="col-12 col-lg-4">
+                        <div class="col-12 col-lg-3">
+                            <label class="form-label">@Text("Trigger", "المشغل")</label>
+                            <select class="form-select" @bind="selectedTriggerModeText">
+                                <option value="">@Text("Manual rules", "القواعد اليدوية")</option>
+                                <option value="@ReplenishmentTriggerMode.Manual">@Text("Manual", "يدوي")</option>
+                                <option value="@ReplenishmentTriggerMode.Automatic">@Text("Automatic", "تلقائي")</option>
+                            </select>
+                        </div>
+                        <div class="col-12 col-lg-3">
                             <label class="form-label">@Text("Search", "بحث")</label>
                             <div class="input-group erp-search-control">
                                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                                 <input class="form-control" placeholder="@Text("Product, SKU, supplier", "منتج، وحدة، مورد")" @bind="searchText" @bind:event="oninput" />
                             </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-check">
+                                <input class="form-check-input" type="checkbox" checked="@includeAutomaticRules" @onchange="OnIncludeAutomaticChanged" />
+                                <span class="form-check-label">@Text("Include automatic rules in the report", "إظهار القواعد التلقائية في التقرير")</span>
+                            </label>
                         </div>
                     </div>
                 </ChildContent>
@@ -103,9 +126,11 @@
                             <th>@Text("SKU", "وحدة المنتج")</th>
                             <th>@Text("Warehouse", "المستودع")</th>
                             <th>@Text("Available", "المتاح")</th>
+                            <th>@Text("Forecast", "المتوقع")</th>
                             <th>@Text("Min / Max", "الأدنى / الأقصى")</th>
                             <th>@Text("Suggested", "المقترح")</th>
                             <th>@Text("Supplier", "المورد")</th>
+                            <th>@Text("Trigger", "المشغل")</th>
                             <th>@Text("Expected", "المتوقع")</th>
                             <th>@Text("Status", "الحالة")</th>
                         </tr>
@@ -114,7 +139,7 @@
                         @if (FilteredSuggestions.Count == 0)
                         {
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">
+                                <td colspan="11" class="text-center text-muted py-4">
                                     @Text("No replenishment suggestions found.", "لا توجد اقتراحات تجديد مخزون.")
                                 </td>
                             </tr>
@@ -134,9 +159,14 @@
                                     <div>@item.AvailableQuantity.ToString("N2")</div>
                                     <div class="text-muted small">@Text("Reserved", "محجوز"): @item.ReservedQuantity.ToString("N2")</div>
                                 </td>
+                                <td>
+                                    <div class="fw-semibold">@item.ForecastedQuantity.ToString("N2")</div>
+                                    <div class="text-muted small">@Text("In", "داخل"): @item.IncomingQuantity.ToString("N2") / @Text("Out", "خارج"): @item.OutgoingQuantity.ToString("N2")</div>
+                                </td>
                                 <td>@item.MinimumQuantity.ToString("N2") / @item.MaximumQuantity.ToString("N2")</td>
                                 <td class="fw-semibold">@item.SuggestedQuantity.ToString("N2")</td>
                                 <td>@Display(item.SupplierName)</td>
+                                <td><StatusChip Text="@TriggerText(item.TriggerMode)" Tone="@(item.TriggerMode == ReplenishmentTriggerMode.Automatic ? "info" : "muted")" /></td>
                                 <td>@item.ExpectedDate.ToString("yyyy-MM-dd")</td>
                                 <td>
                                     <StatusChip Text="@StatusText(item)" Tone="@(item.CanCreatePurchaseRequest ? "success" : "warning")" />
@@ -160,6 +190,9 @@
     private string? searchText;
     private string selectedBranchIdText = string.Empty;
     private string selectedWarehouseIdText = string.Empty;
+    private string selectedTriggerModeText = string.Empty;
+    private bool includeAutomaticRules;
+    private bool orderToMaxMode;
     private AuthenticationState? authState;
     private CurrentUserBranchAccessDto branchAccess = new();
     private List<BranchDto> branches = [];
@@ -171,6 +204,7 @@
     private bool CanCreate => HasPermission(PermissionList.PurchaseRequestPermissions.Create);
     private Guid? SelectedBranchId => Guid.TryParse(selectedBranchIdText, out var id) ? id : null;
     private Guid? SelectedWarehouseId => Guid.TryParse(selectedWarehouseIdText, out var id) ? id : null;
+    private ReplenishmentTriggerMode? SelectedTriggerMode => Enum.TryParse<ReplenishmentTriggerMode>(selectedTriggerModeText, out var mode) ? mode : null;
     private IEnumerable<BranchDto> VisibleBranches => branchAccess.CanViewAllBranches
         ? branches
         : branches.Where(branch => branchAccess.BranchIds.Contains(branch.Id));
@@ -233,13 +267,49 @@
 
         isLoading = true;
         selectedRuleIds.Clear();
-        var result = await ProcurementService.GetReplenishmentSuggestionsAsync(companyId, SelectedBranchId, SelectedWarehouseId, null);
+        orderToMaxMode = false;
+        var result = await ProcurementService.GetReplenishmentSuggestionsAsync(companyId, SelectedBranchId, SelectedWarehouseId, null, SelectedTriggerMode, includeAutomaticRules, false);
         if (result.IsSuccess)
             suggestions = result.Data ?? [];
         else
             ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load replenishment suggestions.", "تعذر تحميل اقتراحات تجديد المخزون."));
 
         isLoading = false;
+    }
+
+    private async Task LoadOrderToMaxAsync()
+    {
+        if (!CanView)
+            return;
+
+        isLoading = true;
+        orderToMaxMode = true;
+        selectedRuleIds.Clear();
+        var result = await ProcurementService.GetReplenishmentSuggestionsAsync(companyId, SelectedBranchId, SelectedWarehouseId, null, SelectedTriggerMode, includeAutomaticRules, true);
+        if (result.IsSuccess)
+            suggestions = result.Data ?? [];
+        else
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not load order-to-max suggestions.", "تعذر تحميل مقترحات الطلب حتى الحد الأقصى."));
+
+        isLoading = false;
+    }
+
+    private async Task RunAutomaticAsync()
+    {
+        if (!CanCreate)
+            return;
+
+        var result = await ProcurementService.RunAutomaticReplenishmentAsync(companyId, SelectedBranchId, SelectedWarehouseId);
+        if (result.IsSuccess)
+        {
+            var data = result.Data ?? new RunAutomaticReplenishmentResultDto();
+            ToastService.ShowSuccess(Text($"Automatic replenishment created {data.DocumentsCreated} purchase request(s).", $"أنشأ التجديد التلقائي {data.DocumentsCreated} طلب شراء."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Could not run automatic replenishment.", "تعذر تشغيل التجديد التلقائي."));
+        }
     }
 
     private async Task CreatePurchaseRequestAsync()
@@ -259,6 +329,7 @@
             WarehouseId = SelectedWarehouseId ?? first.WarehouseId,
             SupplierId = first.SupplierId,
             CurrencyId = first.CurrencyId,
+            OrderToMax = orderToMaxMode,
             Notes = Text("Created from replenishment suggestions.", "تم إنشاؤه من اقتراحات تجديد المخزون."),
             Lines = selected.Select(item => new CreatePurchaseRequestFromReplenishmentLineDto
             {
@@ -292,7 +363,12 @@
     }
 
     private string StatusText(ReplenishmentSuggestionDto item) =>
-        item.CanCreatePurchaseRequest ? Text("Ready", "جاهز") : Text("Review", "مراجعة");
+        item.CanCreatePurchaseRequest
+            ? item.IsBelowMinimum ? Text("Below minimum", "أقل من الحد الأدنى") : Text("Order to max", "طلب حتى الحد الأقصى")
+            : Text("Review", "مراجعة");
+
+    private void OnIncludeAutomaticChanged(ChangeEventArgs args) => includeAutomaticRules = args.Value is bool value && value;
+    private string TriggerText(ReplenishmentTriggerMode mode) => mode == ReplenishmentTriggerMode.Automatic ? Text("Automatic", "تلقائي") : Text("Manual", "يدوي");
 
     private bool HasPermission(string permission) => authState?.User.Claims.Any(c => c.Value == permission) == true;
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);

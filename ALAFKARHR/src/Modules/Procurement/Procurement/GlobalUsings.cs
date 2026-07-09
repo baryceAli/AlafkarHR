@@ -28,4 +28,5 @@ global using SharedWithUI.Accounting.Dtos;
 global using SharedWithUI.Accounting.Enums;
 global using SharedWithUI.Procurement.Dtos;
 global using SharedWithUI.Procurement.Enums;
+global using SharedWithUI.SharedDtos;
 global using System.Security.Claims;

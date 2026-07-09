@@ -153,3 +153,18 @@ public class GetProductByIdHandler(CatalogDbContext dbContext)
         return new GetProductByIdResult(product);
     }
 }
+
+public record GetProductSmartLinksQuery(Guid ProductId) : IQuery<GetProductSmartLinksResult>;
+public record GetProductSmartLinksResult(ProductSmartLinkSummaryDto Links);
+
+public class GetProductSmartLinksHandler(CatalogDbContext dbContext)
+    : IQueryHandler<GetProductSmartLinksQuery, GetProductSmartLinksResult>
+{
+    public async Task<GetProductSmartLinksResult> Handle(GetProductSmartLinksQuery request, CancellationToken cancellationToken)
+    {
+        var skuCount = await dbContext.ProductSkus.AsNoTracking()
+            .CountAsync(x => x.ProductId == request.ProductId && !x.IsDeleted, cancellationToken);
+
+        return new GetProductSmartLinksResult(new ProductSmartLinkSummaryDto { Skus = skuCount });
+    }
+}

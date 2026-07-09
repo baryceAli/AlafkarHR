@@ -89,6 +89,7 @@
                             <th>@SharedDataService.SelectViewLang("Code", "الكود")</th>
                             <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
                             <th>@SharedDataService.SelectViewLang("Payment", "الدفع")</th>
+                            <th>@SharedDataService.SelectViewLang("Odoo Links", "روابط أودو")</th>
                             <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
                             <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
                         </tr>
@@ -97,7 +98,7 @@
                         @if (suppliers.Count == 0)
                         {
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No suppliers found.", "لا توجد موردون.")</td>
+                                <td colspan="7" class="text-center text-muted py-4">@SharedDataService.SelectViewLang("No suppliers found.", "لا توجد موردون.")</td>
                             </tr>
                         }
                         @foreach (var supplier in suppliers)
@@ -110,6 +111,7 @@
                                 <td>@(string.IsNullOrWhiteSpace(supplier.SupplierCode) ? "-" : supplier.SupplierCode)</td>
                                 <td>@supplier.Type</td>
                                 <td>@supplier.PaymentTerm</td>
+                                <td>@RenderSupplierSmartLinks(supplier)</td>
                                 <td><span class="@StatusBadge(supplier.Status)">@supplier.Status</span></td>
                                 <td>
                                     <div class="d-flex justify-content-end gap-2">
@@ -206,6 +208,22 @@
             SupplierStatus.Archived => "badge text-bg-secondary",
             _ => "badge text-bg-light"
         };
+
+    private MarkupString RenderSupplierSmartLinks(SupplierDto supplier)
+    {
+        var links = supplier.SmartLinks ?? new();
+        var html = string.Join("",
+        [
+            SmartLinkChip(SharedDataService.SelectViewLang("RFQs", "طلبات عروض"), links.RequestsForQuotation),
+            SmartLinkChip(SharedDataService.SelectViewLang("POs", "أوامر"), links.PurchaseOrders),
+            SmartLinkChip(SharedDataService.SelectViewLang("Bills", "فواتير"), links.Bills)
+        ]);
+
+        return (MarkupString)$"<div class=\"erp-chip-row\">{html}</div>";
+    }
+
+    private static string SmartLinkChip(string label, int count)
+        => $"<span class=\"badge text-bg-light border\">{System.Net.WebUtility.HtmlEncode(label)}: {count}</span>";
 
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
 

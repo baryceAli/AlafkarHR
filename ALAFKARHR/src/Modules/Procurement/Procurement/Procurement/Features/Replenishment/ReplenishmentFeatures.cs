@@ -2,13 +2,23 @@ using SharedWithUI.Catalog.Enums;
 
 namespace Procurement.Procurement.Features;
 
-public record GetReplenishmentSuggestionsQuery(Guid CompanyId, Guid? BranchId, Guid? WarehouseId, Guid? ProductSkuId)
+public record GetReplenishmentSuggestionsQuery(
+    Guid CompanyId,
+    Guid? BranchId,
+    Guid? WarehouseId,
+    Guid? ProductSkuId,
+    ReplenishmentTriggerMode? TriggerMode = null,
+    bool IncludeAutomatic = false,
+    bool OrderToMax = false)
     : IQuery<GetReplenishmentSuggestionsResult>;
 
 public record GetReplenishmentSuggestionsResult(IReadOnlyCollection<ReplenishmentSuggestionDto> Items);
 
 public record CreatePurchaseRequestFromReplenishmentCommand(CreatePurchaseRequestFromReplenishmentDto Request)
     : ICommand<CreateProcurementDocumentResult>;
+
+public record RunAutomaticReplenishmentCommand(RunAutomaticReplenishmentDto Request)
+    : ICommand<RunAutomaticReplenishmentResultDto>;
 
 public class CreatePurchaseRequestFromReplenishmentValidator : AbstractValidator<CreatePurchaseRequestFromReplenishmentCommand>
 {
@@ -44,6 +54,11 @@ public class GetReplenishmentSuggestionsHandler(ProcurementDbContext dbContext, 
             .OrderBy(x => x.ProductSkuId)
             .ToListAsync(cancellationToken);
 
+        if (request.TriggerMode.HasValue)
+            rules = rules.Where(x => ResolveTriggerMode(x) == request.TriggerMode.Value).ToList();
+        else if (!request.IncludeAutomatic)
+            rules = rules.Where(x => ResolveTriggerMode(x) != ReplenishmentTriggerMode.Automatic).ToList();
+
         var supplierItems = await dbContext.SupplierItems.AsNoTracking()
             .Where(x => x.CompanyId == request.CompanyId)
             .ToListAsync(cancellationToken);
@@ -63,11 +78,12 @@ public class GetReplenishmentSuggestionsHandler(ProcurementDbContext dbContext, 
                 request.WarehouseId ?? rule.WarehouseId,
                 supplierItems,
                 vendorPricelists,
+                request.OrderToMax,
                 cancellationToken));
         }
 
         return new GetReplenishmentSuggestionsResult(suggestions
-            .Where(x => x.SuggestedQuantity > 0 || !x.CanCreatePurchaseRequest)
+            .Where(x => x.SuggestedQuantity > 0 || (!string.Equals(x.WarningCode, "AboveMinimum", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(x.WarningCode)))
             .OrderByDescending(x => !x.CanCreatePurchaseRequest)
             .ThenBy(x => x.ProductNameEng)
             .ThenBy(x => x.SkuCode)
@@ -80,6 +96,7 @@ public class GetReplenishmentSuggestionsHandler(ProcurementDbContext dbContext, 
         Guid? warehouseId,
         IReadOnlyCollection<SupplierItem> supplierItems,
         IReadOnlyCollection<VendorPricelist> vendorPricelists,
+        bool orderToMax,
         CancellationToken cancellationToken)
     {
         var productName = string.Empty;
@@ -102,11 +119,22 @@ public class GetReplenishmentSuggestionsHandler(ProcurementDbContext dbContext, 
             var warehouse = warehouseId.HasValue
                 ? availability.Warehouses.FirstOrDefault(x => x.WarehouseId == warehouseId.Value)
                 : null;
+            var projected = await sender.Send(
+                new GetProjectedStockQuery(rule.CompanyId, branchId, warehouseId, rule.ProductSkuId),
+                cancellationToken);
+            var projectedRows = warehouseId.HasValue
+                ? projected.Rows.Where(x => x.WarehouseId == warehouseId.Value).ToList()
+                : projected.Rows.ToList();
 
             var current = warehouse?.TotalQuantity ?? availability.TotalQuantity;
             var reserved = warehouse?.ReservedQuantity ?? availability.ReservedQuantity;
             var available = warehouse?.AvailableQuantity ?? availability.AvailableQuantity;
-            if (available >= rule.MinimumQuantity)
+            var incoming = projectedRows.Sum(x => x.IncomingQuantity);
+            var outgoing = projectedRows.Sum(x => x.OutgoingQuantity);
+            var forecasted = projectedRows.Count == 0 ? available : projectedRows.Sum(x => x.ForecastedQuantity);
+            var isBelowMinimum = forecasted < rule.MinimumQuantity;
+            var isOrderToMaxEligible = forecasted < rule.MaximumQuantity;
+            if (!isBelowMinimum && !orderToMax)
                 return new ReplenishmentSuggestionDto
                 {
                     ReorderingRuleId = rule.Id,
@@ -123,18 +151,26 @@ public class GetReplenishmentSuggestionsHandler(ProcurementDbContext dbContext, 
                     MinimumQuantity = rule.MinimumQuantity,
                     MaximumQuantity = rule.MaximumQuantity,
                     ReorderQuantity = rule.ReorderQuantity,
+                    MinimumOrderQuantity = 0m,
                     CurrentQuantity = current,
                     ReservedQuantity = reserved,
                     AvailableQuantity = available,
+                    IncomingQuantity = incoming,
+                    OutgoingQuantity = outgoing,
+                    ForecastedQuantity = forecasted,
                     LeadTimeDays = rule.LeadTimeDays,
-                    ExpectedDate = DateTime.UtcNow.Date.AddDays(rule.LeadTimeDays),
+                    HorizonDays = rule.HorizonDays,
+                    ExpectedDate = DateTime.UtcNow.Date.AddDays(rule.LeadTimeDays + rule.HorizonDays),
+                    TriggerMode = ResolveTriggerMode(rule),
+                    IsBelowMinimum = false,
+                    IsOrderToMaxEligible = isOrderToMaxEligible,
                     CanCreatePurchaseRequest = false,
                     WarningCode = "AboveMinimum",
-                    WarningMessage = "Available quantity is above the reordering minimum."
+                    WarningMessage = "Forecasted quantity is above the reordering minimum."
                 };
 
             var supplier = ResolveSupplier(rule, supplierItems, vendorPricelists);
-            var suggested = ResolveSuggestedQuantity(rule, available, supplier.SupplierItem?.MinimumOrderQuantity ?? 0m);
+            var suggested = ResolveSuggestedQuantity(rule, forecasted, supplier.SupplierItem?.MinimumOrderQuantity ?? 0m, orderToMax);
             var leadDays = rule.LeadTimeDays > 0 ? rule.LeadTimeDays : supplier.SupplierItem?.LeadTimeDays ?? 0;
             return new ReplenishmentSuggestionDto
             {
@@ -160,9 +196,16 @@ public class GetReplenishmentSuggestionsHandler(ProcurementDbContext dbContext, 
                 CurrentQuantity = current,
                 ReservedQuantity = reserved,
                 AvailableQuantity = available,
+                IncomingQuantity = incoming,
+                OutgoingQuantity = outgoing,
+                ForecastedQuantity = forecasted,
                 SuggestedQuantity = suggested,
                 LeadTimeDays = leadDays,
-                ExpectedDate = DateTime.UtcNow.Date.AddDays(leadDays),
+                HorizonDays = rule.HorizonDays,
+                ExpectedDate = DateTime.UtcNow.Date.AddDays(leadDays + rule.HorizonDays),
+                TriggerMode = ResolveTriggerMode(rule),
+                IsBelowMinimum = isBelowMinimum,
+                IsOrderToMaxEligible = isOrderToMaxEligible,
                 CanCreatePurchaseRequest = supplier.SupplierId.HasValue && suggested > 0,
                 WarningCode = supplier.SupplierId.HasValue ? string.Empty : "MissingSupplier",
                 WarningMessage = supplier.SupplierId.HasValue ? string.Empty : "No supplier item or vendor pricelist could be matched to this SKU."
@@ -204,12 +247,18 @@ public class GetReplenishmentSuggestionsHandler(ProcurementDbContext dbContext, 
         return true;
     }
 
-    private static decimal ResolveSuggestedQuantity(ReorderingRule rule, decimal available, decimal minimumOrderQuantity)
+    private static decimal ResolveSuggestedQuantity(ReorderingRule rule, decimal forecasted, decimal minimumOrderQuantity, bool orderToMax)
     {
-        var suggested = rule.ReorderQuantity > 0
-            ? rule.ReorderQuantity
-            : Math.Max(rule.MaximumQuantity - available, rule.MinimumQuantity - available);
-        return Math.Max(suggested, minimumOrderQuantity);
+        var targetGap = Math.Max(rule.MaximumQuantity - forecasted, 0m);
+        var minimumGap = Math.Max(rule.MinimumQuantity - forecasted, 0m);
+        var suggested = orderToMax
+            ? targetGap
+            : rule.ReorderQuantity > 0 ? rule.ReorderQuantity : Math.Max(targetGap, minimumGap);
+        suggested = Math.Max(suggested, minimumOrderQuantity);
+        if (rule.MultipleQuantity > 0 && suggested > 0)
+            suggested = Math.Ceiling(suggested / rule.MultipleQuantity) * rule.MultipleQuantity;
+
+        return suggested;
     }
 
     private static (Guid? SupplierId, string? SupplierName, SupplierItem? SupplierItem, VendorPricelist? VendorPricelist) ResolveSupplier(
@@ -268,15 +317,21 @@ public class GetReplenishmentSuggestionsHandler(ProcurementDbContext dbContext, 
             MinimumQuantity = rule.MinimumQuantity,
             MaximumQuantity = rule.MaximumQuantity,
             ReorderQuantity = rule.ReorderQuantity,
+            HorizonDays = rule.HorizonDays,
             LeadTimeDays = rule.LeadTimeDays,
-            ExpectedDate = DateTime.UtcNow.Date.AddDays(rule.LeadTimeDays),
+            ExpectedDate = DateTime.UtcNow.Date.AddDays(rule.LeadTimeDays + rule.HorizonDays),
+            TriggerMode = ResolveTriggerMode(rule),
+            IsBelowMinimum = false,
+            IsOrderToMaxEligible = false,
             CanCreatePurchaseRequest = false,
             WarningCode = "InvalidSetup",
             WarningMessage = warning
         };
+
+    private static ReplenishmentTriggerMode ResolveTriggerMode(ReorderingRule rule) => rule.ResolveTriggerMode();
 }
 
-public class CreatePurchaseRequestFromReplenishmentHandler(ProcurementDbContext dbContext, ISender sender)
+public class CreatePurchaseRequestFromReplenishmentHandler(ProcurementDbContext dbContext, ISender sender, IHttpContextAccessor httpContextAccessor)
     : ICommandHandler<CreatePurchaseRequestFromReplenishmentCommand, CreateProcurementDocumentResult>
 {
     public async Task<CreateProcurementDocumentResult> Handle(CreatePurchaseRequestFromReplenishmentCommand command, CancellationToken cancellationToken)
@@ -285,7 +340,7 @@ public class CreatePurchaseRequestFromReplenishmentHandler(ProcurementDbContext 
         await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, request.CompanyId, request.BranchId, cancellationToken);
 
         var ruleIds = command.Request.Lines.Select(x => x.ReorderingRuleId).Distinct().ToList();
-        var rules = await dbContext.ReorderingRules.AsNoTracking()
+        var rules = await dbContext.ReorderingRules
             .Where(x => x.CompanyId == request.CompanyId && x.IsActive && ruleIds.Contains(x.Id))
             .ToDictionaryAsync(x => x.Id, cancellationToken);
 
@@ -315,7 +370,7 @@ public class CreatePurchaseRequestFromReplenishmentHandler(ProcurementDbContext 
                 await sender.Send(new EnsureWarehouseBranchScopeQuery(request.CompanyId, warehouseId.Value, request.BranchId.Value), cancellationToken);
 
             var suggestion = (await sender.Send(
-                    new GetReplenishmentSuggestionsQuery(request.CompanyId, request.BranchId, warehouseId, line.ProductSkuId),
+                    new GetReplenishmentSuggestionsQuery(request.CompanyId, request.BranchId, warehouseId, line.ProductSkuId, IncludeAutomatic: true, OrderToMax: request.OrderToMax),
                     cancellationToken))
                 .Items
                 .FirstOrDefault(x => x.ReorderingRuleId == line.ReorderingRuleId)
@@ -345,6 +400,84 @@ public class CreatePurchaseRequestFromReplenishmentHandler(ProcurementDbContext 
             });
         }
 
-        return await sender.Send(new CreateProcurementDocumentCommand(ProcurementDocumentKind.PurchaseRequest, document), cancellationToken);
+        var result = await sender.Send(new CreateProcurementDocumentCommand(ProcurementDocumentKind.PurchaseRequest, document), cancellationToken);
+        var documentNumber = await dbContext.ProcurementDocuments.AsNoTracking()
+            .Where(x => x.Id == result.Id)
+            .Select(x => x.Number)
+            .FirstOrDefaultAsync(cancellationToken);
+        var userId = CreateProcurementDocumentHandler.GetUserId(httpContextAccessor);
+        foreach (var rule in rules.Values)
+            rule.MarkReplenishmentRun(result.Id, documentNumber, userId);
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return result;
+    }
+}
+
+public class RunAutomaticReplenishmentHandler(ProcurementDbContext dbContext, ISender sender)
+    : ICommandHandler<RunAutomaticReplenishmentCommand, RunAutomaticReplenishmentResultDto>
+{
+    public async Task<RunAutomaticReplenishmentResultDto> Handle(RunAutomaticReplenishmentCommand command, CancellationToken cancellationToken)
+    {
+        var request = command.Request;
+        await CreateProcurementDocumentHandler.EnsureCanMutateBranchAsync(sender, request.CompanyId, request.BranchId, cancellationToken);
+
+        var today = DateTime.UtcNow.Date;
+        var automaticRules = await dbContext.ReorderingRules.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId
+                && x.IsActive
+                && (x.TriggerMode == ReplenishmentTriggerMode.Automatic || x.AutoCreatePurchaseRequest))
+            .Where(x => !request.WarehouseId.HasValue || !x.WarehouseId.HasValue || x.WarehouseId == request.WarehouseId.Value)
+            .ToDictionaryAsync(x => x.Id, cancellationToken);
+
+        var suggestions = (await sender.Send(
+                new GetReplenishmentSuggestionsQuery(
+                    request.CompanyId,
+                    request.BranchId,
+                    request.WarehouseId,
+                    null,
+                    ReplenishmentTriggerMode.Automatic,
+                    IncludeAutomatic: true),
+                cancellationToken))
+            .Items
+            .Where(x => x.CanCreatePurchaseRequest
+                && x.IsBelowMinimum
+                && automaticRules.TryGetValue(x.ReorderingRuleId, out var rule)
+                && (!rule.LastGeneratedAt.HasValue || rule.LastGeneratedAt.Value.Date < today))
+            .ToList();
+
+        var result = new RunAutomaticReplenishmentResultDto();
+        foreach (var group in suggestions.GroupBy(x => new { x.BranchId, x.WarehouseId, x.SupplierId, x.CurrencyId }))
+        {
+            if (!group.Key.SupplierId.HasValue)
+                continue;
+
+            var createResult = await sender.Send(new CreatePurchaseRequestFromReplenishmentCommand(new CreatePurchaseRequestFromReplenishmentDto
+            {
+                CompanyId = request.CompanyId,
+                BranchId = group.Key.BranchId ?? request.BranchId,
+                WarehouseId = group.Key.WarehouseId ?? request.WarehouseId,
+                SupplierId = group.Key.SupplierId,
+                CurrencyId = group.Key.CurrencyId,
+                Notes = "Created by automatic replenishment.",
+                Lines = group.Select(item => new CreatePurchaseRequestFromReplenishmentLineDto
+                {
+                    ReorderingRuleId = item.ReorderingRuleId,
+                    ProductSkuId = item.ProductSkuId,
+                    WarehouseId = item.WarehouseId,
+                    SupplierId = item.SupplierId,
+                    Quantity = item.SuggestedQuantity
+                }).ToList()
+            }), cancellationToken);
+
+            result.DocumentsCreated++;
+            result.LinesCreated += group.Count();
+            result.DocumentIds.Add(createResult.Id);
+        }
+
+        var skipped = suggestions.Count(x => !x.SupplierId.HasValue);
+        if (skipped > 0)
+            result.Warnings.Add($"{skipped} automatic replenishment line(s) were skipped because no supplier was available.");
+
+        return result;
     }
 }

@@ -137,6 +137,66 @@
                                                    PlaceHolder="@SharedDataService.SelectViewLang("Select currency...", "اختر العملة...")" />
                         </div>
                     }
+                    @if (ShowsPurchaseTemplatePlaceholder)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Purchase Template", "قالب الشراء")</label>
+                            <AutoCompleteComponent TItem="ProcurementAgreementDto"
+                                                   Items="purchaseTemplates"
+                                                   ItemText="AgreementText"
+                                                   Value="selectedPurchaseTemplate"
+                                                   ValueChanged="OnPurchaseTemplateChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select purchase template...", "Select purchase template...")" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Call for Tender", "Call for Tender")</label>
+                            <AutoCompleteComponent TItem="ProcurementAgreementDto"
+                                                   Items="tenders"
+                                                   ItemText="AgreementText"
+                                                   Value="selectedTender"
+                                                   ValueChanged="OnTenderChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select tender...", "Select tender...")" />
+                        </div>
+                    }
+                    @if (IsPurchaseOrder)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Blanket Order", "Blanket Order")</label>
+                            <AutoCompleteComponent TItem="ProcurementAgreementDto"
+                                                   Items="BlanketOrderOptions"
+                                                   ItemText="AgreementText"
+                                                   Value="selectedBlanketOrder"
+                                                   ValueChanged="OnBlanketOrderChanged"
+                                                   PlaceHolder="@SharedDataService.SelectViewLang("Select blanket order...", "Select blanket order...")" />
+                        </div>
+                    }
+                    @if (ShowsPurchaseWorkflowControls)
+                    {
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Bill Control", "سياسة الفوترة")</label>
+                            <InputSelect class="form-select" @bind-Value="document.BillControlPolicy">
+                                @foreach (var policy in BillControlPolicies)
+                                {
+                                    <option value="@policy">@BillControlPolicyText(policy)</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">@SharedDataService.SelectViewLang("3-Way Match", "مطابقة ثلاثية")</label>
+                            <InputSelect class="form-select" @bind-Value="document.ThreeWayMatchStatus">
+                                @foreach (var status in ThreeWayMatchStatuses)
+                                {
+                                    <option value="@status">@ThreeWayMatchStatusText(status)</option>
+                                }
+                            </InputSelect>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" @bind-Value="document.IsBillable" />
+                                <label class="form-check-label">@SharedDataService.SelectViewLang("Billable", "قابل للفوترة")</label>
+                            </div>
+                        </div>
+                    }
                     @if (IsRequestForQuotation)
                     {
                         <div class="col-md-3">
@@ -281,6 +341,13 @@
                                     <th>@UnitCostLabel</th>
                                     <th>@SharedDataService.SelectViewLang("Tax %", "الضريبة %")</th>
                                 }
+                                @if (ShowsLinePurchaseControls)
+                                {
+                                    <th>@SharedDataService.SelectViewLang("Bill Control", "سياسة الفوترة")</th>
+                                    <th>@SharedDataService.SelectViewLang("3-Way Match", "مطابقة ثلاثية")</th>
+                                    <th>@SharedDataService.SelectViewLang("Received", "المستلم")</th>
+                                    <th>@SharedDataService.SelectViewLang("Billed", "المفوتر")</th>
+                                }
                                 @if (NeedsStockContext)
                                 {
                                     <th>@SharedDataService.SelectViewLang("Batch", "الدفعة")</th>
@@ -395,6 +462,34 @@
                                         </td>
                                         <td>
                                             <InputNumber class="form-control procurement-line-number-input" @bind-Value="line.TaxRate" />
+                                        </td>
+                                    }
+                                    @if (ShowsLinePurchaseControls)
+                                    {
+                                        <td>
+                                            <select class="form-select procurement-line-control-select"
+                                                    value="@(line.BillControlPolicy?.ToString() ?? string.Empty)"
+                                                    @onchange="args => OnLineBillControlPolicyChanged(line, args)">
+                                                <option value="">@SharedDataService.SelectViewLang("Document policy", "سياسة المستند")</option>
+                                                @foreach (var policy in BillControlPolicies)
+                                                {
+                                                    <option value="@policy">@BillControlPolicyText(policy)</option>
+                                                }
+                                            </select>
+                                        </td>
+                                        <td>
+                                            <InputSelect class="form-select procurement-line-control-select" @bind-Value="line.ThreeWayMatchStatus">
+                                                @foreach (var status in ThreeWayMatchStatuses)
+                                                {
+                                                    <option value="@status">@ThreeWayMatchStatusText(status)</option>
+                                                }
+                                            </InputSelect>
+                                        </td>
+                                        <td>
+                                            <InputNumber class="form-control procurement-line-number-input" @bind-Value="line.ReceivedQuantity" />
+                                        </td>
+                                        <td>
+                                            <InputNumber class="form-control procurement-line-number-input" @bind-Value="line.BilledQuantity" />
                                         </td>
                                     }
                                     @if (NeedsStockContext)
@@ -531,6 +626,10 @@
         min-width: 6rem;
     }
 
+    .procurement-line-control-select {
+        min-width: 11rem;
+    }
+
     .procurement-line-notes-input {
         min-width: 10rem;
     }
@@ -589,9 +688,15 @@
     private readonly List<ProcurementDocumentDto> invoiceableGoodsReceipts = [];
     private readonly List<ProcurementDocumentDto> postedGoodsReceipts = [];
     private readonly List<ProcurementDocumentDto> supplierInvoices = [];
+    private readonly List<ProcurementAgreementDto> purchaseTemplates = [];
+    private readonly List<ProcurementAgreementDto> blanketOrders = [];
+    private readonly List<ProcurementAgreementDto> tenders = [];
     private SupplierDto? selectedSupplier;
     private WarehouseDto? selectedWarehouse;
     private CurrencyDto? selectedCurrency;
+    private ProcurementAgreementDto? selectedPurchaseTemplate;
+    private ProcurementAgreementDto? selectedBlanketOrder;
+    private ProcurementAgreementDto? selectedTender;
     private ProcurementDocumentDto? selectedSourcePurchaseRequest;
     private ProcurementDocumentDto? selectedSourceRfq;
     private ProcurementDocumentDto? selectedSourceSupplierQuotation;
@@ -622,7 +727,12 @@
     private bool HideDocumentNumberField => IsSystemNumberedDocument && !Id.HasValue;
     private bool NeedsStockContext => kind is ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.PurchaseReturn;
     private bool NeedsCurrency => kind is ProcurementDocumentKind.SupplierQuotation or ProcurementDocumentKind.PurchaseOrder or ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.PurchaseReturn or ProcurementDocumentKind.SupplierInvoice;
-    private int LinesTableColumnCount => 8 + (ShowLineCommercialFields ? 2 : 0) + (NeedsStockContext ? 1 : 0);
+    private bool ShowsPurchaseTemplatePlaceholder => kind is ProcurementDocumentKind.RequestForQuotation or ProcurementDocumentKind.PurchaseOrder;
+    private bool ShowsPurchaseWorkflowControls => kind is ProcurementDocumentKind.PurchaseOrder or ProcurementDocumentKind.GoodsReceipt or ProcurementDocumentKind.SupplierInvoice;
+    private bool ShowsLinePurchaseControls => ShowsPurchaseWorkflowControls;
+    private int LinesTableColumnCount => 8 + (ShowLineCommercialFields ? 2 : 0) + (ShowsLinePurchaseControls ? 4 : 0) + (NeedsStockContext ? 1 : 0);
+    private static readonly PurchaseBillControlPolicy[] BillControlPolicies = Enum.GetValues<PurchaseBillControlPolicy>();
+    private static readonly ThreeWayMatchStatus[] ThreeWayMatchStatuses = Enum.GetValues<ThreeWayMatchStatus>();
     private List<EditableProcurementLine> VisibleLines => string.IsNullOrWhiteSpace(lineSearchText)
         ? document.Lines
         : document.Lines.Where(LineMatchesSearch).ToList();
@@ -662,6 +772,9 @@
     };
     private List<WarehouseDto> WarehouseOptions => warehouses
         .Where(WarehouseMatchesDocumentBranch)
+        .ToList();
+    private List<ProcurementAgreementDto> BlanketOrderOptions => blanketOrders
+        .Where(x => !x.SupplierId.HasValue || !document.SupplierId.HasValue || x.SupplierId == document.SupplierId)
         .ToList();
 
     protected override void OnInitialized()
@@ -728,6 +841,9 @@
         invoiceableGoodsReceipts.Clear();
         postedGoodsReceipts.Clear();
         supplierInvoices.Clear();
+        purchaseTemplates.Clear();
+        blanketOrders.Clear();
+        tenders.Clear();
 
         if (companyId == Guid.Empty)
             return;
@@ -761,6 +877,24 @@
         var currencyResponse = await CurrencyService.GetAsync(companyId, 0, 200);
         if (currencyResponse.IsSuccess)
             currencies.AddRange(currencyResponse.Data?.Data ?? []);
+
+        if (IsRequestForQuotation || IsPurchaseOrder)
+        {
+            var templateResponse = await ProcurementService.GetPurchaseAgreementsAsync(companyId, ProcurementAgreementType.PurchaseTemplate);
+            if (templateResponse.IsSuccess)
+                purchaseTemplates.AddRange((templateResponse.Data ?? []).Where(IsUsableAgreement));
+
+            var tenderResponse = await ProcurementService.GetPurchaseAgreementsAsync(companyId, ProcurementAgreementType.CallForTender);
+            if (tenderResponse.IsSuccess)
+                tenders.AddRange((tenderResponse.Data ?? []).Where(IsUsableAgreement));
+        }
+
+        if (IsPurchaseOrder)
+        {
+            var blanketResponse = await ProcurementService.GetPurchaseAgreementsAsync(companyId, ProcurementAgreementType.BlanketOrder);
+            if (blanketResponse.IsSuccess)
+                blanketOrders.AddRange((blanketResponse.Data ?? []).Where(IsUsableAgreement));
+        }
 
         if (IsGoodsReceipt || IsSupplierInvoice)
         {
@@ -923,6 +1057,14 @@
             CurrencyId = document.CurrencyId,
             SourceDocumentId = document.SourceDocumentId,
             SourceDocumentNumber = document.SourceDocumentNumber,
+            SentAt = document.SentAt,
+            SentBy = document.SentBy,
+            PurchaseTemplateId = document.PurchaseTemplateId,
+            BlanketOrderId = document.BlanketOrderId,
+            TenderId = document.TenderId,
+            BillControlPolicy = document.BillControlPolicy,
+            ThreeWayMatchStatus = document.ThreeWayMatchStatus,
+            IsBillable = document.IsBillable,
             Notes = document.Notes,
             Lines = document.Lines.Select(line => new ProcurementDocumentLineDto
             {
@@ -937,6 +1079,10 @@
                 UnitOfMeasureId = line.UnitOfMeasureId,
                 WarehouseId = line.WarehouseId,
                 BatchId = line.BatchId,
+                BillControlPolicy = line.BillControlPolicy,
+                ThreeWayMatchStatus = line.ThreeWayMatchStatus,
+                ReceivedQuantity = line.ReceivedQuantity,
+                BilledQuantity = line.BilledQuantity,
                 Quantity = line.Quantity,
                 UnitCost = IsNonCommercialRequestDocument ? 0 : line.UnitCost,
                 DiscountRate = IsNonCommercialRequestDocument ? 0 : line.DiscountRate,
@@ -971,6 +1117,9 @@
             ?? invoiceablePurchaseOrders.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
         selectedInvoiceGoodsReceipt = invoiceableGoodsReceipts.FirstOrDefault(x => x.Id == document.SourceDocumentId)
             ?? invoiceableGoodsReceipts.FirstOrDefault(x => string.Equals(x.Number, document.SourceDocumentNumber, StringComparison.OrdinalIgnoreCase));
+        selectedPurchaseTemplate = purchaseTemplates.FirstOrDefault(x => x.Id == document.PurchaseTemplateId);
+        selectedBlanketOrder = blanketOrders.FirstOrDefault(x => x.Id == document.BlanketOrderId);
+        selectedTender = tenders.FirstOrDefault(x => x.Id == document.TenderId);
 
         if (IsPurchaseOrder)
         {
@@ -1015,6 +1164,39 @@
         selectedSupplier = supplier;
         document.SupplierId = supplier?.Id;
         document.SupplierName = supplier?.Name;
+        if (selectedBlanketOrder?.SupplierId is Guid blanketSupplierId && blanketSupplierId != document.SupplierId)
+        {
+            selectedBlanketOrder = null;
+            document.BlanketOrderId = null;
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnPurchaseTemplateChanged(ProcurementAgreementDto? agreement)
+    {
+        selectedPurchaseTemplate = agreement;
+        document.PurchaseTemplateId = agreement?.Id;
+        if (agreement is not null)
+            ApplyAgreementDefaults(agreement, replaceLines: true);
+        return Task.CompletedTask;
+    }
+
+    private Task OnTenderChanged(ProcurementAgreementDto? agreement)
+    {
+        selectedTender = agreement;
+        document.TenderId = agreement?.Id;
+        if (agreement is not null)
+            ApplyAgreementDefaults(agreement, replaceLines: false);
+        return Task.CompletedTask;
+    }
+
+    private Task OnBlanketOrderChanged(ProcurementAgreementDto? agreement)
+    {
+        selectedBlanketOrder = agreement;
+        document.BlanketOrderId = agreement?.Id;
+        if (agreement is not null)
+            ApplyAgreementDefaults(agreement, replaceLines: true);
         return Task.CompletedTask;
     }
 
@@ -1290,6 +1472,10 @@
         {
             Id = Guid.Empty,
             Quantity = quantity,
+            BillControlPolicy = line.BillControlPolicy ?? document.BillControlPolicy,
+            ThreeWayMatchStatus = ResolveLineMatchStatus(document.BillControlPolicy, quantity, previouslyReceived, 0),
+            ReceivedQuantity = previouslyReceived,
+            BilledQuantity = 0,
             OrderedQuantity = line.Quantity,
             PreviouslyReceivedQuantity = previouslyReceived,
             RemainingQuantity = Math.Max(line.Quantity - previouslyReceived, 0),
@@ -1311,6 +1497,10 @@
         {
             Id = Guid.Empty,
             Quantity = quantity,
+            BillControlPolicy = line.BillControlPolicy ?? document.BillControlPolicy,
+            ThreeWayMatchStatus = ResolveLineMatchStatus(document.BillControlPolicy, quantity, receivedQuantity, alreadyInvoicedQuantity),
+            ReceivedQuantity = receivedQuantity,
+            BilledQuantity = alreadyInvoicedQuantity,
             OrderedQuantity = receivedQuantity,
             PreviouslyReceivedQuantity = alreadyInvoicedQuantity,
             RemainingQuantity = Math.Max(receivedQuantity - alreadyInvoicedQuantity, 0),
@@ -1324,6 +1514,17 @@
         };
 
         return editableLine;
+    }
+
+    private static ThreeWayMatchStatus ResolveLineMatchStatus(PurchaseBillControlPolicy policy, decimal currentQuantity, decimal receivedQuantity, decimal billedQuantity)
+    {
+        if (policy == PurchaseBillControlPolicy.OrderedQuantities)
+            return currentQuantity > 0 ? ThreeWayMatchStatus.ReadyToBill : ThreeWayMatchStatus.NotRequired;
+
+        if (receivedQuantity <= 0)
+            return ThreeWayMatchStatus.PendingReceipt;
+
+        return billedQuantity >= receivedQuantity ? ThreeWayMatchStatus.Matched : ThreeWayMatchStatus.ReadyToBill;
     }
 
     private Task OnWarehouseChanged(WarehouseDto? warehouse)
@@ -1470,6 +1671,13 @@
         return Task.CompletedTask;
     }
 
+    private Task OnLineBillControlPolicyChanged(EditableProcurementLine line, ChangeEventArgs args)
+    {
+        var value = args.Value?.ToString();
+        line.BillControlPolicy = Enum.TryParse<PurchaseBillControlPolicy>(value, out var policy) ? policy : null;
+        return Task.CompletedTask;
+    }
+
     private List<ProductSkuDto> SkuOptions(EditableProcurementLine line)
     {
         if (line.SelectedProduct is not null)
@@ -1503,6 +1711,7 @@
     }
 
     private string SupplierText(SupplierDto supplier) => string.IsNullOrWhiteSpace(supplier.SupplierCode) ? supplier.Name : $"{supplier.Name} ({supplier.SupplierCode})";
+    private string AgreementText(ProcurementAgreementDto agreement) => string.IsNullOrWhiteSpace(agreement.Reference) ? agreement.Name : $"{agreement.Name} ({agreement.Reference})";
     private string ProductText(ProductDto product) => SharedDataService.SelectViewLang(product.NameEng, product.Name);
     private string SkuText(ProductSkuDto sku) => SkuNameSnapshot(sku);
     private string ProductDisplay(EditableProcurementLine? line)
@@ -1600,6 +1809,25 @@
     private string SupplierQuotationText(ProcurementDocumentDto supplierQuotation) => $"{supplierQuotation.Number} - {supplierQuotation.SupplierName ?? SharedDataService.SelectViewLang("No supplier", "No supplier")} - {supplierQuotation.DocumentDate:yyyy-MM-dd}";
     private string PurchaseOrderText(ProcurementDocumentDto purchaseOrder) => $"{purchaseOrder.Number} - {purchaseOrder.SupplierName ?? SharedDataService.SelectViewLang("No supplier", "No supplier")} - {purchaseOrder.DocumentDate:yyyy-MM-dd}";
     private string GoodsReceiptText(ProcurementDocumentDto goodsReceipt) => $"{goodsReceipt.Number} - {goodsReceipt.SupplierName ?? SharedDataService.SelectViewLang("No supplier", "No supplier")} - {goodsReceipt.DocumentDate:yyyy-MM-dd}";
+    private string BillControlPolicyText(PurchaseBillControlPolicy policy) =>
+        policy switch
+        {
+            PurchaseBillControlPolicy.OrderedQuantities => SharedDataService.SelectViewLang("On ordered quantities", "على الكميات المطلوبة"),
+            PurchaseBillControlPolicy.ReceivedQuantities => SharedDataService.SelectViewLang("On received quantities", "على الكميات المستلمة"),
+            _ => policy.ToString()
+        };
+
+    private string ThreeWayMatchStatusText(ThreeWayMatchStatus status) =>
+        status switch
+        {
+            ThreeWayMatchStatus.NotRequired => SharedDataService.SelectViewLang("Not required", "غير مطلوب"),
+            ThreeWayMatchStatus.PendingReceipt => SharedDataService.SelectViewLang("Pending receipt", "بانتظار الاستلام"),
+            ThreeWayMatchStatus.ReadyToBill => SharedDataService.SelectViewLang("Ready to bill", "جاهز للفوترة"),
+            ThreeWayMatchStatus.Matched => SharedDataService.SelectViewLang("Matched", "مطابق"),
+            ThreeWayMatchStatus.Exception => SharedDataService.SelectViewLang("Exception", "استثناء"),
+            _ => status.ToString()
+        };
+
     private string ReceiptProgressText(EditableProcurementLine line) =>
         IsSupplierInvoice
             ? SharedDataService.SelectViewLang(
@@ -1673,6 +1901,8 @@
     private bool IsInvoiceableGoodsReceipt(ProcurementDocumentDto goodsReceipt) =>
         IsPostedGoodsReceipt(goodsReceipt)
         && goodsReceipt.Lines.Any(line => InvoiceableQuantityForGoodsReceiptLine(goodsReceipt, line) > 0);
+    private static bool IsUsableAgreement(ProcurementAgreementDto agreement) =>
+        agreement.Status is not (ProcurementAgreementStatus.Closed or ProcurementAgreementStatus.Cancelled);
 
     private decimal InvoiceableQuantityForPurchaseOrderLine(Guid purchaseOrderId, ProcurementDocumentLineDto line)
     {
@@ -1782,8 +2012,57 @@
             ExpiryDate = DateTime.Today.AddDays(1)
         };
 
+    private void ApplyAgreementDefaults(ProcurementAgreementDto agreement, bool replaceLines)
+    {
+        if (agreement.SupplierId.HasValue)
+        {
+            selectedSupplier = suppliers.FirstOrDefault(x => x.Id == agreement.SupplierId.Value);
+            document.SupplierId = agreement.SupplierId;
+            document.SupplierName = agreement.SupplierName ?? selectedSupplier?.Name;
+        }
+
+        if (agreement.CurrencyId.HasValue)
+        {
+            selectedCurrency = currencies.FirstOrDefault(x => x.Id == agreement.CurrencyId.Value);
+            document.CurrencyId = agreement.CurrencyId;
+        }
+
+        if (agreement.BranchId.HasValue)
+            document.BranchId = agreement.BranchId;
+
+        if (!replaceLines || agreement.Lines.Count == 0)
+            return;
+
+        document.Lines = agreement.Lines.Select(line =>
+        {
+            var editableLine = new EditableProcurementLine
+            {
+                ProductId = line.ProductId,
+                ProductSkuId = line.ProductSkuId,
+                ProductName = line.ProductName,
+                ProductNameEng = line.ProductNameEng,
+                SkuCode = line.SkuCode,
+                UnitOfMeasureId = line.UnitOfMeasureId,
+                Quantity = line.Quantity,
+                UnitCost = IsNonCommercialRequestDocument ? 0 : line.UnitCost,
+                DiscountRate = IsNonCommercialRequestDocument ? 0 : line.DiscountRate,
+                TaxRate = IsNonCommercialRequestDocument ? 0 : line.TaxRate,
+                Notes = line.Notes,
+                BillControlPolicy = ShowsLinePurchaseControls ? document.BillControlPolicy : null,
+                ThreeWayMatchStatus = ShowsLinePurchaseControls ? document.ThreeWayMatchStatus : ThreeWayMatchStatus.NotRequired
+            };
+            editableLine.SelectedProduct = products.FirstOrDefault(x => x.Id == editableLine.ProductId);
+            editableLine.SelectedSku = allSkus.FirstOrDefault(x => x.Id == editableLine.ProductSkuId);
+            return editableLine;
+        }).ToList();
+    }
+
     private void CreateSupplier() => NavigationManager.NavigateTo("/Suppliers/Supplier/Form");
-    private void AddLine() => document.Lines.Insert(0, new EditableProcurementLine());
+    private void AddLine() => document.Lines.Insert(0, new EditableProcurementLine
+    {
+        BillControlPolicy = ShowsLinePurchaseControls ? document.BillControlPolicy : null,
+        ThreeWayMatchStatus = ShowsLinePurchaseControls ? document.ThreeWayMatchStatus : ThreeWayMatchStatus.NotRequired
+    });
     private void RemoveLine(EditableProcurementLine line) => document.Lines.Remove(line);
     private static void ApplyPackageQuantity(EditableProcurementLine line)
     {
@@ -1836,6 +2115,14 @@
             CurrencyId = dto.CurrencyId;
             SourceDocumentId = dto.SourceDocumentId;
             SourceDocumentNumber = dto.SourceDocumentNumber;
+            SentAt = dto.SentAt;
+            SentBy = dto.SentBy;
+            PurchaseTemplateId = dto.PurchaseTemplateId;
+            BlanketOrderId = dto.BlanketOrderId;
+            TenderId = dto.TenderId;
+            BillControlPolicy = dto.BillControlPolicy;
+            ThreeWayMatchStatus = dto.ThreeWayMatchStatus;
+            IsBillable = dto.IsBillable;
             Notes = dto.Notes;
             Lines = dto.Lines.Select(x => new EditableProcurementLine(x)).ToList();
         }
@@ -1872,6 +2159,10 @@
             UnitOfMeasureId = dto.UnitOfMeasureId;
             WarehouseId = dto.WarehouseId;
             BatchId = dto.BatchId;
+            BillControlPolicy = dto.BillControlPolicy;
+            ThreeWayMatchStatus = dto.ThreeWayMatchStatus;
+            ReceivedQuantity = dto.ReceivedQuantity;
+            BilledQuantity = dto.BilledQuantity;
             Quantity = dto.Quantity;
             UnitCost = dto.UnitCost;
             DiscountRate = dto.DiscountRate;

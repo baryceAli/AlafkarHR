@@ -15,6 +15,8 @@ public class ProcurementDbContext(DbContextOptions<ProcurementDbContext> options
     public DbSet<SupplierItem> SupplierItems => Set<SupplierItem>();
     public DbSet<VendorPricelist> VendorPricelists => Set<VendorPricelist>();
     public DbSet<ReorderingRule> ReorderingRules => Set<ReorderingRule>();
+    public DbSet<ProcurementAgreement> ProcurementAgreements => Set<ProcurementAgreement>();
+    public DbSet<ProcurementAgreementLine> ProcurementAgreementLines => Set<ProcurementAgreementLine>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -11,10 +11,122 @@ public class WarehouseLocationConfiguration : IEntityTypeConfiguration<Warehouse
         builder.Property(x => x.NameEng).HasMaxLength(200);
         builder.Property(x => x.ParentCode).HasMaxLength(80);
         builder.Property(x => x.LocationType).HasConversion<string>().HasMaxLength(40);
+        builder.Property(x => x.LocationUsage)
+            .HasConversion<string>()
+            .HasMaxLength(40)
+            .HasDefaultValue(WarehouseLocationUsage.Internal);
         builder.Property(x => x.CreatedBy).HasMaxLength(100);
         builder.Property(x => x.ModifiedBy).HasMaxLength(100);
         builder.Property(x => x.DeletedBy).HasMaxLength(100);
         builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.Code }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.LocationUsage, x.IsActive });
+        builder.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+
+public class InventoryOperationTypeConfiguration : IEntityTypeConfiguration<InventoryOperationType>
+{
+    public void Configure(EntityTypeBuilder<InventoryOperationType> builder)
+    {
+        builder.ToTable("InventoryOperationTypes", "Inventory");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Code).IsRequired().HasMaxLength(80);
+        builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
+        builder.Property(x => x.NameEng).HasMaxLength(200);
+        builder.Property(x => x.OperationKind).HasConversion<string>().HasMaxLength(40);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.Code }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.OperationKind, x.IsActive });
+        builder.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+
+public class InventoryOperationConfiguration : IEntityTypeConfiguration<InventoryOperation>
+{
+    public void Configure(EntityTypeBuilder<InventoryOperation> builder)
+    {
+        builder.ToTable("InventoryOperations", "Inventory");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.FlowDirection).HasConversion<string>().HasMaxLength(40);
+        builder.Property(x => x.OperationKind).HasConversion<string>().HasMaxLength(40);
+        builder.Property(x => x.Status).HasConversion<string>().HasMaxLength(40);
+        builder.Property(x => x.SourceDocumentType).IsRequired().HasMaxLength(80);
+        builder.Property(x => x.SourceDocumentNumber).IsRequired().HasMaxLength(120);
+        builder.Property(x => x.CompletedBy).HasMaxLength(100);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.Status, x.OperationKind });
+        builder.HasIndex(x => new { x.CompanyId, x.SourceDocumentType, x.SourceDocumentId, x.Sequence });
+        builder.HasIndex(x => new { x.CompanyId, x.BranchId, x.Status });
+        builder.HasQueryFilter(x => !x.IsDeleted);
+        builder.HasMany(x => x.Lines)
+            .WithOne()
+            .HasForeignKey(x => x.InventoryOperationId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(x => x.Lines)
+            .HasField("_lines")
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
+    }
+}
+
+public class InventoryOperationLineConfiguration : IEntityTypeConfiguration<InventoryOperationLine>
+{
+    public void Configure(EntityTypeBuilder<InventoryOperationLine> builder)
+    {
+        builder.ToTable("InventoryOperationLines", "Inventory");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.PlannedQuantity).HasPrecision(18, 4);
+        builder.Property(x => x.DoneQuantity).HasPrecision(18, 4);
+        builder.Property(x => x.UnitCost).HasPrecision(18, 4);
+        builder.Property(x => x.TotalCost).HasPrecision(18, 2);
+        builder.Property(x => x.Notes).HasMaxLength(500);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.InventoryOperationId, x.ProductSkuId, x.BatchId });
+        builder.HasIndex(x => x.SourceDocumentLineId);
+        builder.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+
+public class InventoryRouteConfiguration : IEntityTypeConfiguration<InventoryRoute>
+{
+    public void Configure(EntityTypeBuilder<InventoryRoute> builder)
+    {
+        builder.ToTable("InventoryRoutes", "Inventory");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Code).IsRequired().HasMaxLength(80);
+        builder.Property(x => x.Name).IsRequired().HasMaxLength(200);
+        builder.Property(x => x.NameEng).HasMaxLength(200);
+        builder.Property(x => x.ApplicationScope).HasConversion<string>().HasMaxLength(40);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.CompanyId, x.Code }).IsUnique();
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.IsActive });
+        builder.HasIndex(x => new { x.CompanyId, x.ProductId, x.ProductSkuId, x.ProductCategoryId });
+        builder.HasQueryFilter(x => !x.IsDeleted);
+    }
+}
+
+public class InventoryRouteRuleConfiguration : IEntityTypeConfiguration<InventoryRouteRule>
+{
+    public void Configure(EntityTypeBuilder<InventoryRouteRule> builder)
+    {
+        builder.ToTable("InventoryRouteRules", "Inventory");
+        builder.HasKey(x => x.Id);
+        builder.Property(x => x.Action).HasConversion<string>().HasMaxLength(40);
+        builder.Property(x => x.CreatedBy).HasMaxLength(100);
+        builder.Property(x => x.ModifiedBy).HasMaxLength(100);
+        builder.Property(x => x.DeletedBy).HasMaxLength(100);
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.Action, x.SourceLocationId, x.IsActive });
+        builder.HasIndex(x => new { x.CompanyId, x.WarehouseId, x.Action, x.DestinationLocationId, x.IsActive });
+        builder.HasIndex(x => new { x.CompanyId, x.OperationTypeId });
+        builder.HasIndex(x => new { x.CompanyId, x.RouteId, x.Priority });
+        builder.HasIndex(x => new { x.CompanyId, x.ProductId, x.ProductSkuId, x.ProductCategoryId });
         builder.HasQueryFilter(x => !x.IsDeleted);
     }
 }

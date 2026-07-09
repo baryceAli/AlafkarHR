@@ -7,6 +7,32 @@ public record GetWarehouseLocationsResult(IReadOnlyCollection<WarehouseLocationD
 public record UpsertWarehouseLocationCommand(WarehouseLocationDto Item) : ICommand<CreateInventoryControlResult>;
 public record DeleteWarehouseLocationCommand(Guid Id) : ICommand;
 
+public record GetInventoryOperationTypesQuery(Guid CompanyId) : IQuery<GetInventoryOperationTypesResult>;
+public record GetInventoryOperationTypesResult(IReadOnlyCollection<InventoryOperationTypeDto> Items);
+public record UpsertInventoryOperationTypeCommand(InventoryOperationTypeDto Item) : ICommand<CreateInventoryControlResult>;
+public record DeleteInventoryOperationTypeCommand(Guid Id) : ICommand;
+
+public record GetInventoryRoutesQuery(Guid CompanyId) : IQuery<GetInventoryRoutesResult>;
+public record GetInventoryRoutesResult(IReadOnlyCollection<InventoryRouteDto> Items);
+public record UpsertInventoryRouteCommand(InventoryRouteDto Item) : ICommand<CreateInventoryControlResult>;
+public record DeleteInventoryRouteCommand(Guid Id) : ICommand;
+
+public record GetInventoryRouteRulesQuery(Guid CompanyId) : IQuery<GetInventoryRouteRulesResult>;
+public record GetInventoryRouteRulesResult(IReadOnlyCollection<InventoryRouteRuleDto> Items);
+public record UpsertInventoryRouteRuleCommand(InventoryRouteRuleDto Item) : ICommand<CreateInventoryControlResult>;
+public record DeleteInventoryRouteRuleCommand(Guid Id) : ICommand;
+
+public record GetInventoryRouteProposalsQuery(
+    Guid CompanyId,
+    Guid WarehouseId,
+    Guid LocationId,
+    Guid? ProductId,
+    Guid? ProductSkuId,
+    Guid? ProductCategoryId,
+    InventoryRouteRuleAction Action) : IQuery<GetInventoryRouteProposalsResult>;
+
+public record GetInventoryRouteProposalsResult(IReadOnlyCollection<InventoryRouteProposalDto> Proposals);
+
 public record GetPutawayRulesQuery(Guid CompanyId) : IQuery<GetPutawayRulesResult>;
 public record GetPutawayRulesResult(IReadOnlyCollection<PutawayRuleDto> Items);
 public record UpsertPutawayRuleCommand(PutawayRuleDto Item) : ICommand<CreateInventoryControlResult>;
@@ -25,9 +51,7 @@ public record DeleteLandedCostVoucherCommand(Guid Id) : ICommand;
 
 public record GetInventoryValuationLayersQuery(Guid CompanyId) : IQuery<GetInventoryValuationLayersResult>;
 public record GetInventoryValuationLayersResult(IReadOnlyCollection<InventoryValuationLayerDto> Items);
-public record GetProjectedStockQuery(Guid CompanyId) : IQuery<GetProjectedStockResult>;
-public record GetProjectedStockResult(IReadOnlyCollection<ProjectedStockRowDto> Rows);
-public record GetLocationBalancesQuery(Guid CompanyId) : IQuery<GetLocationBalancesResult>;
+public record GetLocationBalancesQuery(Guid CompanyId, bool IncludeVirtual = false) : IQuery<GetLocationBalancesResult>;
 public record GetLocationBalancesResult(IReadOnlyCollection<InventoryLocationBalanceDto> Rows);
 public record GetCycleCountsQuery(Guid CompanyId) : IQuery<GetCycleCountsResult>;
 public record GetCycleCountsResult(IReadOnlyCollection<CycleCountDto> Items);
@@ -44,6 +68,41 @@ public class WarehouseLocationValidator : AbstractValidator<UpsertWarehouseLocat
         RuleFor(x => x.Item.WarehouseId).NotEmpty();
         RuleFor(x => x.Item.Code).NotEmpty().MaximumLength(80);
         RuleFor(x => x.Item.Name).NotEmpty().MaximumLength(200);
+    }
+}
+
+public class InventoryOperationTypeValidator : AbstractValidator<UpsertInventoryOperationTypeCommand>
+{
+    public InventoryOperationTypeValidator()
+    {
+        RuleFor(x => x.Item.CompanyId).NotEmpty();
+        RuleFor(x => x.Item.WarehouseId).NotEmpty();
+        RuleFor(x => x.Item.Code).NotEmpty().MaximumLength(80);
+        RuleFor(x => x.Item.Name).NotEmpty().MaximumLength(200);
+    }
+}
+
+public class InventoryRouteValidator : AbstractValidator<UpsertInventoryRouteCommand>
+{
+    public InventoryRouteValidator()
+    {
+        RuleFor(x => x.Item.CompanyId).NotEmpty();
+        RuleFor(x => x.Item.Code).NotEmpty().MaximumLength(80);
+        RuleFor(x => x.Item.Name).NotEmpty().MaximumLength(200);
+    }
+}
+
+public class InventoryRouteRuleValidator : AbstractValidator<UpsertInventoryRouteRuleCommand>
+{
+    public InventoryRouteRuleValidator()
+    {
+        RuleFor(x => x.Item.CompanyId).NotEmpty();
+        RuleFor(x => x.Item.RouteId).NotEmpty();
+        RuleFor(x => x.Item.WarehouseId).NotEmpty();
+        RuleFor(x => x.Item.OperationTypeId).NotEmpty();
+        RuleFor(x => x.Item.SourceLocationId).NotEmpty();
+        RuleFor(x => x.Item.DestinationLocationId).NotEmpty();
+        RuleFor(x => x.Item.Priority).GreaterThanOrEqualTo(0);
     }
 }
 
@@ -95,12 +154,19 @@ public class GetWarehouseLocationsHandler(InventoryDbContext dbContext)
     }
 }
 
-public class UpsertWarehouseLocationHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class UpsertWarehouseLocationHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<UpsertWarehouseLocationCommand, CreateInventoryControlResult>
 {
     public async Task<CreateInventoryControlResult> Handle(UpsertWarehouseLocationCommand request, CancellationToken cancellationToken)
     {
         var userId = InventoryControlHelpers.GetUserId(httpContextAccessor);
+        await InventoryBranchScope.EnsureCanMutateWarehouseAsync(
+            dbContext,
+            sender,
+            request.Item.CompanyId,
+            request.Item.WarehouseId,
+            cancellationToken);
+
         var entity = request.Item.Id == Guid.Empty
             ? null
             : await dbContext.WarehouseLocations.FirstOrDefaultAsync(x => x.Id == request.Item.Id, cancellationToken);
@@ -119,16 +185,261 @@ public class UpsertWarehouseLocationHandler(InventoryDbContext dbContext, IHttpC
     }
 }
 
-public class DeleteWarehouseLocationHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class DeleteWarehouseLocationHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<DeleteWarehouseLocationCommand>
 {
     public async Task<Unit> Handle(DeleteWarehouseLocationCommand request, CancellationToken cancellationToken)
     {
         var entity = await dbContext.WarehouseLocations.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Warehouse location", request.Id);
+        await InventoryBranchScope.EnsureCanMutateWarehouseAsync(
+            dbContext,
+            sender,
+            entity.CompanyId,
+            entity.WarehouseId,
+            cancellationToken);
         entity.Remove(InventoryControlHelpers.GetUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
+    }
+}
+
+public class GetInventoryOperationTypesHandler(InventoryDbContext dbContext)
+    : IQueryHandler<GetInventoryOperationTypesQuery, GetInventoryOperationTypesResult>
+{
+    public async Task<GetInventoryOperationTypesResult> Handle(GetInventoryOperationTypesQuery request, CancellationToken cancellationToken)
+    {
+        var data = await dbContext.InventoryOperationTypes.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId)
+            .OrderBy(x => x.WarehouseId)
+            .ThenBy(x => x.Code)
+            .ToListAsync(cancellationToken);
+
+        return new GetInventoryOperationTypesResult(data.Select(x => x.ToDto()).ToList());
+    }
+}
+
+public class UpsertInventoryOperationTypeHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
+    : ICommandHandler<UpsertInventoryOperationTypeCommand, CreateInventoryControlResult>
+{
+    public async Task<CreateInventoryControlResult> Handle(UpsertInventoryOperationTypeCommand request, CancellationToken cancellationToken)
+    {
+        var userId = InventoryControlHelpers.GetUserId(httpContextAccessor);
+        await InventoryBranchScope.EnsureCanMutateWarehouseAsync(dbContext, sender, request.Item.CompanyId, request.Item.WarehouseId, cancellationToken);
+        await InventoryControlHelpers.EnsureOptionalLocationAsync(dbContext, request.Item.CompanyId, request.Item.WarehouseId, request.Item.DefaultSourceLocationId, cancellationToken);
+        await InventoryControlHelpers.EnsureOptionalLocationAsync(dbContext, request.Item.CompanyId, request.Item.WarehouseId, request.Item.DefaultDestinationLocationId, cancellationToken);
+
+        var entity = request.Item.Id == Guid.Empty
+            ? null
+            : await dbContext.InventoryOperationTypes.FirstOrDefaultAsync(x => x.Id == request.Item.Id, cancellationToken);
+
+        if (entity is null)
+        {
+            entity = InventoryOperationType.Create(request.Item, userId);
+            await dbContext.InventoryOperationTypes.AddAsync(entity, cancellationToken);
+        }
+        else
+        {
+            entity.Update(request.Item, userId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreateInventoryControlResult(entity.Id);
+    }
+}
+
+public class DeleteInventoryOperationTypeHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
+    : ICommandHandler<DeleteInventoryOperationTypeCommand>
+{
+    public async Task<Unit> Handle(DeleteInventoryOperationTypeCommand request, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.InventoryOperationTypes.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+            ?? throw new NotFoundException("Inventory operation type", request.Id);
+        await InventoryBranchScope.EnsureCanMutateWarehouseAsync(dbContext, sender, entity.CompanyId, entity.WarehouseId, cancellationToken);
+        entity.Remove(InventoryControlHelpers.GetUserId(httpContextAccessor));
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Unit.Value;
+    }
+}
+
+public class GetInventoryRoutesHandler(InventoryDbContext dbContext)
+    : IQueryHandler<GetInventoryRoutesQuery, GetInventoryRoutesResult>
+{
+    public async Task<GetInventoryRoutesResult> Handle(GetInventoryRoutesQuery request, CancellationToken cancellationToken)
+    {
+        var data = await dbContext.InventoryRoutes.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId)
+            .OrderBy(x => x.Code)
+            .ToListAsync(cancellationToken);
+
+        return new GetInventoryRoutesResult(data.Select(x => x.ToDto()).ToList());
+    }
+}
+
+public class UpsertInventoryRouteHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
+    : ICommandHandler<UpsertInventoryRouteCommand, CreateInventoryControlResult>
+{
+    public async Task<CreateInventoryControlResult> Handle(UpsertInventoryRouteCommand request, CancellationToken cancellationToken)
+    {
+        var userId = InventoryControlHelpers.GetUserId(httpContextAccessor);
+        if (request.Item.WarehouseId.HasValue)
+        {
+            await InventoryBranchScope.EnsureCanMutateWarehouseAsync(dbContext, sender, request.Item.CompanyId, request.Item.WarehouseId.Value, cancellationToken);
+        }
+
+        await InventoryControlHelpers.EnsureProductTargetAsync(sender, request.Item.CompanyId, request.Item.ProductId, request.Item.ProductSkuId, cancellationToken);
+
+        var entity = request.Item.Id == Guid.Empty
+            ? null
+            : await dbContext.InventoryRoutes.FirstOrDefaultAsync(x => x.Id == request.Item.Id, cancellationToken);
+
+        if (entity is null)
+        {
+            entity = InventoryRoute.Create(request.Item, userId);
+            await dbContext.InventoryRoutes.AddAsync(entity, cancellationToken);
+        }
+        else
+        {
+            entity.Update(request.Item, userId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreateInventoryControlResult(entity.Id);
+    }
+}
+
+public class DeleteInventoryRouteHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
+    : ICommandHandler<DeleteInventoryRouteCommand>
+{
+    public async Task<Unit> Handle(DeleteInventoryRouteCommand request, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.InventoryRoutes.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+            ?? throw new NotFoundException("Inventory route", request.Id);
+        if (entity.WarehouseId.HasValue)
+            await InventoryBranchScope.EnsureCanMutateWarehouseAsync(dbContext, sender, entity.CompanyId, entity.WarehouseId.Value, cancellationToken);
+        entity.Remove(InventoryControlHelpers.GetUserId(httpContextAccessor));
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Unit.Value;
+    }
+}
+
+public class GetInventoryRouteRulesHandler(InventoryDbContext dbContext)
+    : IQueryHandler<GetInventoryRouteRulesQuery, GetInventoryRouteRulesResult>
+{
+    public async Task<GetInventoryRouteRulesResult> Handle(GetInventoryRouteRulesQuery request, CancellationToken cancellationToken)
+    {
+        var data = await dbContext.InventoryRouteRules.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId)
+            .OrderBy(x => x.WarehouseId)
+            .ThenBy(x => x.Priority)
+            .ToListAsync(cancellationToken);
+
+        return new GetInventoryRouteRulesResult(data.Select(x => x.ToDto()).ToList());
+    }
+}
+
+public class UpsertInventoryRouteRuleHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
+    : ICommandHandler<UpsertInventoryRouteRuleCommand, CreateInventoryControlResult>
+{
+    public async Task<CreateInventoryControlResult> Handle(UpsertInventoryRouteRuleCommand request, CancellationToken cancellationToken)
+    {
+        var userId = InventoryControlHelpers.GetUserId(httpContextAccessor);
+        await InventoryControlHelpers.EnsureRouteRuleReferencesAsync(dbContext, sender, request.Item, cancellationToken);
+
+        var entity = request.Item.Id == Guid.Empty
+            ? null
+            : await dbContext.InventoryRouteRules.FirstOrDefaultAsync(x => x.Id == request.Item.Id, cancellationToken);
+
+        if (entity is null)
+        {
+            entity = InventoryRouteRule.Create(request.Item, userId);
+            await dbContext.InventoryRouteRules.AddAsync(entity, cancellationToken);
+        }
+        else
+        {
+            entity.Update(request.Item, userId);
+        }
+
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return new CreateInventoryControlResult(entity.Id);
+    }
+}
+
+public class DeleteInventoryRouteRuleHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
+    : ICommandHandler<DeleteInventoryRouteRuleCommand>
+{
+    public async Task<Unit> Handle(DeleteInventoryRouteRuleCommand request, CancellationToken cancellationToken)
+    {
+        var entity = await dbContext.InventoryRouteRules.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
+            ?? throw new NotFoundException("Inventory route rule", request.Id);
+        await InventoryBranchScope.EnsureCanMutateWarehouseAsync(dbContext, sender, entity.CompanyId, entity.WarehouseId, cancellationToken);
+        entity.Remove(InventoryControlHelpers.GetUserId(httpContextAccessor));
+        await dbContext.SaveChangesAsync(cancellationToken);
+        return Unit.Value;
+    }
+}
+
+public class GetInventoryRouteProposalsHandler(InventoryDbContext dbContext, ISender sender)
+    : IQueryHandler<GetInventoryRouteProposalsQuery, GetInventoryRouteProposalsResult>
+{
+    public async Task<GetInventoryRouteProposalsResult> Handle(GetInventoryRouteProposalsQuery request, CancellationToken cancellationToken)
+    {
+        await InventoryBranchScope.EnsureCanReadWarehouseAsync(dbContext, sender, request.CompanyId, request.WarehouseId, cancellationToken);
+        await InventoryControlHelpers.EnsureActiveLocationAsync(dbContext, request.CompanyId, request.WarehouseId, request.LocationId, cancellationToken);
+        await InventoryControlHelpers.EnsureProductTargetAsync(sender, request.CompanyId, request.ProductId, request.ProductSkuId, cancellationToken);
+
+        var rules = await dbContext.InventoryRouteRules.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId
+                && x.WarehouseId == request.WarehouseId
+                && x.Action == request.Action
+                && x.IsActive
+                && (request.Action == InventoryRouteRuleAction.Push
+                    ? x.SourceLocationId == request.LocationId
+                    : x.DestinationLocationId == request.LocationId)
+                && (!x.ProductId.HasValue || x.ProductId == request.ProductId)
+                && (!x.ProductSkuId.HasValue || x.ProductSkuId == request.ProductSkuId)
+                && (!x.ProductCategoryId.HasValue || x.ProductCategoryId == request.ProductCategoryId))
+            .Join(dbContext.InventoryRoutes.AsNoTracking().Where(x => x.IsActive),
+                rule => rule.RouteId,
+                route => route.Id,
+                (rule, route) => new { rule, route })
+            .Join(dbContext.InventoryOperationTypes.AsNoTracking().Where(x => x.IsActive),
+                row => row.rule.OperationTypeId,
+                operationType => operationType.Id,
+                (row, operationType) => new { row.rule, row.route, operationType })
+            .Join(dbContext.WarehouseLocations.AsNoTracking(),
+                row => row.rule.SourceLocationId,
+                source => source.Id,
+                (row, source) => new { row.rule, row.route, row.operationType, source })
+            .Join(dbContext.WarehouseLocations.AsNoTracking(),
+                row => row.rule.DestinationLocationId,
+                destination => destination.Id,
+                (row, destination) => new InventoryRouteProposalDto
+                {
+                    RouteRuleId = row.rule.Id,
+                    RouteId = row.route.Id,
+                    RouteName = row.route.Name,
+                    RouteNameEng = row.route.NameEng,
+                    OperationTypeId = row.operationType.Id,
+                    OperationTypeCode = row.operationType.Code,
+                    OperationTypeName = row.operationType.Name,
+                    OperationTypeNameEng = row.operationType.NameEng,
+                    Action = row.rule.Action,
+                    WarehouseId = row.rule.WarehouseId,
+                    SourceLocationId = row.rule.SourceLocationId,
+                    SourceLocationCode = row.source.Code,
+                    SourceLocationName = row.source.Name,
+                    SourceLocationNameEng = row.source.NameEng,
+                    DestinationLocationId = row.rule.DestinationLocationId,
+                    DestinationLocationCode = destination.Code,
+                    DestinationLocationName = destination.Name,
+                    DestinationLocationNameEng = destination.NameEng,
+                    Priority = row.rule.Priority
+                })
+            .OrderBy(x => x.Priority)
+            .ToListAsync(cancellationToken);
+
+        return new GetInventoryRouteProposalsResult(rules);
     }
 }
 
@@ -145,12 +456,16 @@ public class GetPutawayRulesHandler(InventoryDbContext dbContext)
     }
 }
 
-public class UpsertPutawayRuleHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class UpsertPutawayRuleHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<UpsertPutawayRuleCommand, CreateInventoryControlResult>
 {
     public async Task<CreateInventoryControlResult> Handle(UpsertPutawayRuleCommand request, CancellationToken cancellationToken)
     {
         var userId = InventoryControlHelpers.GetUserId(httpContextAccessor);
+        await InventoryBranchScope.EnsureCanMutateWarehouseAsync(dbContext, sender, request.Item.CompanyId, request.Item.WarehouseId, cancellationToken);
+        await InventoryControlHelpers.EnsureOptionalLocationAsync(dbContext, request.Item.CompanyId, request.Item.WarehouseId, request.Item.DestinationLocationId, cancellationToken);
+        await InventoryControlHelpers.EnsureProductTargetAsync(sender, request.Item.CompanyId, request.Item.ProductId, request.Item.ProductSkuId, cancellationToken);
+
         var entity = request.Item.Id == Guid.Empty
             ? null
             : await dbContext.PutawayRules.FirstOrDefaultAsync(x => x.Id == request.Item.Id, cancellationToken);
@@ -169,13 +484,14 @@ public class UpsertPutawayRuleHandler(InventoryDbContext dbContext, IHttpContext
     }
 }
 
-public class DeletePutawayRuleHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor)
+public class DeletePutawayRuleHandler(InventoryDbContext dbContext, IHttpContextAccessor httpContextAccessor, ISender sender)
     : ICommandHandler<DeletePutawayRuleCommand>
 {
     public async Task<Unit> Handle(DeletePutawayRuleCommand request, CancellationToken cancellationToken)
     {
         var entity = await dbContext.PutawayRules.FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException("Putaway rule", request.Id);
+        await InventoryBranchScope.EnsureCanMutateWarehouseAsync(dbContext, sender, entity.CompanyId, entity.WarehouseId, cancellationToken);
         entity.Remove(InventoryControlHelpers.GetUserId(httpContextAccessor));
         await dbContext.SaveChangesAsync(cancellationToken);
         return Unit.Value;
@@ -346,14 +662,42 @@ public class GetInventoryValuationLayersHandler(InventoryDbContext dbContext)
     }
 }
 
-public class GetProjectedStockHandler(InventoryDbContext dbContext)
+public class GetProjectedStockHandler(InventoryDbContext dbContext, ISender sender)
     : IQueryHandler<GetProjectedStockQuery, GetProjectedStockResult>
 {
     public async Task<GetProjectedStockResult> Handle(GetProjectedStockQuery request, CancellationToken cancellationToken)
     {
+        var access = await sender.Send(new GetCurrentUserBranchAccessQuery(request.CompanyId), cancellationToken);
+        if (!BranchScopePolicy.CanFilter(access, request.BranchId))
+            throw new ForbiddenException("You do not have permission to filter projected stock by this branch.");
+
+        var warehouseQuery = dbContext.Warehouses.AsNoTracking()
+            .Where(x => x.CompanyId == request.CompanyId && !x.IsDeleted);
+
+        if (request.WarehouseId.HasValue)
+            warehouseQuery = warehouseQuery.Where(x => x.Id == request.WarehouseId.Value);
+
+        if (access.CanViewAllBranches)
+        {
+            if (request.BranchId.HasValue)
+                warehouseQuery = warehouseQuery.Where(x => x.BranchId == request.BranchId.Value);
+        }
+        else
+        {
+            warehouseQuery = request.BranchId.HasValue
+                ? warehouseQuery.Where(x => x.BranchId == null || x.BranchId == request.BranchId.Value)
+                : warehouseQuery.Where(x => x.BranchId == null || (x.BranchId.HasValue && access.BranchIds.Contains(x.BranchId.Value)));
+        }
+
+        var warehouses = await warehouseQuery
+            .Select(x => new ProjectedWarehouse { Id = x.Id, BranchId = x.BranchId })
+            .ToListAsync(cancellationToken);
+        var warehouseIds = warehouses.Select(x => x.Id).ToHashSet();
+
         var inventoryRows = await dbContext.Inventories.AsNoTracking()
-            .Where(x => x.CompanyId == request.CompanyId)
-            .Select(x => new ProjectedStockRowDto
+            .Where(x => x.CompanyId == request.CompanyId && warehouseIds.Contains(x.WarehouseId))
+            .Where(x => !request.ProductSkuId.HasValue || x.ProductSkuId == request.ProductSkuId.Value)
+            .Select(x => new ProjectedStockAccumulator
             {
                 ProductSkuId = x.ProductSkuId,
                 WarehouseId = x.WarehouseId,
@@ -362,47 +706,125 @@ public class GetProjectedStockHandler(InventoryDbContext dbContext)
                 AvailableQuantity = x.TotalAvailable
             })
             .ToListAsync(cancellationToken);
+        foreach (var row in inventoryRows)
+            row.BranchId = warehouses.FirstOrDefault(x => x.Id == row.WarehouseId)?.BranchId;
 
         var incomingTransfers = await dbContext.WarehouseTransfers.AsNoTracking()
             .Include(x => x.Items)
-            .Where(x => x.CompanyId == request.CompanyId && (x.Status == TransferStatus.Pending || x.Status == TransferStatus.Shipped || x.Status == TransferStatus.PartiallyReceived))
+            .Where(x => x.CompanyId == request.CompanyId
+                && warehouseIds.Contains(x.DestinationWarehouseId)
+                && (x.Status == TransferStatus.Pending || x.Status == TransferStatus.Shipped || x.Status == TransferStatus.PartiallyReceived))
             .SelectMany(x => x.Items.Select(item => new { x.DestinationWarehouseId, item.ProductSkuId, Quantity = item.Quantity - item.ReceivedQuantity }))
+            .Where(x => !request.ProductSkuId.HasValue || x.ProductSkuId == request.ProductSkuId.Value)
             .ToListAsync(cancellationToken);
 
         var outgoingTransfers = await dbContext.WarehouseTransfers.AsNoTracking()
             .Include(x => x.Items)
-            .Where(x => x.CompanyId == request.CompanyId && (x.Status == TransferStatus.Pending || x.Status == TransferStatus.Shipped || x.Status == TransferStatus.PartiallyReceived))
+            .Where(x => x.CompanyId == request.CompanyId
+                && warehouseIds.Contains(x.SourceWarehouseId)
+                && (x.Status == TransferStatus.Pending || x.Status == TransferStatus.Shipped || x.Status == TransferStatus.PartiallyReceived))
             .SelectMany(x => x.Items.Select(item => new { x.SourceWarehouseId, item.ProductSkuId, Quantity = item.Quantity - item.ReceivedQuantity }))
+            .Where(x => !request.ProductSkuId.HasValue || x.ProductSkuId == request.ProductSkuId.Value)
+            .ToListAsync(cancellationToken);
+
+        var openOperationQuantities = await dbContext.InventoryOperations.AsNoTracking()
+            .Include(x => x.Lines)
+            .Where(x => x.CompanyId == request.CompanyId
+                && warehouseIds.Contains(x.WarehouseId)
+                && x.IsStockPostingStep
+                && x.Status != InventoryOperationStatus.Done
+                && x.Status != InventoryOperationStatus.Cancelled)
+            .SelectMany(x => x.Lines.Select(line => new
+            {
+                x.WarehouseId,
+                x.FlowDirection,
+                line.ProductSkuId,
+                Quantity = line.PlannedQuantity - line.DoneQuantity
+            }))
+            .Where(x => !request.ProductSkuId.HasValue || x.ProductSkuId == request.ProductSkuId.Value)
             .ToListAsync(cancellationToken);
 
         foreach (var group in incomingTransfers.GroupBy(x => new { x.DestinationWarehouseId, x.ProductSkuId }))
         {
-            var row = inventoryRows.FirstOrDefault(x => x.WarehouseId == group.Key.DestinationWarehouseId && x.ProductSkuId == group.Key.ProductSkuId);
-            if (row is null)
-            {
-                row = new ProjectedStockRowDto { WarehouseId = group.Key.DestinationWarehouseId, ProductSkuId = group.Key.ProductSkuId };
-                inventoryRows.Add(row);
-            }
-
+            var row = GetOrAddRow(inventoryRows, warehouses, group.Key.DestinationWarehouseId, group.Key.ProductSkuId);
             row.IncomingQuantity = group.Sum(x => Math.Max(x.Quantity, 0));
         }
 
         foreach (var group in outgoingTransfers.GroupBy(x => new { x.SourceWarehouseId, x.ProductSkuId }))
         {
-            var row = inventoryRows.FirstOrDefault(x => x.WarehouseId == group.Key.SourceWarehouseId && x.ProductSkuId == group.Key.ProductSkuId);
-            if (row is null)
-            {
-                row = new ProjectedStockRowDto { WarehouseId = group.Key.SourceWarehouseId, ProductSkuId = group.Key.ProductSkuId };
-                inventoryRows.Add(row);
-            }
-
+            var row = GetOrAddRow(inventoryRows, warehouses, group.Key.SourceWarehouseId, group.Key.ProductSkuId);
             row.OutgoingQuantity = group.Sum(x => Math.Max(x.Quantity, 0));
+        }
+
+        foreach (var group in openOperationQuantities.GroupBy(x => new { x.WarehouseId, x.ProductSkuId, x.FlowDirection }))
+        {
+            var row = GetOrAddRow(inventoryRows, warehouses, group.Key.WarehouseId, group.Key.ProductSkuId);
+            var quantity = group.Sum(x => Math.Max(x.Quantity, 0));
+            if (group.Key.FlowDirection == InventoryOperationFlowDirection.Receipt)
+                row.IncomingQuantity += quantity;
+            else
+                row.OutgoingQuantity += quantity;
         }
 
         foreach (var row in inventoryRows)
             row.ForecastedQuantity = row.AvailableQuantity + row.IncomingQuantity - row.OutgoingQuantity;
 
-        return new GetProjectedStockResult(inventoryRows);
+        return new GetProjectedStockResult(inventoryRows
+            .Select(x => new ProjectedStockRow(
+                x.ProductSkuId,
+                x.WarehouseId,
+                x.BranchId,
+                x.OnHandQuantity,
+                x.ReservedQuantity,
+                x.AvailableQuantity,
+                x.IncomingQuantity,
+                x.OutgoingQuantity,
+                x.ForecastedQuantity))
+            .ToList());
+    }
+
+    private static ProjectedStockAccumulator GetOrAddRow(
+        List<ProjectedStockAccumulator> rows,
+        IReadOnlyCollection<ProjectedWarehouse> warehouses,
+        Guid warehouseId,
+        Guid productSkuId)
+    {
+        var row = rows.FirstOrDefault(x => x.WarehouseId == warehouseId && x.ProductSkuId == productSkuId);
+        if (row is not null)
+            return row;
+
+        Guid? branchId = null;
+        foreach (var warehouse in warehouses)
+        {
+            if (warehouse.Id == warehouseId)
+            {
+                branchId = warehouse.BranchId;
+                break;
+            }
+        }
+
+        row = new ProjectedStockAccumulator { WarehouseId = warehouseId, ProductSkuId = productSkuId, BranchId = branchId };
+        rows.Add(row);
+        return row;
+    }
+
+    private sealed class ProjectedStockAccumulator
+    {
+        public Guid ProductSkuId { get; set; }
+        public Guid WarehouseId { get; set; }
+        public Guid? BranchId { get; set; }
+        public decimal OnHandQuantity { get; set; }
+        public decimal ReservedQuantity { get; set; }
+        public decimal AvailableQuantity { get; set; }
+        public decimal IncomingQuantity { get; set; }
+        public decimal OutgoingQuantity { get; set; }
+        public decimal ForecastedQuantity { get; set; }
+    }
+
+    private sealed class ProjectedWarehouse
+    {
+        public Guid Id { get; set; }
+        public Guid? BranchId { get; set; }
     }
 }
 
@@ -435,6 +857,7 @@ public class GetLocationBalancesHandler(InventoryDbContext dbContext)
                 balance => balance.WarehouseLocationId,
                 location => location.Id,
                 (balance, location) => new { balance, location })
+            .Where(row => request.IncludeVirtual || !row.location.ExcludeFromPhysicalStock)
             .Join(dbContext.Warehouses.AsNoTracking(),
                 row => row.balance.WarehouseId,
                 warehouse => warehouse.Id,
@@ -685,6 +1108,12 @@ public class InventoryControlEndpoints : ICarterModule
     {
         MapCrud<WarehouseLocationDto, GetWarehouseLocationsQuery, GetWarehouseLocationsResult, UpsertWarehouseLocationCommand, DeleteWarehouseLocationCommand>(
             app, "warehouse-locations", query => query.Items, companyId => new GetWarehouseLocationsQuery(companyId), item => new UpsertWarehouseLocationCommand(item), id => new DeleteWarehouseLocationCommand(id));
+        MapCrud<InventoryOperationTypeDto, GetInventoryOperationTypesQuery, GetInventoryOperationTypesResult, UpsertInventoryOperationTypeCommand, DeleteInventoryOperationTypeCommand>(
+            app, "operation-types", query => query.Items, companyId => new GetInventoryOperationTypesQuery(companyId), item => new UpsertInventoryOperationTypeCommand(item), id => new DeleteInventoryOperationTypeCommand(id));
+        MapCrud<InventoryRouteDto, GetInventoryRoutesQuery, GetInventoryRoutesResult, UpsertInventoryRouteCommand, DeleteInventoryRouteCommand>(
+            app, "routes", query => query.Items, companyId => new GetInventoryRoutesQuery(companyId), item => new UpsertInventoryRouteCommand(item), id => new DeleteInventoryRouteCommand(id));
+        MapCrud<InventoryRouteRuleDto, GetInventoryRouteRulesQuery, GetInventoryRouteRulesResult, UpsertInventoryRouteRuleCommand, DeleteInventoryRouteRuleCommand>(
+            app, "route-rules", query => query.Items, companyId => new GetInventoryRouteRulesQuery(companyId), item => new UpsertInventoryRouteRuleCommand(item), id => new DeleteInventoryRouteRuleCommand(id));
         MapCrud<PutawayRuleDto, GetPutawayRulesQuery, GetPutawayRulesResult, UpsertPutawayRuleCommand, DeletePutawayRuleCommand>(
             app, "putaway-rules", query => query.Items, companyId => new GetPutawayRulesQuery(companyId), item => new UpsertPutawayRuleCommand(item), id => new DeletePutawayRuleCommand(id));
         MapCrud<QualityInspectionDto, GetQualityInspectionsQuery, GetQualityInspectionsResult, UpsertQualityInspectionCommand, DeleteQualityInspectionCommand>(
@@ -708,8 +1137,8 @@ public class InventoryControlEndpoints : ICarterModule
             Results.Ok(new { rows = (await sender.Send(new GetProjectedStockQuery(companyId))).Rows }))
             .RequireAuthorization(PermissionList.InventoryPermissions.View);
 
-        app.MapGet("/api/v1/inventory/controls/location-balances/company/{companyId:guid}", async (Guid companyId, ISender sender) =>
-            Results.Ok(new { rows = (await sender.Send(new GetLocationBalancesQuery(companyId))).Rows }))
+        app.MapGet("/api/v1/inventory/controls/location-balances/company/{companyId:guid}", async (Guid companyId, bool? includeVirtual, ISender sender) =>
+            Results.Ok(new { rows = (await sender.Send(new GetLocationBalancesQuery(companyId, includeVirtual == true))).Rows }))
             .RequireAuthorization(PermissionList.InventoryPermissions.View);
 
         app.MapPost("/api/v1/inventory/controls/cycle-counts/{id:guid}/post", async (Guid id, ISender sender) =>
@@ -725,6 +1154,28 @@ public class InventoryControlEndpoints : ICarterModule
             Guid productSkuId,
             ISender sender) =>
             Results.Ok(await sender.Send(new GetPutawaySuggestionQuery(companyId, warehouseId, productId, productSkuId))))
+            .RequireAuthorization(PermissionList.InventoryPermissions.View);
+
+        app.MapGet("/api/v1/inventory/controls/route-proposals/company/{companyId:guid}/warehouse/{warehouseId:guid}/location/{locationId:guid}", async (
+            Guid companyId,
+            Guid warehouseId,
+            Guid locationId,
+            Guid? productId,
+            Guid? productSkuId,
+            Guid? productCategoryId,
+            InventoryRouteRuleAction action,
+            ISender sender) =>
+            Results.Ok(new
+            {
+                proposals = (await sender.Send(new GetInventoryRouteProposalsQuery(
+                    companyId,
+                    warehouseId,
+                    locationId,
+                    productId,
+                    productSkuId,
+                    productCategoryId,
+                    action))).Proposals
+            }))
             .RequireAuthorization(PermissionList.InventoryPermissions.View);
     }
 
@@ -778,5 +1229,62 @@ file static class InventoryControlHelpers
 
         if (!exists)
             throw new BadRequestException("Warehouse location is inactive or does not belong to the selected warehouse.");
+    }
+
+    public static async Task EnsureOptionalLocationAsync(
+        InventoryDbContext dbContext,
+        Guid companyId,
+        Guid warehouseId,
+        Guid? locationId,
+        CancellationToken cancellationToken)
+    {
+        if (!locationId.HasValue)
+            return;
+
+        await EnsureActiveLocationAsync(dbContext, companyId, warehouseId, locationId.Value, cancellationToken);
+    }
+
+    public static async Task EnsureProductTargetAsync(
+        ISender sender,
+        Guid companyId,
+        Guid? productId,
+        Guid? productSkuId,
+        CancellationToken cancellationToken)
+    {
+        if (!productSkuId.HasValue)
+            return;
+
+        var context = await sender.Send(new GetProductSkuInventoryContextQuery(companyId, productSkuId.Value), cancellationToken);
+        if (productId.HasValue && context.ProductId != productId.Value)
+            throw new BadRequestException("Selected product does not match the selected SKU.");
+    }
+
+    public static async Task EnsureRouteRuleReferencesAsync(
+        InventoryDbContext dbContext,
+        ISender sender,
+        InventoryRouteRuleDto rule,
+        CancellationToken cancellationToken)
+    {
+        await InventoryBranchScope.EnsureCanMutateWarehouseAsync(dbContext, sender, rule.CompanyId, rule.WarehouseId, cancellationToken);
+        await EnsureActiveLocationAsync(dbContext, rule.CompanyId, rule.WarehouseId, rule.SourceLocationId, cancellationToken);
+        await EnsureActiveLocationAsync(dbContext, rule.CompanyId, rule.WarehouseId, rule.DestinationLocationId, cancellationToken);
+        await EnsureProductTargetAsync(sender, rule.CompanyId, rule.ProductId, rule.ProductSkuId, cancellationToken);
+
+        var route = await dbContext.InventoryRoutes.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == rule.RouteId && x.CompanyId == rule.CompanyId && x.IsActive, cancellationToken)
+            ?? throw new BadRequestException("Inventory route is inactive or does not belong to the selected company.");
+
+        if (route.WarehouseId.HasValue && route.WarehouseId.Value != rule.WarehouseId)
+            throw new BadRequestException("Inventory route does not belong to the selected warehouse.");
+
+        var operationTypeExists = await dbContext.InventoryOperationTypes.AsNoTracking()
+            .AnyAsync(x => x.Id == rule.OperationTypeId
+                && x.CompanyId == rule.CompanyId
+                && x.WarehouseId == rule.WarehouseId
+                && x.IsActive,
+                cancellationToken);
+
+        if (!operationTypeExists)
+            throw new BadRequestException("Inventory operation type is inactive or does not belong to the selected warehouse.");
     }
 }

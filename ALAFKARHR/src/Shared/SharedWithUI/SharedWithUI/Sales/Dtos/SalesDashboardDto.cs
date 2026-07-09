@@ -7,6 +7,13 @@ public class SalesDashboardDto
     public int DraftQuotations { get; set; }
     public int SentQuotations { get; set; }
     public int ConvertedQuotations { get; set; }
+    public int QuotationsExpiringSoon { get; set; }
+    public int ExpiredQuotations { get; set; }
+    public int OptionalLineQuotations { get; set; }
+    public int OptionalLineAdoptions { get; set; }
+    public int DownPaymentQuotations { get; set; }
+    public decimal DownPaymentValue { get; set; }
+    public int ProFormaQuotations { get; set; }
     public decimal OpenQuotationValue { get; set; }
     public decimal QuotationConversionRate { get; set; }
     public int DeliveredOrders { get; set; }
