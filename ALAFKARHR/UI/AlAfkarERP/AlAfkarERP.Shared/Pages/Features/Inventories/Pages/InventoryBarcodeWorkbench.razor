@@ -120,9 +120,8 @@
                                             <div class="text-muted small">@Text("Serial", "Serial"): @lastScan.SerialNumber</div>
                                         }
                                     </div>
-                                    <span class="badge @ScanBadgeClass(lastScan)">
-                                        @(lastScan.IsRejected ? Text("Rejected", "مرفوض") : lastScan.Warnings.Any() ? Text("Warning", "تنبيه") : Text("Accepted", "مقبول"))
-                                    </span>
+                            <StatusChip Text="@(lastScan.IsRejected ? Text("Rejected", "مرفوض") : lastScan.Warnings.Any() ? Text("Warning", "تنبيه") : Text("Accepted", "مقبول"))"
+                                        Tone="@ScanTone(lastScan)" />
                                 </div>
                                 @if (lastScan.Warnings.Any())
                                 {
@@ -186,7 +185,7 @@
                                                     }
                                                 </td>
                                                 <td>@line.NormalizedQuantity</td>
-                                                <td><span class="badge @LineBadgeClass(line.Status)">@LineStatusText(line.Status)</span></td>
+                                <td><StatusChip Text="@LineStatusText(line.Status)" Tone="@LineTone(line.Status)" /></td>
                                             </tr>
                                         }
                                     </tbody>
@@ -218,7 +217,7 @@
                                         <td>@OperationText(item.OperationType)</td>
                                         <td>@item.ReferenceNumber</td>
                                         <td>@item.Lines.Count</td>
-                                        <td><span class="badge @SessionBadgeClass(item.Status)">@item.Status</span></td>
+                                    <td><StatusChip Text="@item.Status.ToString()" Tone="@SessionTone(item.Status)" /></td>
                                     </tr>
                                 }
                             </tbody>
@@ -459,21 +458,21 @@
         BarcodeLineStatus.Rejected => Text("Rejected", "مرفوض"),
         _ => status.ToString()
     };
-    private static string LineBadgeClass(BarcodeLineStatus status) => status switch
+    private static string LineTone(BarcodeLineStatus status) => status switch
     {
-        BarcodeLineStatus.Accepted => "bg-success",
-        BarcodeLineStatus.Warning => "bg-warning text-dark",
-        BarcodeLineStatus.Rejected => "bg-danger",
-        _ => "bg-secondary"
+        BarcodeLineStatus.Accepted => "success",
+        BarcodeLineStatus.Warning => "warning",
+        BarcodeLineStatus.Rejected => "danger",
+        _ => "muted"
     };
-    private static string SessionBadgeClass(BarcodeSessionStatus status) => status switch
+    private static string SessionTone(BarcodeSessionStatus status) => status switch
     {
-        BarcodeSessionStatus.Ready => "bg-primary",
-        BarcodeSessionStatus.Applied => "bg-success",
-        BarcodeSessionStatus.Cancelled => "bg-secondary",
-        _ => "bg-warning text-dark"
+        BarcodeSessionStatus.Ready => "primary",
+        BarcodeSessionStatus.Applied => "success",
+        BarcodeSessionStatus.Cancelled => "muted",
+        _ => "warning"
     };
-    private static string ScanBadgeClass(BarcodeScanResultDto scan) => scan.IsRejected ? "bg-danger" : scan.Warnings.Any() ? "bg-warning text-dark" : "bg-success";
+    private static string ScanTone(BarcodeScanResultDto scan) => scan.IsRejected ? "danger" : scan.Warnings.Any() ? "warning" : "success";
     private async Task HandleChangeAsync() => await InvokeAsync(StateHasChanged);
     public void Dispose() => SharedDataService.OnChange1 -= HandleChangeAsync;
 }

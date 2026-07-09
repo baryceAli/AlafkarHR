@@ -23,7 +23,7 @@
     return;
 }
 
-<div class="task-page" dir="@SharedDataService.PageDirection">
+<div class="erp-page task-page" dir="@SharedDataService.PageDirection">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h5 class="text-black mb-0">@Text("Task List", "قائمة المهام")</h5>
         <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/TaskManagement/Create")' disabled="@(!CanCreate)">
@@ -31,7 +31,7 @@
         </button>
     </div>
 
-    <div class="card p-3 mb-3">
+    <AppCard Title="@Text("Tasks", "Ø§Ù„Ù…Ù‡Ø§Ù…")" CssClass="mb-3">
         <div class="row g-2 mb-3">
             <div class="col-md-3">
                 <input class="form-control" placeholder="@Text("Search...", "بحث...")" @bind="searchText" @bind:event="oninput" />
@@ -90,7 +90,8 @@
             <TableExportActions />
         </div>
 
-        <table class="table align-middle">
+        <div class="erp-table-wrap">
+        <table class="table erp-table align-middle mb-0">
             <thead>
                 <tr>
                     <th>@Text("Number", "الرقم")</th>
@@ -114,8 +115,8 @@
                     <tr>
                         <td>@task.TaskNumber</td>
                         <td>@task.Title</td>
-                        <td><span class="badge bg-secondary">@PriorityText(task.Priority)</span></td>
-                        <td><span class="badge bg-info text-dark">@StatusText(task.Status)</span></td>
+                        <td><StatusChip Text="@PriorityText(task.Priority)" Tone="@PriorityTone(task.Priority)" /></td>
+                        <td><StatusChip Text="@StatusText(task.Status)" Tone="@StatusTone(task.Status)" /></td>
                         <td>@task.DueDate.ToShortDateString()</td>
                         <td class="erp-min-width-progress">
                             <div class="progress">
@@ -131,13 +132,14 @@
                 }
             </tbody>
         </table>
+        </div>
 
         <div class="d-flex justify-content-end align-items-center gap-2">
             <button class="btn btn-sm btn-secondary" @onclick="PrevPage" disabled="@(pageIndex == 0)">@Text("Previous", "السابق")</button>
             <span>@Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @TotalPages</span>
             <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages - 1)">@Text("Next", "التالي")</button>
         </div>
-    </div>
+    </AppCard>
 </div>
 
 @code {
@@ -273,6 +275,24 @@
         TaskPriority.Urgent => Text("Urgent", "عاجلة"),
         TaskPriority.Critical => Text("Critical", "حرجة"),
         _ => priority.ToString()
+    };
+
+    private static string StatusTone(TaskWorkflowStatus status) => status switch
+    {
+        TaskWorkflowStatus.Completed => "success",
+        TaskWorkflowStatus.OnHold => "warning",
+        TaskWorkflowStatus.InProgress => "info",
+        TaskWorkflowStatus.Overdue => "danger",
+        TaskWorkflowStatus.Cancelled => "muted",
+        _ => "primary"
+    };
+
+    private static string PriorityTone(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Critical or TaskPriority.Urgent => "danger",
+        TaskPriority.High => "warning",
+        TaskPriority.Low => "muted",
+        _ => "primary"
     };
 
     protected override void OnInitialized()

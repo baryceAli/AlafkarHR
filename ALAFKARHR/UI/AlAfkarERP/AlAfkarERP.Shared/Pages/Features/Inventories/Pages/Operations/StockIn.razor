@@ -42,7 +42,7 @@
     return;
 }
 
-<div class="operation-page" dir="@SharedDataService.PageDirection">
+<div class="erp-page operation-page" dir="@SharedDataService.PageDirection">
     <div class="operation-header mb-4">
         <div>
             <div class="text-uppercase text-primary fw-semibold small mb-1">@SharedDataService.SelectViewLang("Inventory Operations", "عمليات المخزون")</div>
@@ -56,8 +56,8 @@
         </button>
     </div>
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+        <div class="operation-card-body">
             <EditForm Model="inventoryDto" OnValidSubmit="() => SaveInventory(inventoryDto)">
                 <DataAnnotationsValidator />
                 <ValidationSummary />
@@ -251,7 +251,7 @@
                 </div>
             </EditForm>
         </div>
-    </div>
+    </AppCard>
 </div>
 
 <style>

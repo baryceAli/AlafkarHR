@@ -267,14 +267,14 @@
             {
                 
                 <tr>
-                    <td><span class="badge bg-light text-dark border">@(!string.IsNullOrWhiteSpace(warehouse.ShortCode) ? warehouse.ShortCode : "-")</span></td>
+                    <td><StatusChip Text="@(!string.IsNullOrWhiteSpace(warehouse.ShortCode) ? warehouse.ShortCode : "-")" Tone="muted" /></td>
                     <td>
                         <div class="small">@SharedDataService.SelectViewLang("In", "وارد"): @FlowLabel(warehouse.InboundFlow)</div>
                         <div class="small text-muted">@SharedDataService.SelectViewLang("Out", "صادر"): @FlowLabel(warehouse.OutboundFlow)</div>
                     </td>
                     <td>@SharedDataService.SelectViewLang(warehouse.NameEng,warehouse.Name)</td>
                     <td>@warehouse.Location</td>
-                    <td><span class="badge bg-light text-dark border">@BranchScopeLabel(warehouse.BranchId)</span></td>
+                    <td><StatusChip Text="@BranchScopeLabel(warehouse.BranchId)" Tone="muted" /></td>
                     <td>@warehouse.Address</td>
                     <td>
                         <button class="btn btn-outline-warning btn-sm erp-row-action"

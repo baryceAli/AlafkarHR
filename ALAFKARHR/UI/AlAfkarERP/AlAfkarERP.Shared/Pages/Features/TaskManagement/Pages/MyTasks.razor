@@ -64,11 +64,11 @@
                                 <span class="d-inline-flex align-items-center gap-2 flex-wrap justify-content-end">
                                     @if (attentionBadge is not null)
                                     {
-                                        <span class="badge rounded-pill @attentionBadge.CssClass" title="@attentionBadge.Title">
-                                            @attentionBadge.Text
-                                        </span>
+                                        <StatusChip Text="@attentionBadge.Text"
+                                                    Tone="@attentionBadge.Tone"
+                                                    Title="@attentionBadge.Title" />
                                     }
-                                    <span class="badge rounded-pill text-bg-light border">@StatusText(task.Status)</span>
+                                    <StatusChip Text="@StatusText(task.Status)" Tone="@StatusTone(task.Status)" />
                                 </span>
                             </div>
                             <small>@task.TaskNumber - @Text("Due", "الاستحقاق") @task.DueDate.ToShortDateString()</small>
@@ -204,13 +204,13 @@
         var today = DateTime.Today;
 
         if (task.Status == TaskWorkflowStatus.Overdue || dueDate < today)
-            return new TaskAttentionBadge(Text("Overdue", "متأخرة"), "text-bg-danger", "danger", Text("This task is overdue", "هذه المهمة متأخرة"));
+            return new TaskAttentionBadge(Text("Overdue", "متأخرة"), "danger", "danger", Text("This task is overdue", "هذه المهمة متأخرة"));
 
         if (dueDate == today)
-            return new TaskAttentionBadge(Text("Due today", "مستحقة اليوم"), "text-bg-warning", "warning", Text("This task is due today", "هذه المهمة مستحقة اليوم"));
+            return new TaskAttentionBadge(Text("Due today", "مستحقة اليوم"), "warning", "warning", Text("This task is due today", "هذه المهمة مستحقة اليوم"));
 
         if (IsOpen(task))
-            return new TaskAttentionBadge(Text("Open", "مفتوحة"), "text-bg-primary", "primary", Text("This task is open", "هذه المهمة مفتوحة"));
+            return new TaskAttentionBadge(Text("Open", "مفتوحة"), "primary", "primary", Text("This task is open", "هذه المهمة مفتوحة"));
 
         return null;
     }
@@ -238,7 +238,17 @@
         _ => status.ToString()
     };
 
-    private sealed record TaskAttentionBadge(string Text, string CssClass, string CssSuffix, string Title);
+    private static string StatusTone(TaskWorkflowStatus status) => status switch
+    {
+        TaskWorkflowStatus.Completed => "success",
+        TaskWorkflowStatus.OnHold => "warning",
+        TaskWorkflowStatus.InProgress => "info",
+        TaskWorkflowStatus.Overdue => "danger",
+        TaskWorkflowStatus.Cancelled => "muted",
+        _ => "primary"
+    };
+
+    private sealed record TaskAttentionBadge(string Text, string Tone, string CssSuffix, string Title);
 
     private async Task HandleChangeAsync()
     {

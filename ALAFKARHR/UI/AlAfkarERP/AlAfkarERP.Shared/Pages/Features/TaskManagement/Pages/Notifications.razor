@@ -34,20 +34,20 @@
         </Actions>
     </PageHeader>
 
-    <div class="card p-3 mb-3">
+    <AppCard CssClass="mb-3">
         <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div class="form-check">
                 <InputCheckbox class="form-check-input" @bind-Value="unreadOnly" />
                 <label class="form-check-label">@Text("Unread only", "غير المقروءة فقط")</label>
             </div>
-            <span class="badge rounded-pill text-bg-light border">@Text($"{unreadCount} unread", $"{unreadCount} غير مقروءة")</span>
+            <StatusChip Text="@Text($"{unreadCount} unread", $"{unreadCount} غير مقروءة")" Tone="muted" />
             <button class="btn btn-primary" @onclick="ApplyFilters">
                 <i class="bi bi-filter"></i> @Text("Apply", "تطبيق")
             </button>
         </div>
-    </div>
+    </AppCard>
 
-    <div class="card p-3">
+    <AppCard Title="@Text("Notifications", "Notifications")">
         @if (isLoading)
         {
             <div class="text-muted py-3">@Text("Loading notifications...", "جاري تحميل التنبيهات...")</div>
@@ -68,9 +68,8 @@
                             <button class="btn btn-link p-0 text-start" @onclick="() => OpenNotification(notification)">
                                 @notification.Message
                             </button>
-                            <span class="badge rounded-pill @(notification.IsRead ? "text-bg-light" : "text-bg-primary")">
-                                @(notification.IsRead ? Text("Read", "مقروء") : Text("Unread", "غير مقروء"))
-                            </span>
+                            <StatusChip Text="@(notification.IsRead ? Text("Read", "مقروء") : Text("Unread", "غير مقروء"))"
+                                        Tone="@(notification.IsRead ? "muted" : "primary")" />
                         </div>
                         <div class="d-flex justify-content-between gap-2 mt-2">
                             <small class="text-muted">@notification.NotificationType - @notification.CreatedDate.ToLocalTime()</small>
@@ -89,7 +88,7 @@
             <span>@Text("Page", "صفحة") @(pageIndex + 1) @Text("of", "من") @TotalPages</span>
             <button class="btn btn-sm btn-secondary" @onclick="NextPage" disabled="@(pageIndex >= TotalPages - 1)">@Text("Next", "التالي")</button>
         </div>
-    </div>
+    </AppCard>
 </section>
 
 @code {

@@ -17,7 +17,7 @@
 @inject SharedDataService SharedDataService
 @inject NavigationManager NavigationManager
 
-<section class="task-page" dir="@SharedDataService.PageDirection">
+<section class="erp-page task-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
     {
         <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
@@ -96,8 +96,8 @@
                                 <tr>
                                     <td class="text-nowrap fw-semibold">@task.TaskNumber</td>
                                     <td class="task-dashboard-title">@task.Title</td>
-                                    <td><span class="badge rounded-pill @StatusBadgeClass(task.Status)">@StatusText(task.Status)</span></td>
-                                    <td><span class="badge rounded-pill text-bg-light">@PriorityText(task.Priority)</span></td>
+                                    <td><StatusChip Text="@StatusText(task.Status)" Tone="@StatusTone(task.Status)" /></td>
+                                    <td><StatusChip Text="@PriorityText(task.Priority)" Tone="@PriorityTone(task.Priority)" /></td>
                                     <td class="text-nowrap">@task.DueDate.ToShortDateString()</td>
                                     <td class="task-dashboard-progress">
                                         <div class="progress">
@@ -311,13 +311,22 @@
         _ => priority.ToString()
     };
 
-    private static string StatusBadgeClass(TaskWorkflowStatus status) => status switch
+    private static string StatusTone(TaskWorkflowStatus status) => status switch
     {
-        TaskWorkflowStatus.Completed => "text-bg-success",
-        TaskWorkflowStatus.Overdue => "text-bg-danger",
-        TaskWorkflowStatus.OnHold => "text-bg-warning",
-        TaskWorkflowStatus.Cancelled => "text-bg-secondary",
-        _ => "text-bg-primary"
+        TaskWorkflowStatus.Completed => "success",
+        TaskWorkflowStatus.Overdue => "danger",
+        TaskWorkflowStatus.OnHold => "warning",
+        TaskWorkflowStatus.InProgress => "info",
+        TaskWorkflowStatus.Cancelled => "muted",
+        _ => "primary"
+    };
+
+    private static string PriorityTone(TaskPriority priority) => priority switch
+    {
+        TaskPriority.Critical or TaskPriority.Urgent => "danger",
+        TaskPriority.High => "warning",
+        TaskPriority.Low => "muted",
+        _ => "primary"
     };
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
