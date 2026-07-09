@@ -16,7 +16,7 @@
     <PageHeader Title="@Text("Packaging", "التجهيز والتغليف")" Subtitle="@Text("Release meal components from store and track packaging preparation.", "صرف مكونات الوجبات من المخزن ومتابعة التجهيز.")" Icon="bi-box2-heart" />
     @StatusBlock()
 
-    <div class="erp-card mb-3"><div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
         <EditForm Model="plan" OnValidSubmit="SavePlanAsync"><DataAnnotationsValidator />
             <div class="row g-2 align-items-end">
                 <div class="col-md-3"><label class="form-label">@Text("Schedule", "الجدول")</label><select class="form-select" @bind="plan.DailyScheduleId"><option value="@Guid.Empty">@Text("Select schedule", "اختر الجدول")</option>@foreach (var item in schedules) { <option value="@item.Id">@ScheduleLabel(item)</option> }</select></div>
@@ -26,7 +26,7 @@
                 <div class="col-md-1"><button class="btn btn-primary w-100" type="submit" disabled="@busy"><i class="bi bi-save"></i></button></div>
             </div>
         </EditForm>
-    </div></div>
+    </AppCard>
 
     <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Schedule", "الجدول")</th><th>@Text("Source", "المصدر")</th><th>@Text("Required", "المطلوب")</th><th>@Text("Released", "المصروف")</th><th>@Text("Prepared", "المجهز")</th><th>@Text("Rejected/Damaged", "المرفوض/التالف")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead><tbody>
         @if (loading) { <tr><td colspan="8" class="text-muted">@Text("Loading packaging plans...", "جاري تحميل خطط التجهيز...")</td></tr> }
@@ -40,7 +40,7 @@
                 <td>@item.StockReleasedMealCount.ToString("N0")</td>
                 <td>@item.PreparedMealCount.ToString("N0")</td>
                 <td>@((item.RejectedMealCount + item.DamagedMealCount).ToString("N0"))</td>
-                <td>@item.Status</td>
+                <td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td>
                 <td class="text-end">
                     <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => Edit(item)"><i class="bi bi-pencil-square"></i></button>
                     <button class="btn btn-sm btn-outline-primary me-1" @onclick="() => ReleaseStockAsync(item)"><i class="bi bi-box-arrow-up"></i></button>

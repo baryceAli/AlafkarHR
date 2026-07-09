@@ -37,11 +37,11 @@
     <section class="attendance-request-panel">
         @if (isLoading)
         {
-            <div class="empty-state">@Text("Loading requests...", "جاري تحميل الطلبات...")</div>
+            <EmptyState Icon="bi-hourglass-split" Title="@Text("Loading requests...", "جاري تحميل الطلبات...")" />
         }
         else if (!requests.Any())
         {
-            <div class="empty-state">@Text("No late check-in requests found.", "لا توجد طلبات تسجيل حضور متأخر.")</div>
+            <EmptyState Icon="bi-inboxes" Title="@Text("No late check-in requests found.", "لا توجد طلبات تسجيل حضور متأخر.")" />
         }
         else
         {

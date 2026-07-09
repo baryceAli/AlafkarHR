@@ -21,7 +21,7 @@
 
     @if (isLoading)
     {
-        <section class="erp-card"><div class="erp-card-body text-muted">@Text("Loading dashboard...", "جاري تحميل اللوحة...")</div></section>
+        <AppCard>@Text("Loading dashboard...", "جاري تحميل اللوحة...")</AppCard>
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -40,15 +40,15 @@
 
         <div class="row g-3 mt-1">
             <div class="col-12 col-lg-4">
-                <article class="erp-card">
-                    <div class="erp-card-header"><strong>@Text("Monthly Expenses", "مصروفات الشهر")</strong></div>
-                    <div class="erp-card-body fs-4 fw-semibold">@dashboard.MonthlyExpenses.ToString("N2")</div>
-                </article>
+                <AppCard>
+                    <div class="erp-table-toolbar"><strong>@Text("Monthly Expenses", "مصروفات الشهر")</strong></div>
+                    @dashboard.MonthlyExpenses.ToString("N2")
+                </AppCard>
             </div>
             <div class="col-12 col-lg-4">
-                <article class="erp-card">
-                    <div class="erp-card-header"><strong>@Text("Expiring Documents", "مستندات قاربت على الانتهاء")</strong></div>
-                    <div class="erp-card-body">
+                <AppCard>
+                    <div class="erp-table-toolbar"><strong>@Text("Expiring Documents", "مستندات قاربت على الانتهاء")</strong></div>
+
                         @foreach (var document in dashboard.ExpiringDocumentList.Take(5))
                         {
                             <div class="d-flex justify-content-between gap-2 py-1 border-bottom">
@@ -60,13 +60,13 @@
                         {
                             <div class="text-muted">@Text("No upcoming renewals.", "لا توجد تجديدات قريبة.")</div>
                         }
-                    </div>
-                </article>
+
+                </AppCard>
             </div>
             <div class="col-12 col-lg-4">
-                <article class="erp-card">
-                    <div class="erp-card-header"><strong>@Text("Due Service Rules", "قواعد صيانة مستحقة")</strong></div>
-                    <div class="erp-card-body">
+                <AppCard>
+                    <div class="erp-table-toolbar"><strong>@Text("Due Service Rules", "قواعد صيانة مستحقة")</strong></div>
+
                         @foreach (var rule in dashboard.DueServiceRules.Take(5))
                         {
                             <div class="d-flex justify-content-between gap-2 py-1 border-bottom">
@@ -78,8 +78,8 @@
                         {
                             <div class="text-muted">@Text("No service due.", "لا توجد صيانة مستحقة.")</div>
                         }
-                    </div>
-                </article>
+
+                </AppCard>
             </div>
         </div>
     }

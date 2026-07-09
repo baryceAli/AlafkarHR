@@ -32,8 +32,8 @@
         </Actions>
     </PageHeader>
 
-    <section class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3">
+
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-lg-3">
                     <label class="form-label">@Text("Search", "بحث")</label>
@@ -77,14 +77,14 @@
                     <button class="btn btn-outline-secondary w-100" @onclick="ApplyFiltersAsync"><i class="bi bi-search"></i></button>
                 </div>
             </div>
-        </div>
-    </section>
+
+    </AppCard>
 
     @if (selectedOdometerVehicle is not null)
     {
-        <section class="erp-card mb-3">
-            <div class="erp-card-header"><strong>@Text("Update Odometer", "تحديث العداد")</strong></div>
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
+            <div class="erp-table-toolbar"><strong>@Text("Update Odometer", "تحديث العداد")</strong></div>
+
                 <div class="row g-2 align-items-end">
                     <div class="col-12 col-md-4">@selectedOdometerVehicle.PlateNumber - @Name(selectedOdometerVehicle)</div>
                     <div class="col-12 col-md-3"><input class="form-control" type="number" @bind="odometerValue" /></div>
@@ -93,15 +93,15 @@
                         <button class="btn btn-outline-secondary" @onclick="@(() => selectedOdometerVehicle = null)">@Text("Cancel", "إلغاء")</button>
                     </div>
                 </div>
-            </div>
-        </section>
+
+        </AppCard>
     }
 
     @if (selectedMaintenanceVehicle is not null)
     {
-        <section class="erp-card mb-3">
-            <div class="erp-card-header"><strong>@Text("Emergency Maintenance", "صيانة طارئة")</strong></div>
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3">
+            <div class="erp-table-toolbar"><strong>@Text("Emergency Maintenance", "صيانة طارئة")</strong></div>
+
                 <div class="row g-2 align-items-end">
                     <div class="col-12 col-lg-3"><label class="form-label">@Text("Title", "العنوان")</label><input class="form-control" @bind="emergencyTitle" /></div>
                     <div class="col-12 col-lg-3"><label class="form-label">@Text("Description", "الوصف")</label><input class="form-control" @bind="emergencyDescription" /></div>
@@ -121,8 +121,8 @@
                         <button class="btn btn-outline-secondary" @onclick="@(() => selectedMaintenanceVehicle = null)">@Text("Cancel", "إلغاء")</button>
                     </div>
                 </div>
-            </div>
-        </section>
+
+        </AppCard>
     }
 
     @if (!string.IsNullOrWhiteSpace(errorMessage))
@@ -130,7 +130,7 @@
         <div class="alert alert-danger">@errorMessage</div>
     }
 
-    <section class="erp-card">
+    <AppCard>
         <div class="erp-table-wrap">
             <table class="erp-table table">
                 <thead>
@@ -190,15 +190,15 @@
                 </tbody>
             </table>
         </div>
-        <div class="erp-card-body border-top d-flex justify-content-between align-items-center gap-2">
+
             <span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span>
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-sm btn-outline-secondary" disabled="@(pageIndex == 0 || isLoading)" @onclick="PreviousPageAsync"><i class="bi bi-chevron-left"></i></button>
                 <span class="small">@Text("Page", "صفحة") @(pageIndex + 1)</span>
                 <button class="btn btn-sm btn-outline-secondary" disabled="@(!HasNextPage || isLoading)" @onclick="NextPageAsync"><i class="bi bi-chevron-right"></i></button>
             </div>
-        </div>
-    </section>
+
+    </AppCard>
 </main>
 
 @code {

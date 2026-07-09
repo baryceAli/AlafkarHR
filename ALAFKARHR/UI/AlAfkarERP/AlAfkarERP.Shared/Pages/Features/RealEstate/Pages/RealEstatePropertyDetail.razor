@@ -21,7 +21,7 @@
 
     @if (isLoading)
     {
-        <article class="erp-card"><div class="erp-card-body text-muted">@Text("Loading property...", "جاري تحميل العقار...")</div></article>
+        <AppCard CssClass="allow-overflow"><div class="text-muted">@Text("Loading property...", "جاري تحميل العقار...")</div></AppCard>
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -36,20 +36,20 @@
             <div class="col-12 col-md-3"><StatsCard Title="@Text("Open Bills", "الفواتير المفتوحة")" Value="@utilityBills.Count(x => !x.IsPaid).ToString()" Icon="bi-lightning-charge" /></div>
         </div>
 
-        <article class="erp-card mb-3">
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
+
                 <div class="row g-3">
                     <div class="col-12 col-md-3"><div class="text-muted small">@Text("Code", "الكود")</div><strong>@property.Code</strong></div>
-                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Status", "الحالة")</div><span class="badge text-bg-secondary">@property.Status</span></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Status", "الحالة")</div><StatusChip Text="@property.Status.ToString()" Tone="muted" /></div>
                     <div class="col-12 col-md-3"><div class="text-muted small">@Text("City", "المدينة")</div><strong>@property.City</strong></div>
                     <div class="col-12 col-md-3"><div class="text-muted small">@Text("Maintenance Asset", "أصل الصيانة")</div><strong>@Text("Linked from RealEstate", "مرتبط من العقارات")</strong></div>
                     <div class="col-12"><div class="text-muted small">@Text("Address", "العنوان")</div>@property.Address</div>
                 </div>
-            </div>
-        </article>
 
-        <article class="erp-card">
-            <div class="erp-card-body">
+        </AppCard>
+
+        <AppCard CssClass="allow-overflow">
+
                 <ul class="nav nav-tabs mb-3">
                     @foreach (var tab in tabs)
                     {
@@ -64,8 +64,8 @@
                     }
                     else
                     {
-                        <div class="table-responsive">
-                            <table class="table align-middle">
+                        <div class="erp-table-wrap">
+                            <table class="table align-middle erp-table">
                                 <thead><tr><th>@Text("Unit", "الوحدة")</th><th>@Text("Name", "الاسم")</th><th>@Text("Type", "النوع")</th><th>@Text("Status", "الحالة")</th><th>@Text("Area", "المساحة")</th><th></th></tr></thead>
                                 <tbody>
                                     @foreach (var item in units)
@@ -74,7 +74,7 @@
                                             <td>@item.UnitNumber</td>
                                             <td>@item.Name</td>
                                             <td>@item.UnitType</td>
-                                            <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                            <td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td>
                                             <td>@item.Area</td>
                                             <td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Units/Form/{item.Id}"))"><i class="bi bi-pencil"></i></button></td>
                                         </tr>
@@ -86,22 +86,22 @@
                 }
                 else if (activeTab == "Leases")
                 {
-                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Number", "الرقم")</th><th>@Text("Party", "الطرف")</th><th>@Text("Direction", "الاتجاه")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in leases) { <tr><td>@item.Number</td><td>@item.PartyDisplayName</td><td>@item.Direction</td><td><span class="badge text-bg-secondary">@item.Status</span></td><td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/{item.Id}"))"><i class="bi bi-eye"></i></button></td></tr> }</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table align-middle erp-table"><thead><tr><th>@Text("Number", "الرقم")</th><th>@Text("Party", "الطرف")</th><th>@Text("Direction", "الاتجاه")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>@foreach (var item in leases) { <tr><td>@item.Number</td><td>@item.PartyDisplayName</td><td>@item.Direction</td><td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td><td class="text-end"><button class="btn btn-sm btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/{item.Id}"))"><i class="bi bi-eye"></i></button></td></tr> }</tbody></table></div>
                 }
                 else if (activeTab == "Expenses")
                 {
-                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Category", "التصنيف")</th><th>@Text("Supplier", "المورد")</th><th>@Text("Total", "الإجمالي")</th></tr></thead><tbody>@foreach (var item in expenses) { <tr><td>@item.ExpenseDate.ToShortDateString()</td><td>@item.Category</td><td>@item.SupplierName</td><td>@item.TotalAmount.ToString("N2")</td></tr> }</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table align-middle erp-table"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Category", "التصنيف")</th><th>@Text("Supplier", "المورد")</th><th>@Text("Total", "الإجمالي")</th></tr></thead><tbody>@foreach (var item in expenses) { <tr><td>@item.ExpenseDate.ToShortDateString()</td><td>@item.Category</td><td>@item.SupplierName</td><td>@item.TotalAmount.ToString("N2")</td></tr> }</tbody></table></div>
                 }
                 else if (activeTab == "Utilities")
                 {
-                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Total", "الإجمالي")</th><th>@Text("Paid", "مدفوعة")</th><th>@Text("Reference", "المرجع")</th></tr></thead><tbody>@foreach (var item in utilityBills) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.TotalAmount.ToString("N2")</td><td>@(item.IsPaid ? Text("Yes", "نعم") : Text("No", "لا"))</td><td>@item.Reference</td></tr> }</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table align-middle erp-table"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Total", "الإجمالي")</th><th>@Text("Paid", "مدفوعة")</th><th>@Text("Reference", "المرجع")</th></tr></thead><tbody>@foreach (var item in utilityBills) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.TotalAmount.ToString("N2")</td><td>@(item.IsPaid ? Text("Yes", "نعم") : Text("No", "لا"))</td><td>@item.Reference</td></tr> }</tbody></table></div>
                 }
                 else
                 {
                     <div class="text-muted">@Text("Maintenance assets are created and updated automatically for properties and units. Work orders remain in the Maintenance module.", "يتم إنشاء وتحديث أصول الصيانة تلقائيا للعقارات والوحدات، وتبقى أوامر العمل داخل وحدة الصيانة.")</div>
                 }
-            </div>
-        </article>
+
+        </AppCard>
     }
 </main>
 

@@ -24,15 +24,15 @@
 
     @if (Can(PermissionList.FleetVehicleDocumentPermissions.Create) || editingDocumentId.HasValue)
     {
-    <section class="erp-card mb-3">
-        <div class="erp-card-header d-flex justify-content-between align-items-center">
+    <AppCard CssClass="mb-3">
+        <div class="erp-table-toolbar d-flex justify-content-between align-items-center">
             <strong>@(editingDocumentId.HasValue ? Text("Edit Document", "تعديل المستند") : Text("New Document", "مستند جديد"))</strong>
             @if (editingDocumentId.HasValue)
             {
                 <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ResetForm">@Text("New", "جديد")</button>
             }
         </div>
-        <div class="erp-card-body">
+
             <EditForm Model="documentForm" OnValidSubmit="SaveAsync">
                 <DataAnnotationsValidator />
                 <div class="row g-2 align-items-end">
@@ -71,15 +71,15 @@
                     </div>
                 </div>
             </EditForm>
-        </div>
-    </section>
+
+    </AppCard>
     }
 
     @if (renewingDocument is not null && Can(PermissionList.FleetVehicleDocumentPermissions.Renew))
     {
-        <section class="erp-card mb-3">
-            <div class="erp-card-header"><strong>@Text("Renew Document", "تجديد المستند")</strong></div>
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3">
+            <div class="erp-table-toolbar"><strong>@Text("Renew Document", "تجديد المستند")</strong></div>
+
                 <EditForm Model="renewalForm" OnValidSubmit="ConfirmRenewAsync">
                     <div class="row g-2 align-items-end">
                         <div class="col-12 col-lg-3">@renewingDocument.VehicleName - @renewingDocument.DocumentType</div>
@@ -94,12 +94,12 @@
                         </div>
                     </div>
                 </EditForm>
-            </div>
-        </section>
+
+        </AppCard>
     }
 
-    <section class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3">
+
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-lg-3"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" @bind:event="oninput" /></div>
                 <div class="col-12 col-lg-3">
@@ -116,10 +116,10 @@
                 <div class="col-6 col-lg-2"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var value in Enum.GetValues<FleetDocumentStatus>()) { <option value="@value">@value</option> }</select></div>
                 <div class="col-12 col-lg-2"><button class="btn btn-outline-secondary w-100" @onclick="ApplyFiltersAsync"><i class="bi bi-search"></i></button></div>
             </div>
-        </div>
-    </section>
 
-    <section class="erp-card">
+    </AppCard>
+
+    <AppCard>
         <div class="erp-table-wrap">
             <table class="erp-table table">
                 <thead>
@@ -177,15 +177,15 @@
                 </tbody>
             </table>
         </div>
-        <div class="erp-card-body border-top d-flex justify-content-between align-items-center gap-2">
+
             <span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span>
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-sm btn-outline-secondary" disabled="@(pageIndex == 0 || isLoading)" @onclick="PreviousPageAsync"><i class="bi bi-chevron-left"></i></button>
                 <span class="small">@Text("Page", "صفحة") @(pageIndex + 1)</span>
                 <button class="btn btn-sm btn-outline-secondary" disabled="@(!HasNextPage || isLoading)" @onclick="NextPageAsync"><i class="bi bi-chevron-right"></i></button>
             </div>
-        </div>
-    </section>
+
+    </AppCard>
 </main>
 
 @code {

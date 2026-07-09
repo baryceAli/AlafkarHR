@@ -14,9 +14,9 @@
 <main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Distribution Places", "مواقع التوزيع")" Subtitle="@Text("Reusable places with map coordinates for customer meal distribution.", "مواقع قابلة لإعادة الاستخدام مع إحداثيات الخريطة لتوزيع وجبات العملاء.")" Icon="bi-geo-alt" />
 
-    <article class="erp-card mb-3">
-        <div class="erp-card-header"><strong>@(place.Id == Guid.Empty ? Text("New Place", "موقع جديد") : Text("Edit Place", "تعديل موقع"))</strong></div>
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+        <div class="erp-table-toolbar"><strong>@(place.Id == Guid.Empty ? Text("New Place", "موقع جديد") : Text("Edit Place", "تعديل موقع"))</strong></div>
+
             <EditForm Model="place" OnValidSubmit="SaveAsync">
                 <DataAnnotationsValidator />
                 <div class="row g-3">
@@ -37,24 +37,24 @@
                     <button class="btn btn-primary" type="submit"><i class="bi bi-check2"></i> @Text("Save", "حفظ")</button>
                 </div>
             </EditForm>
-        </div>
-    </article>
 
-    <article class="erp-card">
-        <div class="erp-card-body">
+    </AppCard>
+
+    <AppCard CssClass="allow-overflow">
+
             @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
             <div class="row g-3 align-items-end mb-3">
                 <div class="col-12 col-md-4"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" /></div>
                 <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button></div>
             </div>
-            <div class="table-responsive">
-                <table class="table align-middle">
+            <div class="erp-table-wrap">
+                <table class="table align-middle erp-table">
                     <thead><tr><th>@Text("Place", "Place")</th><th>@Text("City", "City")</th><th>@Text("Coordinates", "Coordinates")</th><th>@Text("Contact", "Contact")</th><th>@Text("Status", "Status")</th><th class="text-end">@Text("Actions", "Actions")</th></tr></thead>
                     <tbody>@foreach (var item in places) { <tr><td>@item.Name</td><td>@item.City</td><td>@item.Latitude, @item.Longitude</td><td>@item.ContactName @item.ContactPhone</td><td>@(item.IsActive ? Text("Active", "Active") : Text("Inactive", "Inactive"))</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="@(() => Edit(item))"><i class="bi bi-pencil"></i></button></td></tr> }</tbody>
                 </table>
             </div>
-        </div>
-    </article>
+
+    </AppCard>
 </main>
 
 @code {

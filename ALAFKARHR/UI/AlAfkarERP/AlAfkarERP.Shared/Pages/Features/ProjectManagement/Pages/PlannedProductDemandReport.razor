@@ -16,8 +16,8 @@
 <main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Planned Product Demand", "الطلب المخطط للمنتجات")" Subtitle="@Text("Upcoming planned product quantities from project timelines before execution orders are created.", "كميات المنتجات المخططة القادمة من جداول المشاريع قبل إنشاء أوامر التنفيذ.")" Icon="bi-graph-up-arrow" />
 
-    <article class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-3"><label class="form-label">@Text("Project", "المشروع")</label><select class="form-select" @bind="projectIdText" @bind:after="LoadProjectFiltersAsync"><option value="">@Text("All", "الكل")</option>@foreach (var project in projects) { <option value="@project.Id">@project.ProjectNumber - @project.Name</option> }</select></div>
                 <div class="col-12 col-md-3"><label class="form-label">@Text("Customer", "العميل")</label><select class="form-select" @bind="customerIdText"><option value="">@Text("All", "الكل")</option>@foreach (var customer in selectedProject.Customers) { <option value="@customer.Id">@customer.CustomerName</option> }</select></div>
@@ -39,8 +39,8 @@
                     <div class="col-12 col-md-2"><button class="btn btn-outline-secondary w-100" @onclick="ClearSkuFilter"><i class="bi bi-x"></i> @Text("Clear SKU", "مسح الصنف")</button></div>
                 }
             </div>
-        </div>
-    </article>
+
+    </AppCard>
 
     @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
 
@@ -50,9 +50,9 @@
         <div class="col-12 col-md-4"><StatsCard Title="@Text("Customers", "العملاء")" Value="@report.Select(x => x.ProjectCustomerId).Distinct().Count().ToString("N0")" Icon="bi-people" /></div>
     </div>
 
-    <article class="erp-card">
-        <div class="erp-card-body table-responsive">
-            <table class="table align-middle">
+    <AppCard CssClass="allow-overflow">
+        <div class="erp-table-wrap">
+            <table class="table align-middle erp-table">
                 <thead>
                     <tr>
                         <th>@Text("Period", "الفترة")</th>
@@ -76,7 +76,7 @@
                 </tbody>
             </table>
         </div>
-    </article>
+    </AppCard>
 </main>
 
 @code {

@@ -21,7 +21,7 @@
 
     @if (isLoading)
     {
-        <div class="erp-card"><div class="erp-card-body text-muted">@Text("Loading dashboard...", "جاري تحميل اللوحة...")</div></div>
+        <AppCard>@Text("Loading dashboard...", "جاري تحميل اللوحة...")</AppCard>
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -52,16 +52,16 @@
 
         <div class="row g-3 mt-1">
             <div class="col-12 col-lg-6">
-                <article class="erp-card">
-                    <div class="erp-card-header"><strong>@Text("Estimated Cost", "التكلفة التقديرية")</strong></div>
-                    <div class="erp-card-body fs-4 fw-semibold">@dashboard.EstimatedCost.ToString("N2")</div>
-                </article>
+                <AppCard>
+                    <div class="erp-table-toolbar"><strong>@Text("Estimated Cost", "التكلفة التقديرية")</strong></div>
+                    @dashboard.EstimatedCost.ToString("N2")
+                </AppCard>
             </div>
             <div class="col-12 col-lg-6">
-                <article class="erp-card">
-                    <div class="erp-card-header"><strong>@Text("Actual Cost", "التكلفة الفعلية")</strong></div>
-                    <div class="erp-card-body fs-4 fw-semibold">@dashboard.ActualCost.ToString("N2")</div>
-                </article>
+                <AppCard>
+                    <div class="erp-table-toolbar"><strong>@Text("Actual Cost", "التكلفة الفعلية")</strong></div>
+                    @dashboard.ActualCost.ToString("N2")
+                </AppCard>
             </div>
         </div>
     }

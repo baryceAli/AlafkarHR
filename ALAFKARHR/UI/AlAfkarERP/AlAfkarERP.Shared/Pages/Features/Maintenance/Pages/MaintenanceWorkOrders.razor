@@ -32,8 +32,8 @@
         </Actions>
     </PageHeader>
 
-    <section class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-lg-3">
                     <label class="form-label">@Text("Search", "بحث")</label>
@@ -103,15 +103,15 @@
                     </button>
                 </div>
             </div>
-        </div>
-    </section>
+
+    </AppCard>
 
     @if (!string.IsNullOrWhiteSpace(errorMessage))
     {
         <div class="alert alert-danger">@errorMessage</div>
     }
 
-    <section class="erp-card">
+    <AppCard>
         <div class="erp-table-wrap">
             <table class="erp-table table">
                 <thead>
@@ -174,7 +174,7 @@
                 </tbody>
             </table>
         </div>
-        <div class="erp-card-body border-top">
+
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</div>
                 <div class="d-flex align-items-center gap-2">
@@ -193,8 +193,8 @@
                     </select>
                 </div>
             </div>
-        </div>
-    </section>
+
+    </AppCard>
 </main>
 
 @code {

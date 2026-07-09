@@ -29,7 +29,7 @@
 
     @if (isLoading)
     {
-        <article class="erp-card"><div class="erp-card-body text-muted">@Text("Loading lease...", "جاري تحميل العقد...")</div></article>
+        <AppCard CssClass="allow-overflow"><div class="text-muted">@Text("Loading lease...", "جاري تحميل العقد...")</div></AppCard>
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -44,10 +44,10 @@
             <div class="col-12 col-md-3"><StatsCard Title="@Text("Remaining", "المتبقي")" Value="@lease.Installments.Sum(x => x.RemainingAmount).ToString("N2")" Icon="bi-hourglass-split" Tone="warning" /></div>
         </div>
 
-        <article class="erp-card mb-3">
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
+
                 <div class="row g-3">
-                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Status", "الحالة")</div><span class="badge text-bg-secondary">@lease.Status</span></div>
+                    <div class="col-12 col-md-3"><div class="text-muted small">@Text("Status", "الحالة")</div><StatusChip Text="@lease.Status.ToString()" Tone="muted" /></div>
                     <div class="col-12 col-md-3"><div class="text-muted small">@Text("Party", "الطرف")</div><strong>@lease.PartyDisplayName</strong></div>
                     <div class="col-12 col-md-3"><div class="text-muted small">@Text("Property", "العقار")</div><strong>@lease.PropertyName</strong></div>
                     <div class="col-12 col-md-3"><div class="text-muted small">@Text("Unit", "الوحدة")</div><strong>@lease.UnitNumber</strong></div>
@@ -56,27 +56,27 @@
                     <div class="col-12 col-md-3"><div class="text-muted small">@Text("Frequency", "الدورية")</div>@lease.BillingFrequency</div>
                     <div class="col-12 col-md-3"><div class="text-muted small">@Text("Contract Status", "حالة العقد")</div>@Text("Shown in Contracts module; activation validates signed/active status.", "تظهر في وحدة العقود، ويتم التحقق عند التفعيل.")</div>
                 </div>
-            </div>
-        </article>
 
-        <article class="erp-card">
-            <div class="erp-card-header"><strong>@Text("Installments", "الأقساط")</strong></div>
-            <div class="erp-card-body">
+        </AppCard>
+
+        <AppCard CssClass="allow-overflow">
+            <div class="erp-table-toolbar"><strong>@Text("Installments", "الأقساط")</strong></div>
+
                 @if (lease.Installments.Count == 0)
                 {
                     <div class="text-muted">@Text("No installments generated yet.", "لم يتم توليد الأقساط بعد.")</div>
                 }
                 else
                 {
-                    <div class="table-responsive">
-                        <table class="table align-middle">
+                    <div class="erp-table-wrap">
+                        <table class="table align-middle erp-table">
                             <thead><tr><th>#</th><th>@Text("Due", "الاستحقاق")</th><th>@Text("Period", "الفترة")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Paid", "المدفوع")</th><th>@Text("Remaining", "المتبقي")</th><th>@Text("Status", "الحالة")</th></tr></thead>
-                            <tbody>@foreach (var item in lease.Installments) { <tr><td>@item.Sequence</td><td>@item.DueDate.ToShortDateString()</td><td>@item.PeriodStart.ToShortDateString() - @item.PeriodEnd.ToShortDateString()</td><td>@item.Amount.ToString("N2")</td><td>@item.PaidAmount.ToString("N2")</td><td>@item.RemainingAmount.ToString("N2")</td><td><span class="badge text-bg-secondary">@item.Status</span></td></tr> }</tbody>
+                            <tbody>@foreach (var item in lease.Installments) { <tr><td>@item.Sequence</td><td>@item.DueDate.ToShortDateString()</td><td>@item.PeriodStart.ToShortDateString() - @item.PeriodEnd.ToShortDateString()</td><td>@item.Amount.ToString("N2")</td><td>@item.PaidAmount.ToString("N2")</td><td>@item.RemainingAmount.ToString("N2")</td><td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td></tr> }</tbody>
                         </table>
                     </div>
                 }
-            </div>
-        </article>
+
+        </AppCard>
     }
 </main>
 

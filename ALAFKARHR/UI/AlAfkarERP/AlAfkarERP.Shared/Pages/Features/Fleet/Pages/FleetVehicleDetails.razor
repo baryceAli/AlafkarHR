@@ -42,7 +42,7 @@
 
     @if (isLoading)
     {
-        <section class="erp-card"><div class="erp-card-body text-muted">@Text("Loading vehicle...", "جاري تحميل المركبة...")</div></section>
+        <AppCard>@Text("Loading vehicle...", "جاري تحميل المركبة...")</AppCard>
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -50,8 +50,8 @@
     }
     else if (details is not null)
     {
-        <section class="erp-card mb-3">
-            <div class="erp-card-body">
+        <AppCard CssClass="mb-3">
+
                 <div class="d-flex flex-wrap gap-2">
                     @if (Can(PermissionList.FleetVehiclePermissions.Edit))
                     {
@@ -64,14 +64,14 @@
                         <button class="btn btn-outline-warning" @onclick="BeginEmergency"><i class="bi bi-tools"></i> @Text("Emergency Maintenance", "صيانة طارئة")</button>
                     }
                 </div>
-            </div>
-        </section>
+
+        </AppCard>
 
         @if (showOdometer)
         {
-            <section class="erp-card mb-3">
-                <div class="erp-card-header"><strong>@Text("Update Odometer", "تحديث العداد")</strong></div>
-                <div class="erp-card-body">
+            <AppCard CssClass="mb-3 allow-overflow">
+                <div class="erp-table-toolbar"><strong>@Text("Update Odometer", "تحديث العداد")</strong></div>
+
                     <div class="row g-2 align-items-end">
                         <div class="col-12 col-md-4">@details.Vehicle.PlateNumber - @Name(details.Vehicle)</div>
                         <div class="col-12 col-md-3"><input class="form-control" type="number" @bind="odometerValue" /></div>
@@ -80,15 +80,15 @@
                             <button class="btn btn-outline-secondary" @onclick="@(() => showOdometer = false)">@Text("Cancel", "إلغاء")</button>
                         </div>
                     </div>
-                </div>
-            </section>
+
+            </AppCard>
         }
 
         @if (showEmergency)
         {
-            <section class="erp-card mb-3">
-                <div class="erp-card-header"><strong>@Text("Emergency Maintenance", "صيانة طارئة")</strong></div>
-                <div class="erp-card-body">
+            <AppCard CssClass="mb-3 allow-overflow">
+                <div class="erp-table-toolbar"><strong>@Text("Emergency Maintenance", "صيانة طارئة")</strong></div>
+
                     <div class="row g-2 align-items-end">
                         <div class="col-12 col-lg-3"><label class="form-label">@Text("Title", "العنوان")</label><input class="form-control" @bind="emergencyTitle" /></div>
                         <div class="col-12 col-lg-3"><label class="form-label">@Text("Description", "الوصف")</label><input class="form-control" @bind="emergencyDescription" /></div>
@@ -108,15 +108,15 @@
                             <button class="btn btn-outline-secondary" @onclick="@(() => showEmergency = false)">@Text("Cancel", "إلغاء")</button>
                         </div>
                     </div>
-                </div>
-            </section>
+
+            </AppCard>
         }
 
         <div class="row g-3">
             <div class="col-12 col-xl-4">
-                <article class="erp-card h-100">
-                    <div class="erp-card-header"><strong>@Text("Profile", "الملف")</strong></div>
-                    <div class="erp-card-body">
+                <AppCard CssClass="h-100">
+                    <div class="erp-table-toolbar"><strong>@Text("Profile", "الملف")</strong></div>
+
                         <dl class="row mb-0">
                             <dt class="col-5">@Text("Code", "الكود")</dt><dd class="col-7">@details.Vehicle.VehicleCode</dd>
                             <dt class="col-5">@Text("Name", "الاسم")</dt><dd class="col-7">@Name(details.Vehicle)</dd>
@@ -132,13 +132,13 @@
                             <dt class="col-5">@Text("Default Driver", "السائق الافتراضي")</dt><dd class="col-7">@details.Vehicle.DefaultDriverEmployeeId</dd>
                             <dt class="col-5">@Text("Maintenance Asset", "أصل الصيانة")</dt><dd class="col-7">@details.Vehicle.MaintenanceAssetId</dd>
                         </dl>
-                    </div>
-                </article>
+
+                </AppCard>
             </div>
             <div class="col-12 col-xl-4">
-                <article class="erp-card h-100">
-                    <div class="erp-card-header"><strong>@Text("Ownership", "الملكية")</strong></div>
-                    <div class="erp-card-body">
+                <AppCard CssClass="h-100">
+                    <div class="erp-table-toolbar"><strong>@Text("Ownership", "الملكية")</strong></div>
+
                         <dl class="row mb-0">
                             <dt class="col-5">@Text("Ownership", "الملكية")</dt><dd class="col-7"><StatusChip Text="@details.Vehicle.OwnershipType.ToString()" Tone="info" /></dd>
                             @if (details.Vehicle.OwnershipType == FleetVehicleOwnershipType.Owned)
@@ -160,12 +160,12 @@
                             }
                             <dt class="col-5">@Text("Notes", "ملاحظات")</dt><dd class="col-7">@details.Vehicle.Notes</dd>
                         </dl>
-                    </div>
-                </article>
+
+                </AppCard>
             </div>
             <div class="col-12 col-xl-4">
-                <article class="erp-card h-100">
-                    <div class="erp-card-header"><strong>@Text("Assignments", "العهد")</strong></div>
+                <AppCard CssClass="h-100">
+                    <div class="erp-table-toolbar"><strong>@Text("Assignments", "العهد")</strong></div>
                     <div class="erp-table-wrap">
                         <table class="erp-table table">
                             <thead><tr><th>@Text("Employee/User", "موظف/مستخدم")</th><th>@Text("Period", "الفترة")</th><th>@Text("KM", "كم")</th><th>@Text("Status", "الحالة")</th></tr></thead>
@@ -181,7 +181,7 @@
                             </tbody>
                         </table>
                     </div>
-                </article>
+                </AppCard>
             </div>
         </div>
 

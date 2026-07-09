@@ -27,15 +27,15 @@
 
     @if (Can(PermissionList.FleetVehicleExpensePermissions.Create) || editingExpenseId.HasValue)
     {
-    <section class="erp-card mb-3">
-        <div class="erp-card-header d-flex justify-content-between align-items-center">
+    <AppCard CssClass="mb-3 allow-overflow">
+        <div class="erp-table-toolbar d-flex justify-content-between align-items-center">
             <strong>@(editingExpenseId.HasValue ? Text("Edit Expense", "تعديل المصروف") : Text("New Expense", "مصروف جديد"))</strong>
             @if (editingExpenseId.HasValue)
             {
                 <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="ResetForm">@Text("New", "جديد")</button>
             }
         </div>
-        <div class="erp-card-body">
+
             <EditForm Model="expenseForm" OnValidSubmit="SaveAsync">
                 <DataAnnotationsValidator />
                 <div class="row g-2 align-items-end">
@@ -90,12 +90,12 @@
                     </div>
                 </div>
             </EditForm>
-        </div>
-    </section>
+
+    </AppCard>
     }
 
-    <section class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3">
+
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-lg-3"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" @bind:event="oninput" /></div>
                 <div class="col-12 col-lg-3">
@@ -114,10 +114,10 @@
                 <div class="col-6 col-lg-1"><label class="form-label">@Text("To", "إلى")</label><InputDate class="form-control" @bind-Value="toDate" /></div>
                 <div class="col-12"><button class="btn btn-outline-secondary" @onclick="ApplyFiltersAsync"><i class="bi bi-search"></i> @Text("Apply Filters", "تطبيق الفلاتر")</button></div>
             </div>
-        </div>
-    </section>
 
-    <section class="erp-card">
+    </AppCard>
+
+    <AppCard>
         <div class="erp-table-wrap">
             <table class="erp-table table">
                 <thead>
@@ -180,15 +180,15 @@
                 </tbody>
             </table>
         </div>
-        <div class="erp-card-body border-top d-flex justify-content-between align-items-center gap-2">
+
             <span class="text-muted small">@Text("Total", "الإجمالي"): @totalCount</span>
             <div class="d-flex align-items-center gap-2">
                 <button class="btn btn-sm btn-outline-secondary" disabled="@(pageIndex == 0 || isLoading)" @onclick="PreviousPageAsync"><i class="bi bi-chevron-left"></i></button>
                 <span class="small">@Text("Page", "صفحة") @(pageIndex + 1)</span>
                 <button class="btn btn-sm btn-outline-secondary" disabled="@(!HasNextPage || isLoading)" @onclick="NextPageAsync"><i class="bi bi-chevron-right"></i></button>
             </div>
-        </div>
-    </section>
+
+    </AppCard>
 </main>
 
 @code {

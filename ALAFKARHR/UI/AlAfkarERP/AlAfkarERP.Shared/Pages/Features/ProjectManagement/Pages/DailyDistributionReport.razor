@@ -11,25 +11,25 @@
 
 <main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Daily Distribution Report", "Daily Distribution Report")" Subtitle="@Text("All projects, customers, places, and meals for one day.", "All projects, customers, places, and meals for one day.")" Icon="bi-calendar-day" />
-    <article class="erp-card mb-3"><div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
         <div class="row g-3 align-items-end">
             <div class="col-12 col-md-4"><label class="form-label">@Text("Project", "Project")</label><select class="form-select" @bind="projectIdText"><option value="">@Text("All", "All")</option>@foreach (var item in projects) { <option value="@item.Id">@item.ProjectNumber - @item.Name</option> }</select></div>
             <div class="col-12 col-md-3"><label class="form-label">@Text("Date", "Date")</label><InputDate class="form-control" @bind-Value="reportDate" /></div>
             <div class="col-12 col-md-2"><button class="btn btn-primary w-100" @onclick="LoadReportAsync"><i class="bi bi-search"></i> @Text("Run", "Run")</button></div>
         </div>
-    </div></article>
+    </AppCard>
     <div class="row g-3 mb-3">
         <div class="col-12 col-md-3"><StatsCard Title="@Text("Planned", "Planned")" Value="@report.Sum(x => x.PlannedQuantity).ToString("N0")" Icon="bi-box-seam" /></div>
         <div class="col-12 col-md-3"><StatsCard Title="@Text("Shipped", "Shipped")" Value="@report.Sum(x => x.ShippedQuantity).ToString("N0")" Icon="bi-truck" /></div>
         <div class="col-12 col-md-3"><StatsCard Title="@Text("Delivered", "Delivered")" Value="@report.Sum(x => x.DeliveredQuantity).ToString("N0")" Icon="bi-check2-circle" /></div>
         <div class="col-12 col-md-3"><StatsCard Title="@Text("Variance", "Variance")" Value="@report.Sum(x => x.VarianceQuantity).ToString("N0")" Icon="bi-graph-up" /></div>
     </div>
-    <article class="erp-card"><div class="erp-card-body table-responsive">
+    <AppCard CssClass="allow-overflow"><div class="erp-table-wrap">
         @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
-        <table class="table align-middle"><thead><tr><th>@Text("Project", "Project")</th><th>@Text("Place", "Place")</th><th>@Text("Customer", "Customer")</th><th>@Text("Meal", "Meal")</th><th>@Text("Planned", "Planned")</th><th>@Text("Shipped", "Shipped")</th><th>@Text("Delivered", "Delivered")</th><th>@Text("Actual", "Actual")</th><th>@Text("Variance", "Variance")</th></tr></thead><tbody>
+        <table class="table align-middle erp-table"><thead><tr><th>@Text("Project", "Project")</th><th>@Text("Place", "Place")</th><th>@Text("Customer", "Customer")</th><th>@Text("Meal", "Meal")</th><th>@Text("Planned", "Planned")</th><th>@Text("Shipped", "Shipped")</th><th>@Text("Delivered", "Delivered")</th><th>@Text("Actual", "Actual")</th><th>@Text("Variance", "Variance")</th></tr></thead><tbody>
             @foreach (var row in report) { <tr><td>@row.ProjectName</td><td>@row.PlaceName</td><td>@row.CustomerName</td><td>@row.DeliverableName</td><td>@row.PlannedQuantity.ToString("N0")</td><td>@row.ShippedQuantity.ToString("N0")</td><td>@row.DeliveredQuantity.ToString("N0")</td><td>@row.ActualQuantity.ToString("N0")</td><td>@row.VarianceQuantity.ToString("N0")</td></tr> }
         </tbody></table>
-    </div></article>
+    </div></AppCard>
 </main>
 
 @code {

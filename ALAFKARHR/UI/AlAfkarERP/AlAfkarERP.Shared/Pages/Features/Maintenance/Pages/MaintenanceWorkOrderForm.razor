@@ -21,8 +21,8 @@
 
     <EditForm Model="model" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
-        <section class="erp-card">
-            <div class="erp-card-body">
+        <AppCard CssClass="allow-overflow">
+
                 @if (!string.IsNullOrWhiteSpace(errorMessage))
                 {
                     <div class="alert alert-danger">@errorMessage</div>
@@ -99,8 +99,8 @@
                         @Text("Cancel", "إلغاء")
                     </button>
                 </div>
-            </div>
-        </section>
+
+        </AppCard>
     </EditForm>
 </main>
 

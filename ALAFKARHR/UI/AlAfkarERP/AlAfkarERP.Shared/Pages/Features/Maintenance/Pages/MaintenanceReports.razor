@@ -12,8 +12,8 @@
                 Subtitle="@Text("Summary by status, asset type, and costs.", "ملخص حسب الحالة ونوع الأصل والتكاليف.")"
                 Icon="bi-bar-chart-line" />
 
-    <section class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3">
+
             <div class="row g-2 align-items-end">
                 <div class="col-12 col-md-4">
                     <label class="form-label">@Text("From", "من")</label>
@@ -30,12 +30,12 @@
                     </button>
                 </div>
             </div>
-        </div>
-    </section>
+
+    </AppCard>
 
     @if (isLoading)
     {
-        <div class="erp-card"><div class="erp-card-body text-muted">@Text("Loading reports...", "جاري تحميل التقارير...")</div></div>
+        <AppCard>@Text("Loading reports...", "جاري تحميل التقارير...")</AppCard>
     }
     else if (report is not null)
     {
@@ -48,9 +48,9 @@
 
         <div class="row g-3 mt-1">
             <div class="col-12 col-lg-6">
-                <article class="erp-card">
-                    <div class="erp-card-header"><strong>@Text("By Status", "حسب الحالة")</strong></div>
-                    <div class="erp-card-body">
+                <AppCard>
+                    <div class="erp-table-toolbar"><strong>@Text("By Status", "حسب الحالة")</strong></div>
+
                         @foreach (var item in report.StatusSummary)
                         {
                             <button type="button" class="btn btn-link w-100 d-flex justify-content-between border-bottom py-2 px-0 text-decoration-none"
@@ -59,13 +59,13 @@
                                 <strong>@item.Count</strong>
                             </button>
                         }
-                    </div>
-                </article>
+
+                </AppCard>
             </div>
             <div class="col-12 col-lg-6">
-                <article class="erp-card">
-                    <div class="erp-card-header"><strong>@Text("By Asset Type", "حسب نوع الأصل")</strong></div>
-                    <div class="erp-card-body">
+                <AppCard>
+                    <div class="erp-table-toolbar"><strong>@Text("By Asset Type", "حسب نوع الأصل")</strong></div>
+
                         @foreach (var item in report.AssetTypeSummary)
                         {
                             <button type="button" class="btn btn-link w-100 d-flex justify-content-between border-bottom py-2 px-0 text-decoration-none"
@@ -74,8 +74,8 @@
                                 <strong>@item.Count</strong>
                             </button>
                         }
-                    </div>
-                </article>
+
+                </AppCard>
             </div>
         </div>
     }

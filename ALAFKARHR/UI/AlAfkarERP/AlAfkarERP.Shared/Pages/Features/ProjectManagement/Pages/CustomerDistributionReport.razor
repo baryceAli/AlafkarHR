@@ -12,8 +12,8 @@
 
 <main class="erp-page" dir="@SharedDataService.PageDirection">
     <PageHeader Title="@Text("Customer Distribution Report", "تقرير توزيع العملاء")" Subtitle="@Text("Totals by day, week, month, or selected date range.", "إجماليات حسب اليوم أو الأسبوع أو الشهر أو نطاق تاريخ.")" Icon="bi-bar-chart" />
-    <article class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-3"><label class="form-label">@Text("Project", "Project")</label><select class="form-select" @bind="projectIdText" @bind:after="LoadProjectFiltersAsync"><option value="">@Text("All", "All")</option>@foreach (var project in projects) { <option value="@project.Id">@project.Name</option> }</select></div>
                 <div class="col-12 col-md-3"><label class="form-label">@Text("Customer", "Customer")</label><select class="form-select" @bind="customerIdText"><option value="">@Text("All", "All")</option>@foreach (var customer in selectedProject.Customers) { <option value="@customer.Id">@customer.CustomerName</option> }</select></div>
@@ -24,17 +24,17 @@
                 <div class="col-12 col-md-2"><label class="form-label">@Text("Group By", "تجميع")</label><InputSelect class="form-select" @bind-Value="groupBy">@foreach (var item in Enum.GetValues<ProjectReportGroupBy>()) { <option value="@item">@item</option> }</InputSelect></div>
                 <div class="col-12 col-md-2"><button class="btn btn-primary w-100" @onclick="LoadReportAsync"><i class="bi bi-search"></i> @Text("Run", "تشغيل")</button></div>
             </div>
-        </div>
-    </article>
+
+    </AppCard>
     @if (!string.IsNullOrWhiteSpace(errorMessage)) { <div class="alert alert-danger">@errorMessage</div> }
-    <article class="erp-card">
-        <div class="erp-card-body table-responsive">
-            <table class="table align-middle">
+    <AppCard CssClass="allow-overflow">
+        <div class="erp-table-wrap">
+            <table class="table align-middle erp-table">
                 <thead><tr><th>@Text("Period", "Period")</th><th>@Text("Project", "Project")</th><th>@Text("Customer", "Customer")</th><th>@Text("Place", "Place")</th><th>@Text("Meal", "Meal")</th><th>@Text("Planned", "Planned")</th><th>@Text("Shipped", "Shipped")</th><th>@Text("Delivered", "Delivered")</th><th>@Text("Actual", "Actual")</th><th>@Text("Variance", "Variance")</th></tr></thead>
                 <tbody>@foreach (var row in report) { <tr><td>@row.PeriodKey</td><td>@row.ProjectName</td><td>@row.CustomerName</td><td>@row.PlaceName</td><td>@row.DeliverableName</td><td>@row.PlannedQuantity.ToString("N0")</td><td>@row.ShippedQuantity.ToString("N0")</td><td>@row.DeliveredQuantity.ToString("N0")</td><td>@row.ActualQuantity.ToString("N0")</td><td>@row.VarianceQuantity.ToString("N0")</td></tr> }</tbody>
             </table>
         </div>
-    </article>
+    </AppCard>
 </main>
 
 @code {

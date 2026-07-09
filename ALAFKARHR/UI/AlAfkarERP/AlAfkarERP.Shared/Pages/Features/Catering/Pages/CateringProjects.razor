@@ -19,8 +19,8 @@
     <PageHeader Title="@Text("Catering Projects", "مشاريع الإعاشة")" Subtitle="@Text("Plan multi-contract campaigns, locations, resources, and daily execution.", "تخطيط حملات متعددة العقود والمواقع والموارد والتنفيذ اليومي.")" Icon="bi-diagram-3" />
     @StatusBlock()
 
-    <div class="erp-card mb-3 allow-overflow">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <EditForm Model="project" OnValidSubmit="SaveProjectAsync">
                 <DataAnnotationsValidator />
                 <div class="row g-2 align-items-end">
@@ -32,13 +32,13 @@
                     <div class="col-12"><label class="form-label">@Text("Notes", "ملاحظات")</label><InputText class="form-control" @bind-Value="project.Notes" /></div>
                 </div>
             </EditForm>
-        </div>
-    </div>
+
+    </AppCard>
 
     <div class="row g-3 mb-3">
         <div class="col-xl-6">
-            <div class="erp-card h-100">
-                <div class="erp-card-body">
+            <AppCard CssClass="h-100 allow-overflow">
+
                     <h6 class="mb-2">@Text("Linked contracts", "العقود المرتبطة")</h6>
                     <div class="row g-2">
                         @foreach (var item in contracts)
@@ -47,12 +47,12 @@
                         }
                     </div>
                     @if (!contracts.Any()) { <div class="text-muted small">@Text("No draft or active contracts are available.", "لا توجد عقود مسودة أو نشطة.")</div> }
-                </div>
-            </div>
+
+            </AppCard>
         </div>
         <div class="col-xl-6">
-            <div class="erp-card h-100">
-                <div class="erp-card-body">
+            <AppCard CssClass="h-100 allow-overflow">
+
                     <h6 class="mb-2">@Text("Project squares", "مربعات المشروع")</h6>
                     <div class="row g-2">
                         @foreach (var square in squares)
@@ -61,8 +61,8 @@
                         }
                     </div>
                     @if (!squares.Any()) { <div class="text-muted small">@Text("No active squares are available.", "لا توجد مربعات نشطة.")</div> }
-                </div>
-            </div>
+
+            </AppCard>
         </div>
     </div>
 
@@ -70,8 +70,8 @@
     {
         <div class="row g-3 mb-3">
             <div class="col-xl-4">
-                <div class="erp-card h-100"><div class="erp-card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">@selectedProject.ProjectName</h6>@if (selectedProject.IsExtended) { <span class="badge text-bg-warning">@Text("Extended", "ممدد")</span> }</div>
+                <AppCard CssClass="h-100 allow-overflow">
+                    <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">@selectedProject.ProjectName</h6>@if (selectedProject.IsExtended) { <StatusChip Text="@Text("Extended", "ممدد")" Tone="warning" /> }</div>
                     <div class="small text-muted">@selectedProject.StartDate.ToString("yyyy-MM-dd") - @selectedProject.EndDate.ToString("yyyy-MM-dd")</div>
                     <div class="row g-2 mt-2">
                         <div class="col-6"><strong>@selectedProject.ContractCount</strong><div class="small text-muted">@Text("Contracts", "العقود")</div></div>
@@ -79,10 +79,10 @@
                         <div class="col-6"><strong>@selectedProject.ScheduledDays</strong><div class="small text-muted">@Text("Scheduled days", "أيام مجدولة")</div></div>
                         <div class="col-6"><strong>@selectedProject.TotalPlannedMeals.ToString("N0")</strong><div class="small text-muted">@Text("Meals", "وجبات")</div></div>
                     </div>
-                </div></div>
+                </AppCard>
             </div>
             <div class="col-xl-8">
-                <div class="erp-card h-100"><div class="erp-card-body">
+                <AppCard CssClass="h-100 allow-overflow">
                     <h6>@Text("Generate project days", "إنشاء أيام المشروع")</h6>
                     <div class="row g-2 align-items-end">
                         <div class="col-md-3"><label class="form-label">@Text("From", "من")</label><InputDate class="form-control" @bind-Value="generateRequest.FromDate" /></div>
@@ -92,11 +92,11 @@
                         <div class="col-md-3"><label class="form-check"><InputCheckbox class="form-check-input" @bind-Value="generateRequest.UseProjectDuration" /> <span class="form-check-label">@Text("Project duration", "مدة المشروع")</span></label></div>
                         <div class="col-md-3"><button class="btn btn-outline-primary w-100" @onclick="GenerateProjectDaysAsync" disabled="@busy"><i class="bi bi-calendar-plus"></i> @Text("Generate", "إنشاء")</button></div>
                     </div>
-                </div></div>
+                </AppCard>
             </div>
         </div>
 
-        <div class="erp-card mb-3"><div class="erp-card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
             <h6>@Text("Project resources", "موارد المشروع")</h6>
             <div class="row g-2 align-items-end">
                 <div class="col-md-3"><label class="form-label">@Text("Role", "الدور")</label><InputSelect class="form-select" @bind-Value="resource.ResourceType">@foreach (var role in Enum.GetValues<CateringPlanResourceType>()) { <option value="@role">@role</option> }</InputSelect></div>
@@ -115,22 +115,22 @@
                 @if (!selectedProject.Resources.Any()) { <tr><td colspan="4" class="text-muted">@Text("No resources assigned.", "لم يتم تعيين موارد.")</td></tr> }
                 @foreach (var item in selectedProject.Resources) { <tr><td>@item.ResourceType</td><td>@ResourceLabel(item)</td><td>@item.EffectiveFrom?.ToString("yyyy-MM-dd") - @item.EffectiveTo?.ToString("yyyy-MM-dd")</td><td class="text-end"><button class="btn btn-sm btn-outline-danger" @onclick="() => DeleteResourceAsync(item)" disabled="@busy"><i class="bi bi-trash"></i></button></td></tr> }
             </tbody></table></div>
-        </div></div>
+        </AppCard>
 
-        <div class="erp-card mb-3"><div class="erp-card-body">
+        <AppCard CssClass="mb-3 allow-overflow">
             <h6>@Text("Daily project plan", "الخطة اليومية للمشروع")</h6>
             <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Date", "التاريخ")</th><th>@Text("Planned", "المخطط")</th><th>@Text("Scheduled", "المجدول")</th><th>@Text("Status", "الحالة")</th><th>@Text("Contract schedules", "جداول العقود")</th><th></th></tr></thead><tbody>
                 @if (!selectedProject.DailyPlans.Any()) { <tr><td colspan="6" class="text-muted">@Text("No project days yet.", "لا توجد أيام مشروع بعد.")</td></tr> }
                 @foreach (var day in selectedProject.DailyPlans)
                 {
-                    <tr><td>@day.ServiceDate.ToString("yyyy-MM-dd") @if (day.IsExtensionDay) { <span class="badge text-bg-warning ms-1">@Text("Extension", "تمديد")</span> }</td><td>@day.PlannedQuantity.ToString("N0")</td><td>@day.ScheduledQuantity.ToString("N0")</td><td>@day.Status</td><td>@day.ContractSchedules.Count</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="() => SelectProjectDay(day)"><i class="bi bi-list-task"></i></button></td></tr>
+                    <tr><td>@day.ServiceDate.ToString("yyyy-MM-dd") @if (day.IsExtensionDay) { <StatusChip Text="@Text("Extension", "تمديد")" Tone="warning" CssClass="ms-1" /> }</td><td>@day.PlannedQuantity.ToString("N0")</td><td>@day.ScheduledQuantity.ToString("N0")</td><td><StatusChip Text="@day.Status.ToString()" Tone="muted" /></td><td>@day.ContractSchedules.Count</td><td class="text-end"><button class="btn btn-sm btn-outline-primary" @onclick="() => SelectProjectDay(day)"><i class="bi bi-list-task"></i></button></td></tr>
                 }
             </tbody></table></div>
-        </div></div>
+        </AppCard>
 
         @if (selectedDay is not null)
         {
-            <div class="erp-card mb-3"><div class="erp-card-body">
+            <AppCard CssClass="mb-3 allow-overflow">
                 <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="mb-0">@Text("Contract schedules", "جداول العقود") - @selectedDay.ServiceDate.ToString("yyyy-MM-dd")</h6><button class="btn btn-outline-secondary btn-sm" @onclick="() => selectedDay = null"><i class="bi bi-x-lg"></i></button></div>
                 <div class="row g-2 align-items-end">
                     <div class="col-md-5"><label class="form-label">@Text("Contract", "العقد")</label><select class="form-select" @bind="childSchedule.CateringContractId"><option value="@Guid.Empty">@Text("Select contract", "اختر العقد")</option>@foreach (var link in selectedProject.Contracts) { <option value="@link.CateringContractId">@link.ContractNumber - @Display(link.CustomerName ?? "", link.CustomerNameEng)</option> }</select></div>
@@ -140,16 +140,16 @@
                 </div>
                 <div class="erp-table-wrap mt-3"><table class="table erp-table align-middle"><thead><tr><th>@Text("Contract", "العقد")</th><th>@Text("Planned", "المخطط")</th><th>@Text("Allocations", "التوزيعات")</th><th>@Text("Status", "الحالة")</th></tr></thead><tbody>
                     @if (!selectedDay.ContractSchedules.Any()) { <tr><td colspan="4" class="text-muted">@Text("No contract schedules for this day.", "لا توجد جداول عقود لهذا اليوم.")</td></tr> }
-                    @foreach (var item in selectedDay.ContractSchedules) { <tr><td>@ContractLabel(item.CateringContractId)</td><td>@item.PlannedQuantity.ToString("N0")</td><td>@item.Allocations.Count</td><td>@item.Status</td></tr> }
+                    @foreach (var item in selectedDay.ContractSchedules) { <tr><td>@ContractLabel(item.CateringContractId)</td><td>@item.PlannedQuantity.ToString("N0")</td><td>@item.Allocations.Count</td><td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td></tr> }
                 </tbody></table></div>
-            </div></div>
+            </AppCard>
         }
     }
 
     <div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Project", "المشروع")</th><th>@Text("Duration", "المدة")</th><th>@Text("Contracts", "العقود")</th><th>@Text("Days", "الأيام")</th><th>@Text("Meals", "الوجبات")</th><th>@Text("Status", "الحالة")</th><th></th></tr></thead><tbody>
         @if (loading) { <tr><td colspan="7" class="text-muted">@Text("Loading projects...", "جاري تحميل المشاريع...")</td></tr> }
         else if (!projects.Any()) { <tr><td colspan="7" class="text-muted">@Text("No catering projects found.", "لا توجد مشاريع إعاشة.")</td></tr> }
-        @foreach (var item in projects) { <tr><td>@item.ProjectName @if (item.IsExtended) { <span class="badge text-bg-warning ms-1">@Text("Extended", "ممدد")</span> }</td><td>@item.StartDate.ToString("yyyy-MM-dd") - @item.EndDate.ToString("yyyy-MM-dd")</td><td>@item.ContractCount</td><td>@item.PlannedDays / @item.ScheduledDays</td><td>@item.TotalPlannedMeals.ToString("N0")</td><td>@item.Status</td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditProject(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary" @onclick="() => SelectProjectAsync(item)"><i class="bi bi-diagram-3"></i></button></td></tr> }
+        @foreach (var item in projects) { <tr><td>@item.ProjectName @if (item.IsExtended) { <StatusChip Text="@Text("Extended", "ممدد")" Tone="warning" CssClass="ms-1" /> }</td><td>@item.StartDate.ToString("yyyy-MM-dd") - @item.EndDate.ToString("yyyy-MM-dd")</td><td>@item.ContractCount</td><td>@item.PlannedDays / @item.ScheduledDays</td><td>@item.TotalPlannedMeals.ToString("N0")</td><td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" @onclick="() => EditProject(item)"><i class="bi bi-pencil-square"></i></button><button class="btn btn-sm btn-outline-secondary" @onclick="() => SelectProjectAsync(item)"><i class="bi bi-diagram-3"></i></button></td></tr> }
     </tbody></table></div>
 </div>
 

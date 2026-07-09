@@ -40,8 +40,8 @@
         <div class="alert @messageClass">@message</div>
     }
 
-    <div class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <div class="row g-3">
                 <div class="col-md-2">
                     <label class="form-label">@Text("From", "من")</label>
@@ -118,11 +118,11 @@
                     <span class="badge bg-light text-dark">@Text("Weekend:", "نهاية الأسبوع:") @string.Join(", ", report.WeekendDays.Select(DayName))</span>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="erp-card mb-3">
-        <div class="erp-card-body">
+    </AppCard>
+
+    <AppCard CssClass="mb-3">
+
             <div class="row g-3">
                 <div class="col-md-3">
                     <strong>@Text("Rows", "الصفوف")</strong>
@@ -141,10 +141,10 @@
                     <div>@FilteredRows.Count(x => x.Category == "MidDayPermission")</div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <div class="erp-card">
+    </AppCard>
+
+    <AppCard>
         <div class="erp-table-wrap">
             <table class="table erp-table align-middle mb-0">
                 <thead>
@@ -186,7 +186,7 @@
                 </tbody>
             </table>
         </div>
-    </div>
+    </AppCard>
 </section>
 
 @code {

@@ -13,7 +13,7 @@
 
     @if (isLoading)
     {
-        <article class="erp-card"><div class="erp-card-body text-muted">@Text("Loading reports...", "جاري تحميل التقارير...")</div></article>
+        <AppCard CssClass="allow-overflow"><div class="text-muted">@Text("Loading reports...", "جاري تحميل التقارير...")</div></AppCard>
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -21,8 +21,8 @@
     }
     else if (reports is not null)
     {
-        <article class="erp-card">
-            <div class="erp-card-body">
+        <AppCard CssClass="allow-overflow">
+
                 <ul class="nav nav-tabs mb-3">
                     @foreach (var tab in tabs)
                     {
@@ -32,30 +32,30 @@
 
                 @if (activeTab == "Profitability")
                 {
-                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Property", "العقار")</th><th>@Text("Expected", "المتوقع")</th><th>@Text("Collected", "المحصل")</th><th>@Text("Expenses", "المصاريف")</th><th>@Text("Net Profit", "صافي الربح")</th></tr></thead><tbody>@foreach (var item in reports.Profitability) { <tr><td>@item.PropertyName</td><td>@item.ExpectedRent.ToString("N2")</td><td>@item.CollectedRent.ToString("N2")</td><td>@item.Expenses.ToString("N2")</td><td>@item.NetProfit.ToString("N2")</td></tr> }</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table align-middle erp-table"><thead><tr><th>@Text("Property", "العقار")</th><th>@Text("Expected", "المتوقع")</th><th>@Text("Collected", "المحصل")</th><th>@Text("Expenses", "المصاريف")</th><th>@Text("Net Profit", "صافي الربح")</th></tr></thead><tbody>@foreach (var item in reports.Profitability) { <tr><td>@item.PropertyName</td><td>@item.ExpectedRent.ToString("N2")</td><td>@item.CollectedRent.ToString("N2")</td><td>@item.Expenses.ToString("N2")</td><td>@item.NetProfit.ToString("N2")</td></tr> }</tbody></table></div>
                 }
                 else if (activeTab == "Occupancy")
                 {
-                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Property", "العقار")</th><th>@Text("Units", "الوحدات")</th><th>@Text("Occupied", "مشغولة")</th><th>@Text("Rate", "النسبة")</th></tr></thead><tbody>@foreach (var item in reports.Occupancy) { <tr><td>@item.PropertyName</td><td>@item.Units</td><td>@item.OccupiedUnits</td><td>@item.OccupancyRate.ToString("N2")%</td></tr> }</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table align-middle erp-table"><thead><tr><th>@Text("Property", "العقار")</th><th>@Text("Units", "الوحدات")</th><th>@Text("Occupied", "مشغولة")</th><th>@Text("Rate", "النسبة")</th></tr></thead><tbody>@foreach (var item in reports.Occupancy) { <tr><td>@item.PropertyName</td><td>@item.Units</td><td>@item.OccupiedUnits</td><td>@item.OccupancyRate.ToString("N2")%</td></tr> }</tbody></table></div>
                 }
                 else if (activeTab == "Overdue")
                 {
-                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Period", "الفترة")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Paid", "المدفوع")</th><th>@Text("Remaining", "المتبقي")</th><th>@Text("Status", "الحالة")</th></tr></thead><tbody>@foreach (var item in reports.OverdueInstallments) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.PeriodStart.ToShortDateString() - @item.PeriodEnd.ToShortDateString()</td><td>@item.Amount.ToString("N2")</td><td>@item.PaidAmount.ToString("N2")</td><td>@item.RemainingAmount.ToString("N2")</td><td><span class="badge text-bg-secondary">@item.Status</span></td></tr> }</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table align-middle erp-table"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Period", "الفترة")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Paid", "المدفوع")</th><th>@Text("Remaining", "المتبقي")</th><th>@Text("Status", "الحالة")</th></tr></thead><tbody>@foreach (var item in reports.OverdueInstallments) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.PeriodStart.ToShortDateString() - @item.PeriodEnd.ToShortDateString()</td><td>@item.Amount.ToString("N2")</td><td>@item.PaidAmount.ToString("N2")</td><td>@item.RemainingAmount.ToString("N2")</td><td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td></tr> }</tbody></table></div>
                 }
                 else if (activeTab == "OwnerPayables")
                 {
-                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Period", "الفترة")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Paid", "المدفوع")</th><th>@Text("Remaining", "المتبقي")</th><th>@Text("Status", "الحالة")</th></tr></thead><tbody>@foreach (var item in reports.UpcomingOwnerPayables) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.PeriodStart.ToShortDateString() - @item.PeriodEnd.ToShortDateString()</td><td>@item.Amount.ToString("N2")</td><td>@item.PaidAmount.ToString("N2")</td><td>@item.RemainingAmount.ToString("N2")</td><td><span class="badge text-bg-secondary">@item.Status</span></td></tr> }</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table align-middle erp-table"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Period", "الفترة")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Paid", "المدفوع")</th><th>@Text("Remaining", "المتبقي")</th><th>@Text("Status", "الحالة")</th></tr></thead><tbody>@foreach (var item in reports.UpcomingOwnerPayables) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.PeriodStart.ToShortDateString() - @item.PeriodEnd.ToShortDateString()</td><td>@item.Amount.ToString("N2")</td><td>@item.PaidAmount.ToString("N2")</td><td>@item.RemainingAmount.ToString("N2")</td><td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td></tr> }</tbody></table></div>
                 }
                 else if (activeTab == "Utilities")
                 {
-                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Total", "الإجمالي")</th><th>@Text("Reference", "المرجع")</th></tr></thead><tbody>@foreach (var item in reports.UtilityAging) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.TotalAmount.ToString("N2")</td><td>@item.Reference</td></tr> }</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table align-middle erp-table"><thead><tr><th>@Text("Due", "الاستحقاق")</th><th>@Text("Total", "الإجمالي")</th><th>@Text("Reference", "المرجع")</th></tr></thead><tbody>@foreach (var item in reports.UtilityAging) { <tr><td>@item.DueDate.ToShortDateString()</td><td>@item.TotalAmount.ToString("N2")</td><td>@item.Reference</td></tr> }</tbody></table></div>
                 }
                 else
                 {
-                    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Category", "التصنيف")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Tax", "الضريبة")</th><th>@Text("Total", "الإجمالي")</th></tr></thead><tbody>@foreach (var item in reports.ExpenseSummary) { <tr><td>@item.Category</td><td>@item.Amount.ToString("N2")</td><td>@item.TaxAmount.ToString("N2")</td><td>@item.TotalAmount.ToString("N2")</td></tr> }</tbody></table></div>
+                    <div class="erp-table-wrap"><table class="table align-middle erp-table"><thead><tr><th>@Text("Category", "التصنيف")</th><th>@Text("Amount", "المبلغ")</th><th>@Text("Tax", "الضريبة")</th><th>@Text("Total", "الإجمالي")</th></tr></thead><tbody>@foreach (var item in reports.ExpenseSummary) { <tr><td>@item.Category</td><td>@item.Amount.ToString("N2")</td><td>@item.TaxAmount.ToString("N2")</td><td>@item.TotalAmount.ToString("N2")</td></tr> }</tbody></table></div>
                 }
-            </div>
-        </article>
+
+        </AppCard>
     }
 </main>
 

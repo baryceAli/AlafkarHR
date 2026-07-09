@@ -36,7 +36,7 @@
 
     @if (isLoading)
     {
-        <div class="erp-card"><div class="erp-card-body text-muted">@Text("Loading work order...", "جاري تحميل أمر العمل...")</div></div>
+        <AppCard>@Text("Loading work order...", "جاري تحميل أمر العمل...")</AppCard>
     }
     else if (!string.IsNullOrWhiteSpace(errorMessage))
     {
@@ -50,8 +50,8 @@
     {
         <div class="row g-3">
             <div class="col-12 col-xl-8">
-                <article class="erp-card">
-                    <div class="erp-card-header d-flex flex-wrap gap-2 justify-content-between">
+                <AppCard CssClass="allow-overflow">
+                    <div class="erp-table-toolbar d-flex flex-wrap gap-2 justify-content-between">
                         <strong>@Text("Details", "التفاصيل")</strong>
                         <div class="d-flex gap-2">
                             <StatusChip Text="@workOrder.Priority.ToString()" Tone="@PriorityTone(workOrder.Priority)" />
@@ -59,7 +59,7 @@
                             <StatusChip Text="@workOrder.CostApprovalStatus.ToString()" Tone="@CostTone(workOrder.CostApprovalStatus)" />
                         </div>
                     </div>
-                    <div class="erp-card-body">
+
                         <dl class="row mb-0">
                             <dt class="col-sm-3">@Text("Asset", "الأصل")</dt>
                             <dd class="col-sm-9">
@@ -82,12 +82,12 @@
                                 @Text("Actual", "فعلية"): @workOrder.ActualCost?.ToString("N2")
                             </dd>
                         </dl>
-                    </div>
-                </article>
 
-                <article class="erp-card mt-3">
-                    <div class="erp-card-header"><strong>@Text("Comments", "التعليقات")</strong></div>
-                    <div class="erp-card-body">
+                </AppCard>
+
+                <AppCard CssClass="mt-3">
+                    <div class="erp-table-toolbar"><strong>@Text("Comments", "التعليقات")</strong></div>
+
                         <div class="input-group mb-3">
                             <input class="form-control" @bind="newComment" @bind:event="oninput" />
                             <button class="btn btn-outline-secondary" @onclick="AddCommentAsync" disabled="@string.IsNullOrWhiteSpace(newComment)">
@@ -111,12 +111,12 @@
                                 }
                             </div>
                         }
-                    </div>
-                </article>
 
-                <article class="erp-card mt-3">
-                    <div class="erp-card-header"><strong>@Text("Attachments", "المرفقات")</strong></div>
-                    <div class="erp-card-body">
+                </AppCard>
+
+                <AppCard CssClass="mt-3">
+                    <div class="erp-table-toolbar"><strong>@Text("Attachments", "المرفقات")</strong></div>
+
                         @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Edit))
                         {
                             <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
@@ -143,12 +143,12 @@
                                 }
                             </div>
                         }
-                    </div>
-                </article>
 
-                <article class="erp-card mt-3">
-                    <div class="erp-card-header"><strong>@Text("History", "السجل")</strong></div>
-                    <div class="erp-card-body">
+                </AppCard>
+
+                <AppCard CssClass="mt-3">
+                    <div class="erp-table-toolbar"><strong>@Text("History", "السجل")</strong></div>
+
                         @if (!workOrder.History.Any())
                         {
                             <div class="text-muted">@Text("No history yet.", "لا يوجد سجل بعد.")</div>
@@ -163,14 +163,14 @@
                                 </div>
                             }
                         }
-                    </div>
-                </article>
+
+                </AppCard>
             </div>
 
             <div class="col-12 col-xl-4">
-                <article class="erp-card">
-                    <div class="erp-card-header"><strong>@Text("Workflow", "سير العمل")</strong></div>
-                    <div class="erp-card-body d-grid gap-3">
+                <AppCard CssClass="allow-overflow">
+                    <div class="erp-table-toolbar"><strong>@Text("Workflow", "سير العمل")</strong></div>
+
                         @if (Can(PermissionList.MaintenanceWorkOrderPermissions.Assign))
                         {
                             <div>
@@ -222,14 +222,14 @@
                                 @Text("Update Status", "تحديث الحالة")
                             </button>
                         }
-                    </div>
-                </article>
+
+                </AppCard>
 
                 @if (Can(PermissionList.MaintenanceWorkOrderPermissions.ApproveCost))
                 {
-                    <article class="erp-card mt-3">
-                        <div class="erp-card-header"><strong>@Text("Cost Approval", "اعتماد التكلفة")</strong></div>
-                        <div class="erp-card-body d-grid gap-3">
+                    <AppCard CssClass="mt-3">
+                        <div class="erp-table-toolbar"><strong>@Text("Cost Approval", "اعتماد التكلفة")</strong></div>
+
                             <div>
                                 <label class="form-label">@Text("Approved Cost", "التكلفة المعتمدة")</label>
                                 <input type="number" step="0.01" class="form-control" @bind="approvedCost" />
@@ -248,8 +248,8 @@
                                     @Text("Reject", "رفض")
                                 </button>
                             </div>
-                        </div>
-                    </article>
+
+                    </AppCard>
                 }
             </div>
         </div>

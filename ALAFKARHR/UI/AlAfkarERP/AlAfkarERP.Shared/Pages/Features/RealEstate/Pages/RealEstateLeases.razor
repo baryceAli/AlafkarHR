@@ -18,18 +18,18 @@
         </Actions>
     </PageHeader>
 
-    <article class="erp-card mb-3">
-        <div class="erp-card-body">
+    <AppCard CssClass="mb-3 allow-overflow">
+
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-md-4"><label class="form-label">@Text("Search", "بحث")</label><input class="form-control" @bind="searchText" @bind:event="oninput" /></div>
                 <div class="col-12 col-md-3"><label class="form-label">@Text("Status", "الحالة")</label><select class="form-select" @bind="statusText"><option value="">@Text("All", "الكل")</option>@foreach (var status in Enum.GetValues<LeaseStatus>()) { <option value="@status">@status</option> }</select></div>
                 <div class="col-12 col-md-2"><button class="btn btn-outline-primary w-100" @onclick="LoadAsync"><i class="bi bi-search"></i> @Text("Filter", "تصفية")</button></div>
             </div>
-        </div>
-    </article>
 
-    <article class="erp-card">
-        <div class="erp-card-body">
+    </AppCard>
+
+    <AppCard CssClass="allow-overflow">
+
             @if (isLoading)
             {
                 <div class="text-muted">@Text("Loading leases...", "جاري تحميل العقود...")</div>
@@ -44,8 +44,8 @@
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table align-middle">
+                <div class="erp-table-wrap">
+                    <table class="table align-middle erp-table">
                         <thead><tr><th>@Text("Number", "الرقم")</th><th>@Text("Party", "الطرف")</th><th>@Text("Property", "العقار")</th><th>@Text("Unit", "الوحدة")</th><th>@Text("Rent", "الإيجار")</th><th>@Text("Contract", "العقد")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                         <tbody>
                             @foreach (var item in leases)
@@ -57,7 +57,7 @@
                                     <td>@item.UnitNumber</td>
                                     <td>@item.RentAmount.ToString("N2")</td>
                                     <td>@item.ContractNumber</td>
-                                    <td><span class="badge text-bg-secondary">@item.Status</span></td>
+                                    <td><StatusChip Text="@item.Status.ToString()" Tone="muted" /></td>
                                     <td class="text-end text-nowrap">
                                         <button class="btn btn-sm btn-outline-secondary" @onclick="@(() => NavigationManager.NavigateTo($"/RealEstate/Leases/{item.Id}"))"><i class="bi bi-eye"></i></button>
                                         @if (item.Status == LeaseStatus.Draft)
@@ -78,8 +78,8 @@
                     </table>
                 </div>
             }
-        </div>
-    </article>
+
+    </AppCard>
 </main>
 
 @code {
