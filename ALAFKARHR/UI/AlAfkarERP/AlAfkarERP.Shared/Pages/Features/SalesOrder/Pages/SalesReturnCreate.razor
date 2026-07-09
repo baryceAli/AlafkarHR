@@ -16,7 +16,7 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanCreate)
     {
         <div class="alert alert-warning">@Text("You don't have permission to register sales returns.", "You don't have permission to register sales returns.")</div>

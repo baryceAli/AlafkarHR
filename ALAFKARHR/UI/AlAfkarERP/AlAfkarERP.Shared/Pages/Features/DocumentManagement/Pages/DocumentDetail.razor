@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/DocumentManagement/View/{Id:guid}"
 @implements IDisposable
 
@@ -99,7 +99,7 @@
                                 @foreach (var version in document.Versions)
                                 {
                                     <tr>
-                                        <td><span class="badge bg-secondary">v@version.VersionNumber</span></td>
+                                    <td><StatusChip Text="@($"v{version.VersionNumber}")" Tone="muted" /></td>
                                         <td>
                                             <div>@version.OriginalFileName</div>
                                             <small class="text-muted">@FormatFileSize(version.FileSize)</small>

@@ -35,44 +35,44 @@
 @if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.View}"))
 {
     <div class="alert alert-warning">
-        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
+        <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©")</span>
     </div>
     return;
 }
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@SharedDataService.SelectViewLang("Products Management", "ادارة المنتجات")"
-                Subtitle="@SharedDataService.SelectViewLang("Maintain catalog products and open their SKU setup.", "إدارة منتجات الكتالوج وفتح إعدادات المنتجات المخزنية.")"
-                Overline="@SharedDataService.SelectViewLang("Catalog", "الكتالوج")"
+    <PageHeader Title="@SharedDataService.SelectViewLang("Products Management", "Ø§Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª")"
+                Subtitle="@SharedDataService.SelectViewLang("Maintain catalog products and open their SKU setup.", "Ø¥Ø¯Ø§Ø±Ø© Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬ ÙˆÙØªØ­ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø®Ø²Ù†ÙŠØ©.")"
+                Overline="@SharedDataService.SelectViewLang("Catalog", "Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬")"
                 Icon="bi-box">
         <Actions>
             <button class="btn btn-primary"
                     @onclick="CreateNew"
                     disabled=@(!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.ProductPermissions.Create}") ? true : false)>
-                <i class="bi bi-plus-lg"></i> @(SharedDataService.Language == "Ar" ? "إضافة جديد" : "Create New")
+                <i class="bi bi-plus-lg"></i> @(SharedDataService.Language == "Ar" ? "Ø¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙŠØ¯" : "Create New")
             </button>
         </Actions>
     </PageHeader>
 
-    <AppCard Title="@SharedDataService.SelectViewLang("Products", "المنتجات")"
-             Subtitle="@SharedDataService.SelectViewLang("Search, sort, edit, and manage product SKUs.", "ابحث ورتب وعدل وأدر المنتجات المخزنية.")"
+    <AppCard Title="@SharedDataService.SelectViewLang("Products", "Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª")"
+             Subtitle="@SharedDataService.SelectViewLang("Search, sort, edit, and manage product SKUs.", "Ø§Ø¨Ø­Ø« ÙˆØ±ØªØ¨ ÙˆØ¹Ø¯Ù„ ÙˆØ£Ø¯Ø± Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø®Ø²Ù†ÙŠØ©.")"
              CssClass="allow-overflow">
         <FilterBar CssClass="mb-3">
             <ChildContent>
             <div class="input-group erp-search-control">
                 <span class="input-group-text"><i class="bi bi-search"></i></span>
                 <input class="form-control"
-                       placeholder="@SharedDataService.SelectViewLang("Search products...", "ابحث في المنتجات...")"
+                       placeholder="@SharedDataService.SelectViewLang("Search products...", "Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª...")"
                        @bind="searchText" />
             </div>
             </ChildContent>
             <Actions>
                 <label class="form-check d-flex align-items-center gap-2 mb-0">
                     <input type="checkbox" class="form-check-input" checked="@includeInactive" @onchange="OnIncludeInactiveChanged" />
-                    <span class="form-check-label">@SharedDataService.SelectViewLang("Include inactive", "تضمين غير النشط")</span>
+                    <span class="form-check-label">@SharedDataService.SelectViewLang("Include inactive", "ØªØ¶Ù…ÙŠÙ† ØºÙŠØ± Ø§Ù„Ù†Ø´Ø·")</span>
                 </label>
                 <TableExportActions />
-                <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "حجم الصفحة")">
+                <select class="form-select" @onchange="OnPageSizeChanged" aria-label="@SharedDataService.SelectViewLang("Page size", "Ø­Ø¬Ù… Ø§Ù„ØµÙØ­Ø©")">
                     <option value="5">5</option>
                     <option value="10">10</option>
                     <option value="20">20</option>
@@ -84,15 +84,15 @@
 
     @if (!products.Any() && editingProductId is null)
     {
-        <EmptyState Title="@SharedDataService.SelectViewLang("No products yet", "لا توجد منتجات بعد")"
-                    Message="@SharedDataService.SelectViewLang("Create the first product to start building the catalog.", "أنشئ أول منتج لبدء بناء الكتالوج.")"
+        <EmptyState Title="@SharedDataService.SelectViewLang("No products yet", "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†ØªØ¬Ø§Øª Ø¨Ø¹Ø¯")"
+                    Message="@SharedDataService.SelectViewLang("Create the first product to start building the catalog.", "Ø£Ù†Ø´Ø¦ Ø£ÙˆÙ„ Ù…Ù†ØªØ¬ Ù„Ø¨Ø¯Ø¡ Ø¨Ù†Ø§Ø¡ Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬.")"
                     Icon="bi-box">
             <Actions>
                 @if (CanCreateProduct)
                 {
                     <button class="btn btn-primary" @onclick="CreateNew">
                         <i class="bi bi-plus-lg"></i>
-                        @SharedDataService.SelectViewLang("Create New", "إضافة جديد")
+                        @SharedDataService.SelectViewLang("Create New", "Ø¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙŠØ¯")
                     </button>
                 }
             </Actions>
@@ -100,8 +100,8 @@
     }
     else if (!ProcessedProducts.Any() && editingProductId is null)
     {
-        <EmptyState Title="@SharedDataService.SelectViewLang("No matching products", "لا توجد منتجات مطابقة")"
-                    Message="@SharedDataService.SelectViewLang("Try a different product, unit, or category search.", "جرب البحث عن منتج أو وحدة أو صنف مختلف.")"
+        <EmptyState Title="@SharedDataService.SelectViewLang("No matching products", "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†ØªØ¬Ø§Øª Ù…Ø·Ø§Ø¨Ù‚Ø©")"
+                    Message="@SharedDataService.SelectViewLang("Try a different product, unit, or category search.", "Ø¬Ø±Ø¨ Ø§Ù„Ø¨Ø­Ø« Ø¹Ù† Ù…Ù†ØªØ¬ Ø£Ùˆ ÙˆØ­Ø¯Ø© Ø£Ùˆ ØµÙ†Ù Ù…Ø®ØªÙ„Ù.")"
                     Icon="bi-search" />
     }
     else
@@ -112,15 +112,15 @@
             <tr>
                 <th @onclick="() => Sort(nameof(ProductDto.Name))">
                     <span class="@(sortAscending ? "bi bi-arrow-up" : "bi bi-arrow-down")"></span>
-                    @SharedDataService.SelectViewLang("Name", "الاسم")
+                    @SharedDataService.SelectViewLang("Name", "Ø§Ù„Ø§Ø³Ù…")
                 </th>
-                <th @onclick="() => Sort(nameof(ProductDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "الاسم بالانجليزية")</th>
-                <th @onclick="() => Sort(nameof(ProductDto.CategoryName))">@SharedDataService.SelectViewLang("category", "الصنف")</th>
-                <th>@SharedDataService.SelectViewLang("Type", "النوع")</th>
-                <th>@SharedDataService.SelectViewLang("Commercial", "تجاري")</th>
-                <th>@SharedDataService.SelectViewLang("Status", "الحالة")</th>
-                @* <th @onclick="() => Sort(nameof(ProductDto.UnitName))">@SharedDataService.SelectViewLang("Unit", "الوحدة")</th> *@
-                <th class="text-end">@SharedDataService.SelectViewLang("Actions", "الإجراءات")</th>
+                <th @onclick="() => Sort(nameof(ProductDto.NameEng))">@SharedDataService.SelectViewLang("NameEng", "Ø§Ù„Ø§Ø³Ù… Ø¨Ø§Ù„Ø§Ù†Ø¬Ù„ÙŠØ²ÙŠØ©")</th>
+                <th @onclick="() => Sort(nameof(ProductDto.CategoryName))">@SharedDataService.SelectViewLang("category", "Ø§Ù„ØµÙ†Ù")</th>
+                <th>@SharedDataService.SelectViewLang("Type", "Ø§Ù„Ù†ÙˆØ¹")</th>
+                <th>@SharedDataService.SelectViewLang("Commercial", "ØªØ¬Ø§Ø±ÙŠ")</th>
+                <th>@SharedDataService.SelectViewLang("Status", "Ø§Ù„Ø­Ø§Ù„Ø©")</th>
+                @* <th @onclick="() => Sort(nameof(ProductDto.UnitName))">@SharedDataService.SelectViewLang("Unit", "Ø§Ù„ÙˆØ­Ø¯Ø©")</th> *@
+                <th class="text-end">@SharedDataService.SelectViewLang("Actions", "Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª")</th>
             </tr>
         </thead>
         <tbody>
@@ -140,7 +140,7 @@
                                 <div class="erp-inline-editor">
 
                                     <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "الاسم")</label>
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name", "Ø§Ù„Ø§Ø³Ù…")</label>
                                         <div class="col-sm-10">
                                             <InputText class="form-control" @bind-Value="editingItem.Name" />
                                             <ValidationMessage For="() => editingItem.Name" />
@@ -148,7 +148,7 @@
                                     </div>
 
                                     <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "الاسم (انجليزي)")</label>
+                                        <label for="inputFirstName" class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Name (En)", "Ø§Ù„Ø§Ø³Ù… (Ø§Ù†Ø¬Ù„ÙŠØ²ÙŠ)")</label>
                                         <div class="col-sm-10">
                                             <InputText class="form-control" @bind-Value="editingItem.NameEng" />
                                             <ValidationMessage For="() => editingItem.NameEng" />
@@ -158,13 +158,13 @@
                                     <!--Category-->
                                     <div class="mb-3 row">
                                         <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("Category", "الصنف")
+                                            @SharedDataService.SelectViewLang("Category", "Ø§Ù„ØµÙ†Ù")
                                         </label>
                                         <div class="col-sm-10">
                                             <AutoCompleteComponent TItem="CategoryDto"
                                                                    Items="categories"
                                                                    ItemText="(p=> SharedDataService.SelectViewLang(p.NameEng,p.Name))"
-                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a category","ابحث عن صنف"))"
+                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a category","Ø§Ø¨Ø­Ø« Ø¹Ù† ØµÙ†Ù"))"
                                                                    Value="selectedCategory"
                                                                    ValueChanged="onCategorySelected" />
                                         </div>
@@ -172,7 +172,7 @@
                                     
                                     <div class="mb-3 row">
                                         <label class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("Product Type", "نوع المنتج")
+                                            @SharedDataService.SelectViewLang("Product Type", "Ù†ÙˆØ¹ Ø§Ù„Ù…Ù†ØªØ¬")
                                         </label>
                                         <div class="col-sm-10">
                                             <InputSelect TValue="CatalogProductType" class="form-select" @bind-Value="editingItem.ProductType">
@@ -185,26 +185,26 @@
                                     </div>
 
                                     <div class="erp-subpanel mb-3">
-                                        <div class="fw-semibold mb-3">@SharedDataService.SelectViewLang("Odoo Commercial Metadata", "بيانات أودو التجارية")</div>
+                                        <div class="fw-semibold mb-3">@SharedDataService.SelectViewLang("Odoo Commercial Metadata", "Ø¨ÙŠØ§Ù†Ø§Øª Ø£ÙˆØ¯Ùˆ Ø§Ù„ØªØ¬Ø§Ø±ÙŠØ©")</div>
                                         <div class="row g-3">
                                             <div class="col-md-6">
-                                                <label class="form-label">@SharedDataService.SelectViewLang("Sales Description", "وصف المبيعات")</label>
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Sales Description", "ÙˆØµÙ Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")</label>
                                                 <InputTextArea class="form-control" rows="2" @bind-Value="editingItem.SalesDescription" />
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label">@SharedDataService.SelectViewLang("Purchase Description", "وصف المشتريات")</label>
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Purchase Description", "ÙˆØµÙ Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª")</label>
                                                 <InputTextArea class="form-control" rows="2" @bind-Value="editingItem.PurchaseDescription" />
                                             </div>
                                             <div class="col-md-3">
-                                                <label class="form-label">@SharedDataService.SelectViewLang("Customer Tax %", "ضريبة العميل %")</label>
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Customer Tax %", "Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ø¹Ù…ÙŠÙ„ %")</label>
                                                 <InputNumber class="form-control" @bind-Value="editingItem.CustomerTaxRate" />
                                             </div>
                                             <div class="col-md-3">
-                                                <label class="form-label">@SharedDataService.SelectViewLang("Vendor Tax %", "ضريبة المورد %")</label>
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Vendor Tax %", "Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ù…ÙˆØ±Ø¯ %")</label>
                                                 <InputNumber class="form-control" @bind-Value="editingItem.VendorTaxRate" />
                                             </div>
                                             <div class="col-md-3">
-                                                <label class="form-label">@SharedDataService.SelectViewLang("Costing Policy", "سياسة التكلفة")</label>
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Costing Policy", "Ø³ÙŠØ§Ø³Ø© Ø§Ù„ØªÙƒÙ„ÙØ©")</label>
                                                 <InputSelect TValue="ProductCostingPolicy" class="form-select" @bind-Value="editingItem.CostingPolicy">
                                                     @foreach (var policy in Enum.GetValues<ProductCostingPolicy>())
                                                     {
@@ -213,18 +213,18 @@
                                                 </InputSelect>
                                             </div>
                                             <div class="col-md-3">
-                                                <label class="form-label">@SharedDataService.SelectViewLang("Image URL", "رابط الصورة")</label>
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Image URL", "Ø±Ø§Ø¨Ø· Ø§Ù„ØµÙˆØ±Ø©")</label>
                                                 <InputText class="form-control" @bind-Value="editingItem.ImageUrl" />
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label">@SharedDataService.SelectViewLang("Income Account Id", "معرف حساب الإيراد")</label>
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Income Account Id", "Ù…Ø¹Ø±Ù Ø­Ø³Ø§Ø¨ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯")</label>
                                                 <input class="form-control"
                                                        value="@FormatGuid(editingItem.IncomeAccountId)"
                                                        @onchange="args => editingItem.IncomeAccountId = ParseNullableGuid(args.Value?.ToString())"
                                                        placeholder="00000000-0000-0000-0000-000000000000" />
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label">@SharedDataService.SelectViewLang("Expense Account Id", "معرف حساب المصروف")</label>
+                                                <label class="form-label">@SharedDataService.SelectViewLang("Expense Account Id", "Ù…Ø¹Ø±Ù Ø­Ø³Ø§Ø¨ Ø§Ù„Ù…ØµØ±ÙˆÙ")</label>
                                                 <input class="form-control"
                                                        value="@FormatGuid(editingItem.ExpenseAccountId)"
                                                        @onchange="args => editingItem.ExpenseAccountId = ParseNullableGuid(args.Value?.ToString())"
@@ -234,51 +234,20 @@
                                     </div>
 
                                     <div class="mb-3 row">
-                                        <label class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Status", "الحالة")</label>
+                                        <label class="col-sm-2 col-form-label">@SharedDataService.SelectViewLang("Status", "Ø§Ù„Ø­Ø§Ù„Ø©")</label>
                                         <div class="col-sm-10">
                                             <label class="form-check d-flex align-items-center gap-2">
                                                 <InputCheckbox class="form-check-input" @bind-Value="editingItem.IsActive" />
-                                                <span class="form-check-label">@SharedDataService.SelectViewLang("Active", "نشط")</span>
+                                                <span class="form-check-label">@SharedDataService.SelectViewLang("Active", "Ù†Ø´Ø·")</span>
                                             </label>
                                         </div>
                                     </div>
 
-                                    <!--SKU-->
-                                    @* <div class="mb-3 row">
-                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                            @SharedDataService.SelectViewLang("SKU", "المنتج المخزني")
-                                        </label>
-                                        <div class="col-sm-10">
-
-                                            <div class="card">
-                                                <div class="card-body">
-                                            
-                                                    <!--Unit-->
-                                                    <div class="mb-3 row">
-                                                        <label for="inputFirstName" class="col-sm-2 col-form-label">
-                                                            @SharedDataService.SelectViewLang("Unit", "الوحدة")
-                                                        </label>
-                                                        <div class="col-sm-10">
-                                                            <AutoCompleteComponent TItem="UnitDto"
-                                                                                   Items="units"
-                                                                                   ItemText="(u=> SharedDataService.SelectViewLang(u.UnitNameEng,u.UnitName))"
-                                                                                   PlaceHolder="@(SharedDataService.SelectViewLang("search a unit","ابحث عن وحدة"))"
-                                                                                   Value="selectedUnit"
-                                                                                   ValueChanged="onUnitSelected" />
-                                                        </div>
-                                                    </div>
-
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                    </div> *@
-
                                     
                                             
                                     <div class="erp-form-actions">
-                                        <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "حفظ")</button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit"><i class="bi bi-x-lg"></i> @SharedDataService.SelectViewLang("Cancel", "إلغاء")</button>
+                                        <button type="submit" class="btn btn-success btn-sm"><i class="bi bi-check-lg"></i> @SharedDataService.SelectViewLang("Save", "Ø­ÙØ¸")</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CancelEdit"><i class="bi bi-x-lg"></i> @SharedDataService.SelectViewLang("Cancel", "Ø¥Ù„ØºØ§Ø¡")</button>
                                     </div>
                                 </div>
                             </EditForm>
@@ -298,7 +267,7 @@
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <img src="@GetProductImageSource(product)"
-                                 alt="@SharedDataService.SelectViewLang("Product image", "صورة المنتج")"
+                                 alt="@SharedDataService.SelectViewLang("Product image", "ØµÙˆØ±Ø© Ø§Ù„Ù…Ù†ØªØ¬")"
                                  class="erp-sku-image" />
                             <span>@product.Name</span>
                         </div>
@@ -306,36 +275,36 @@
                             @{
                                 var links = GetProductLinks(product.Id);
                             }
-                            <SmartButton Label="@SharedDataService.SelectViewLang("SKUs", "وحدات")"
+                            <SmartButton Label="@SharedDataService.SelectViewLang("SKUs", "ÙˆØ­Ø¯Ø§Øª")"
                                          Icon="bi-upc-scan"
                                          Count="@links.Skus"
                                          Visible="@HasPermission(PermissionList.ProductPermissions.View)"
                                          OnClick="@(() => NavigateProductLink($"/Catalog/Product/{product.Id}/ProductSku"))" />
-                            <SmartButton Label="@SharedDataService.SelectViewLang("Vendor Prices", "أسعار الموردين")"
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Vendor Prices", "Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ù…ÙˆØ±Ø¯ÙŠÙ†")"
                                          Icon="bi-tags"
                                          Count="@links.VendorPricelists"
                                          Visible="@HasPermission(PermissionList.PurchaseOrderPermissions.View)"
                                          OnClick="@(() => NavigateProductLink($"/Procurement/VendorPricelists?productId={product.Id}"))" />
-                            <SmartButton Label="@SharedDataService.SelectViewLang("Rules", "قواعد")"
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Rules", "Ù‚ÙˆØ§Ø¹Ø¯")"
                                          Icon="bi-arrow-repeat"
                                          Count="@links.ReorderingRules"
                                          Visible="@HasPermission(PermissionList.PurchaseRequestPermissions.View)"
                                          OnClick="@(() => NavigateProductLink($"/Procurement/ReorderingRules?productId={product.Id}"))" />
-                            <SmartButton Label="@SharedDataService.SelectViewLang("Sales", "مبيعات")"
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Sales", "Ù…Ø¨ÙŠØ¹Ø§Øª")"
                                          Icon="bi-receipt"
                                          Count="@links.SalesLines"
                                          Visible="@HasPermission(PermissionList.SalesOrderPermissions.View)"
                                          OnClick="@(() => NavigateProductLink($"/Sales/Orders?productId={product.Id}"))" />
-                            <SmartButton Label="@SharedDataService.SelectViewLang("Purchases", "مشتريات")"
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Purchases", "Ù…Ø´ØªØ±ÙŠØ§Øª")"
                                          Icon="bi-cart-check"
                                          Count="@links.PurchaseLines"
                                          Visible="@HasPermission(PermissionList.PurchaseOrderPermissions.View)"
                                          OnClick="@(() => NavigateProductLink($"/Procurement/purchase-orders?productId={product.Id}"))" />
-                            <SmartButton Label="@SharedDataService.SelectViewLang("Inventory", "المخزون")"
+                            <SmartButton Label="@SharedDataService.SelectViewLang("Inventory", "Ø§Ù„Ù…Ø®Ø²ÙˆÙ†")"
                                          Icon="bi-boxes"
                                          Count="@links.InventoryRecords"
                                          Disabled="true"
-                                         Title="@SharedDataService.SelectViewLang("Inventory drill-down is not available yet.", "التنقل إلى المخزون غير متاح حالياً.")" />
+                                         Title="@SharedDataService.SelectViewLang("Inventory drill-down is not available yet.", "Ø§Ù„ØªÙ†Ù‚Ù„ Ø¥Ù„Ù‰ Ø§Ù„Ù…Ø®Ø²ÙˆÙ† ØºÙŠØ± Ù…ØªØ§Ø­ Ø­Ø§Ù„ÙŠØ§Ù‹.")" />
                         </div>
                     </td>
                     <td>@product.NameEng</td>
@@ -344,8 +313,8 @@
                     <td>
                         <div class="erp-chip-row">
                             <StatusChip Tone="muted" Text="@GetCostingPolicyLabel(product.CostingPolicy)" />
-                            <StatusChip Tone="info" Text="@($"{SharedDataService.SelectViewLang("Sales Tax", "ضريبة بيع")} {product.CustomerTaxRate:N2}%")" />
-                            <StatusChip Tone="warning" Text="@($"{SharedDataService.SelectViewLang("Purchase Tax", "ضريبة شراء")} {product.VendorTaxRate:N2}%")" />
+                            <StatusChip Tone="info" Text="@($"{SharedDataService.SelectViewLang("Sales Tax", "Ø¶Ø±ÙŠØ¨Ø© Ø¨ÙŠØ¹")} {product.CustomerTaxRate:N2}%")" />
+                            <StatusChip Tone="warning" Text="@($"{SharedDataService.SelectViewLang("Purchase Tax", "Ø¶Ø±ÙŠØ¨Ø© Ø´Ø±Ø§Ø¡")} {product.VendorTaxRate:N2}%")" />
                         </div>
                     </td>
                     <td><StatusChip Tone="@GetActiveTone(product.IsActive)" Text="@GetActiveLabel(product.IsActive)" /></td>
@@ -380,15 +349,15 @@
         <button class="btn btn-sm btn-secondary"
                 @onclick="PrevPage"
                 disabled="@(pageIndex == 0)">
-            @SharedDataService.SelectViewLang("Previous", "السابق")
+            @SharedDataService.SelectViewLang("Previous", "Ø§Ù„Ø³Ø§Ø¨Ù‚")
         </button>
 
-        <span class="text-muted">@SharedDataService.SelectViewLang("Page", "صفحة") @(pageIndex + 1) @SharedDataService.SelectViewLang("of", "من") @TotalPages</span>
+        <span class="text-muted">@SharedDataService.SelectViewLang("Page", "ØµÙØ­Ø©") @(pageIndex + 1) @SharedDataService.SelectViewLang("of", "Ù…Ù†") @TotalPages</span>
 
         <button class="btn btn-sm btn-secondary"
                 @onclick="NextPage"
                 disabled="@(pageIndex >= TotalPages)">
-            @SharedDataService.SelectViewLang("Next", "التالي")
+            @SharedDataService.SelectViewLang("Next", "Ø§Ù„ØªØ§Ù„ÙŠ")
         </button>
 
     </div>
@@ -476,9 +445,9 @@
         {
             await ModalService.ShowAsync(new ModalOptions
             {
-                Title = SharedDataService.SelectViewLang("Create Product", "إنشاء منتج"),
+                Title = SharedDataService.SelectViewLang("Create Product", "Ø¥Ù†Ø´Ø§Ø¡ Ù…Ù†ØªØ¬"),
                 IsError = true,
-                Message = SharedDataService.SelectViewLang("Please select product's category and unit", "يرجى اختيار الصنف والوحدة"),
+                Message = SharedDataService.SelectViewLang("Please select product's category and unit", "ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„ØµÙ†Ù ÙˆØ§Ù„ÙˆØ­Ø¯Ø©"),
                 OnOk = async () => { }
             });
             LoadingService.Hide();
@@ -499,7 +468,7 @@
                 //show success
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Product has been created successfully", "تم إنشاء المنتج بنجاح"),
+                    Message = SharedDataService.SelectViewLang("Product has been created successfully", "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…Ù†ØªØ¬ Ø¨Ù†Ø¬Ø§Ø­"),
                     Type = "success"
                 });
             }
@@ -508,7 +477,7 @@
                 // how fail
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "Ø­Ø¯Ø« Ø®Ø·Ø£ØŒ Ø§Ù„Ø±Ø¬Ø§Ø¡ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰"),
                     Type = "error"
                 });
             }
@@ -523,7 +492,7 @@
                 //show success
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Product has been Edited successfully", "تم تعديل المنتج بنجاح"),
+                    Message = SharedDataService.SelectViewLang("Product has been Edited successfully", "ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬ Ø¨Ù†Ø¬Ø§Ø­"),
                     Type = "success"
                 });
             }
@@ -532,7 +501,7 @@
                 // show  fail
                 ToastService.Show(new ToastMessage
                 {
-                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "حدث خطأ، الرجاء المحاولة مرة أخرى"),
+                    Message = SharedDataService.SelectViewLang("Error has occured, please try again later", "Ø­Ø¯Ø« Ø®Ø·Ø£ØŒ Ø§Ù„Ø±Ø¬Ø§Ø¡ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰"),
                     Type = "error"
                 });
             }
@@ -551,12 +520,12 @@
         LoadingService.Show();
         await ModalService.ShowAsync(new ModalOptions
         {
-            Title = SharedDataService.SelectViewLang("Confirm Delete", "تأكيد عملية الحذف"),
+            Title = SharedDataService.SelectViewLang("Confirm Delete", "ØªØ£ÙƒÙŠØ¯ Ø¹Ù…Ù„ÙŠØ© Ø§Ù„Ø­Ø°Ù"),
             Message = SharedDataService.SelectViewLang($"Are you sure you want to delete this Product: {product.NameEng}?",
-            $"هل ترغب فعلا في حذف المنتج: {product.Name}؟"),
+            $"Ù‡Ù„ ØªØ±ØºØ¨ ÙØ¹Ù„Ø§ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ù…Ù†ØªØ¬: {product.Name}ØŸ"),
             ShowCancel = true,
-            OkText = SharedDataService.SelectViewLang("Yes", "نعم"),
-            CancelText = SharedDataService.SelectViewLang("No", "لا"),
+            OkText = SharedDataService.SelectViewLang("Yes", "Ù†Ø¹Ù…"),
+            CancelText = SharedDataService.SelectViewLang("No", "Ù„Ø§"),
 
             OnOk = async () =>
             {
@@ -566,7 +535,7 @@
 
                     ToastService.Show(new ToastMessage
                     {
-                        Message = SharedDataService.SelectViewLang("Deleted successfully", "تم الحذف بنجاح"),
+                        Message = SharedDataService.SelectViewLang("Deleted successfully", "ØªÙ… Ø§Ù„Ø­Ø°Ù Ø¨Ù†Ø¬Ø§Ø­"),
                         Type = "success"
                     });
 
@@ -578,7 +547,7 @@
                 {
                     ToastService.Show(new ToastMessage
                     {
-                        Message = SharedDataService.SelectViewLang("Fail to delete the Product", "فشلت عملية الحذف"),
+                        Message = SharedDataService.SelectViewLang("Fail to delete the Product", "ÙØ´Ù„Øª Ø¹Ù…Ù„ÙŠØ© Ø§Ù„Ø­Ø°Ù"),
                         Type = "error"
                     });
                 }
@@ -599,7 +568,7 @@
 
         if (item != null && item.Id != Guid.Empty)
         {
-            // existing record → keep it
+            // existing record â†’ keep it
             await LoadProduct();
             // var brRes = await ProductService.GetByCompanyAsync(companyId, 0, 1000);
             // if (brRes.IsSuccess)
@@ -609,7 +578,7 @@
         }
         else
         {
-            // new record → remove it
+            // new record â†’ remove it
             products.Remove(item);
         }
         isEdit = false;
@@ -714,11 +683,11 @@
     }
     private string GetActiveTone(bool isActive) => isActive ? "success" : "muted";
     private string GetActiveLabel(bool isActive) => isActive
-        ? SharedDataService.SelectViewLang("Active", "نشط")
-        : SharedDataService.SelectViewLang("Inactive", "غير نشط");
+        ? SharedDataService.SelectViewLang("Active", "Ù†Ø´Ø·")
+        : SharedDataService.SelectViewLang("Inactive", "ØºÙŠØ± Ù†Ø´Ø·");
     private IEnumerable<ProductDto> ProcessedProducts =>
     products
-        // 🔍 Search
+        // ðŸ” Search
         .Where(b =>
             string.IsNullOrWhiteSpace(searchText) ||
             (b.Name?.Contains(searchText, StringComparison.OrdinalIgnoreCase) ?? false) ||
@@ -729,15 +698,15 @@
 
         )
 
-        // 🎯 Filter
+        // ðŸŽ¯ Filter
         // .Where(b =>
         //     filterMainBranch == null || b.IsMainBranch == filterMainBranch
         // )
 
-        // 🔃 Sorting
+        // ðŸ”ƒ Sorting
         .OrderByDynamic(sortColumn, sortAscending);
 
-    // 📄 Pagination
+    // ðŸ“„ Pagination
     // .Skip((pageIndex) * pageSize)
     // .Take(pageSize);
 
@@ -797,17 +766,17 @@
     {
         return productType switch
         {
-            CatalogProductType.Service => SharedDataService.SelectViewLang("Service", "خدمة"),
-            CatalogProductType.Combo => SharedDataService.SelectViewLang("Combo", "مركب"),
-            _ => SharedDataService.SelectViewLang("Goods", "بضائع")
+            CatalogProductType.Service => SharedDataService.SelectViewLang("Service", "Ø®Ø¯Ù…Ø©"),
+            CatalogProductType.Combo => SharedDataService.SelectViewLang("Combo", "Ù…Ø±ÙƒØ¨"),
+            _ => SharedDataService.SelectViewLang("Goods", "Ø¨Ø¶Ø§Ø¦Ø¹")
         };
     }
 
     private string GetCostingPolicyLabel(ProductCostingPolicy policy) => policy switch
     {
-        ProductCostingPolicy.Average => SharedDataService.SelectViewLang("Average Cost", "متوسط التكلفة"),
-        ProductCostingPolicy.Fifo => SharedDataService.SelectViewLang("FIFO", "الوارد أولا صادر أولا"),
-        _ => SharedDataService.SelectViewLang("Standard Cost", "تكلفة معيارية")
+        ProductCostingPolicy.Average => SharedDataService.SelectViewLang("Average Cost", "Ù…ØªÙˆØ³Ø· Ø§Ù„ØªÙƒÙ„ÙØ©"),
+        ProductCostingPolicy.Fifo => SharedDataService.SelectViewLang("FIFO", "Ø§Ù„ÙˆØ§Ø±Ø¯ Ø£ÙˆÙ„Ø§ ØµØ§Ø¯Ø± Ø£ÙˆÙ„Ø§"),
+        _ => SharedDataService.SelectViewLang("Standard Cost", "ØªÙƒÙ„ÙØ© Ù…Ø¹ÙŠØ§Ø±ÙŠØ©")
     };
 
     private string GetProductImageSource(ProductDto product)

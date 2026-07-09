@@ -126,7 +126,7 @@
                     <td>
                         @foreach (var item in row.Contract.Items)
                         {
-                            <span class="badge text-bg-light me-1">@ComponentName(item.ComponentId): @item.Value.ToString("N2")</span>
+                            <span class="erp-status-chip erp-status-chip-muted me-1">@ComponentName(item.ComponentId): @item.Value.ToString("N2")</span>
                         }
                     </td>
                     <td class="text-end">@row.TotalSalary.ToString("N2")</td>

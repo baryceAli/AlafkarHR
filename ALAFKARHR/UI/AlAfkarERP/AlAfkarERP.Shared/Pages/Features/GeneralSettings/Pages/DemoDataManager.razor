@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/GeneralSettings/DemoData"
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Reuable2
@@ -74,7 +74,7 @@
                 }
                 else
                 {
-                    <div class="table-responsive">
+                    <div class="erp-table-wrap">
                         <table class="table erp-table align-middle mb-0">
                             <thead>
                                 <tr>
@@ -102,7 +102,7 @@
                                         <td class="text-center">@demo.EmployeeCount</td>
                                         <td class="text-center">@demo.TaskCount</td>
                                         <td class="text-center">@demo.AccountingDocumentCount / @demo.JournalEntryCount</td>
-                                        <td><span class="demo-badge @(demo.DestructiveActionsAllowed ? "is-ok" : "is-guarded")">@(demo.DestructiveActionsAllowed ? Text("Managed", "مدارة") : Text("Guarded", "محمية"))</span></td>
+                                        <td><StatusChip Text='@(demo.DestructiveActionsAllowed ? Text("Managed", "مدارة") : Text("Guarded", "محمية"))' Tone='@(demo.DestructiveActionsAllowed ? "success" : "warning")' /></td>
                                         <td><div class="demo-row-actions"><button class="btn btn-sm btn-outline-secondary" @onclick="@(() => OpenConfirmation("reset", demo))" disabled="@(!CanReset || isBusy || !demo.DestructiveActionsAllowed)"><i class="bi bi-arrow-repeat"></i> @Text("Reset", "إعادة ضبط")</button><button class="btn btn-sm btn-outline-secondary" @onclick="@(() => OpenConfirmation("password", demo))" disabled="@(!CanResetAdminPassword || isBusy || !demo.DestructiveActionsAllowed)"><i class="bi bi-key"></i> @Text("Admin Password", "كلمة مرور المدير")</button><button class="btn btn-sm btn-outline-danger" @onclick="@(() => OpenConfirmation("delete", demo))" disabled="@(!CanDelete || isBusy || !demo.DestructiveActionsAllowed)"><i class="bi bi-trash3"></i> @Text("Delete", "حذف")</button></div></td>
                                     </tr>
                                 }
@@ -295,9 +295,6 @@
     .demo-stat-value { font-size: var(--erp-font-size-lg); font-weight: 700; }
     .demo-empty { align-items: center; border: 1px dashed var(--erp-border); border-radius: var(--erp-radius-lg); color: var(--erp-text-muted); display: flex; gap: var(--erp-space-3); padding: var(--erp-space-4); }
     .demo-empty > i { color: var(--erp-primary); font-size: var(--erp-font-size-2xl); }
-    .demo-badge { border-radius: var(--erp-radius-pill); display: inline-flex; font-size: var(--erp-font-size-xs); font-weight: 700; padding: var(--erp-space-1) var(--erp-space-2); }
-    .demo-badge.is-ok { background: var(--erp-success-soft); color: var(--erp-success); }
-    .demo-badge.is-guarded { background: var(--erp-warning-soft); color: var(--erp-warning); }
     .demo-row-actions { display: flex; flex-wrap: wrap; gap: var(--erp-space-2); justify-content: flex-end; }
     .demo-modal-backdrop { align-items: center; background: color-mix(in srgb, var(--erp-color-inverse-surface) 45%, transparent); display: flex; inset: 0; justify-content: center; padding: var(--erp-space-4); position: fixed; z-index: 1050; }
     .demo-modal { background: var(--erp-surface-level-2); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-xl); box-shadow: var(--erp-shadow-lg); inline-size: min(100%, 640px); }

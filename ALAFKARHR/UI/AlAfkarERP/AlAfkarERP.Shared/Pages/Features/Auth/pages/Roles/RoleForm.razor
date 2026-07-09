@@ -1,6 +1,7 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/Auth/Role/Form"
 @page "/Auth/Role/Form/{RoleName}"
+@implements IDisposable
 @using AlAfkarERP.Shared.Pages.Features.Auth.Layout
 @using AlAfkarERP.Shared.Pages.Features.Auth.Services
 
@@ -22,92 +23,91 @@
 
 @if (AuthState != null && !AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.Create))
 {
-    <div class="alert alert-warning">
+    <div class="alert alert-warning" dir="@SharedDataService.PageDirection">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page.", "ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
     </div>
     return;
 
 }
 
-<h3 class="text-black" dir="@SharedDataService.PageDirection">@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")</h3>
-<EditForm Model="roleDto" OnValidSubmit="ApplyChanges" dir="@SharedDataService.PageDirection">
-    <DataAnnotationsValidator />
-    @* <ValidationSummary/> *@
-    <div class="mb-3 row">
-        <label for="inputFirstName" class="col-sm-2 col-form-label text-black">@SharedDataService.SelectViewLang("Role Name", "اسم الصلاحية")</label>
-        <div class="col-sm-10">
-            <div class="row">
-                <div class="col-8">
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title='@SharedDataService.SelectViewLang("Roles Management", "إدارة الصلاحيات")'
+                Subtitle='@SharedDataService.SelectViewLang("Configure the role display name and permission matrix.", "تكوين اسم الدور ومصفوفة الصلاحيات.")'
+                Overline='@SharedDataService.SelectViewLang("Auth", "الصلاحيات")'
+                Icon="bi-shield-check" />
 
-                    <InputText class="form-control" @bind-Value="roleDto.DisplayName" />
+    <EditForm Model="roleDto" OnValidSubmit="ApplyChanges">
+        <DataAnnotationsValidator />
+        @* <ValidationSummary/> *@
+        <AppCard Title='@SharedDataService.SelectViewLang("Role details", "بيانات الدور")' CssClass="mb-3">
+            <div class="row g-3 align-items-end">
+                <div class="col-12 col-lg-8">
+                    <label for="inputFirstName" class="form-label">@SharedDataService.SelectViewLang("Role Name", "اسم الصلاحية")</label>
+                    <InputText id="inputFirstName" class="form-control" @bind-Value="roleDto.DisplayName" />
                     <ValidationMessage For="() => roleDto.DisplayName" />
                 </div>
-                <div class="col-4">
-
-                    <button type="submit" class="col-6 btn btn-primary">@SharedDataService.SelectViewLang("Apply Change", "حفظ التعديلات")</button>
+                <div class="col-12 col-lg-4 d-flex justify-content-lg-end">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check2-circle"></i>
+                        @SharedDataService.SelectViewLang("Apply Change", "حفظ التعديلات")
+                    </button>
                 </div>
             </div>
-                                            
-        </div>
-    </div>
+        </AppCard>
 
-    @foreach (var group in PermissionList.GetGroupedPermissions(PermissionList.GetAll()))
-    @* @foreach (var group in PermissionList.GetGroupedPermissions(roleDto.Permissions)) *@
-    {
-        <div class="card mb-3" dir="ltr">
-            <div class="card-header">
-                <div class="row">
-                    <div class="col-12">
-                        Group: @group.Group
-                    </div>
-                    @* <div class="col-6"></div> *@
+        @foreach (var group in PermissionList.GetGroupedPermissions(PermissionList.GetAll()))
+        @* @foreach (var group in PermissionList.GetGroupedPermissions(roleDto.Permissions)) *@
+        {
+            <AppCard Title='@($"{SharedDataService.SelectViewLang("Group", "المجموعة")}: {group.Group}")' CssClass="mb-3" BodyClass="p-0">
+                <div class="erp-table-wrap" dir="ltr">
+                    <table class="table erp-table align-middle mb-0">
+                        <tbody>
+                            @{
+                                bool index = true;
+                            }
+                            @foreach (var entity in group.Entities)
+                            {
+                                index = !index;
+                                @* ENTITY AND POLICIES  *@
+                                <tr>
+                                    <td class="fw-semibold">@entity.Entity</td>
+                                    @if (SelectedPermissions.Any())
+                                    {
+                                        @* <div class=@( index==true ? "col-7 bg-dark-subtle" : "col-7")> *@
+                                        <td>
+                                            <div class="d-flex flex-wrap gap-3">
+                                                @foreach (var action in entity.Actions)
+                                                {
+                                                    var permission = $"{group.Group}.{entity.Entity}.{action}";
+
+                                                    <label class="form-check-label d-inline-flex align-items-center gap-2">
+                                                        <InputCheckbox class="form-check-input m-0"
+                                                                       @bind-Value="SelectedPermissions[permission]"
+                                                                       @onclick="() => OnCheckBoxClicked(permission)" />
+                                                        @action
+                                                    </label>
+                                                    @* @onclick="() => { SelectedPermissions[permission] = !SelectedPermissions[permission]; }" /> *@
+                                                }
+                                            </div>
+                                        </td>
+                                        @* index = index + 1; *@
+                                    }
+                                    else
+                                    {
+                                        <td></td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-            <div class="card-body">
-                <div class="row mb-3">
-                    @* <div class="col-sm-1 col-3 fw-bold">
-                    </div> *@
-
-                    <div class="col-sm-12 col-12">
-                        @{
-                            bool index = true;
-                        }
-                        @foreach (var entity in group.Entities)
-                        {
-                            index = !index;
-                            @* ENTITY AND POLICIES  *@
-                            <div class="row mb-2">
-                                <div class="col-5">
-                                    @entity.Entity
-                                </div>
-                                @if (SelectedPermissions.Any())
-                                {
-                                    @* <div class=@( index==true ? "col-7 bg-dark-subtle" : "col-7")> *@
-                                    <div class=@( index==true ? "col-7" : "col-7")>
-                                        @foreach (var action in entity.Actions)
-                                        {
-                                            var permission = $"{group.Group}.{entity.Entity}.{action}";
-
-                                            <label class="mx-2">
-                                                <InputCheckbox @bind-Value="SelectedPermissions[permission]"
-                                                               @onclick="() => OnCheckBoxClicked(permission)" />
-                                                @action
-                                            </label>
-                                            @* @onclick="() => { SelectedPermissions[permission] = !SelectedPermissions[permission]; }" /> *@
-                                        }
-                                    </div>
-                                    @* index = index + 1; *@
-                                }
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
+            </AppCard>
+        }
 
 
-</EditForm>
+    </EditForm>
+</div>
+
 @code {
 
     [Parameter]

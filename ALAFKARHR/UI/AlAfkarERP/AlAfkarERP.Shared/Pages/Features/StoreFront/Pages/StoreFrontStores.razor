@@ -1,4 +1,4 @@
-﻿@layout AdminLayout
+@layout AdminLayout
 @page "/StoreFront/Stores"
 @implements IDisposable
 
@@ -39,7 +39,7 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section dir="@SharedDataService.PageDirection">
+<section class="erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanAccessStoresPage)
     {
         <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك صلاحية لعرض هذه الصفحة")</div>
@@ -91,8 +91,8 @@
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
+                <div class="erp-table-wrap">
+                    <table class="table erp-table align-middle mb-0">
                         <thead><tr><th>@Text("Type", "النوع")</th><th>@Text("Code", "الرمز")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                         <tbody>
                             @foreach (var type in types)
@@ -136,8 +136,8 @@
         }
         else
         {
-            <div class="table-responsive">
-                <table class="table align-middle">
+            <div class="erp-table-wrap">
+                <table class="table erp-table align-middle">
                     <thead><tr><th>@Text("Store", "المتجر")</th><th>@Text("Manager", "المدير")</th><th>@Text("Type", "النوع")</th><th>@Text("Branch", "الفرع")</th><th>@Text("Warehouse", "المستودع")</th><th>@Text("Customer", "العميل")</th><th>@Text("Price List", "قائمة الأسعار")</th><th>@Text("Items", "الأصناف")</th><th>@Text("Readiness", "الجاهزية")</th><th>@Text("Status", "الحالة")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                     <tbody>
                         @foreach (var store in stores)
@@ -170,7 +170,7 @@
                                     <div class="d-flex flex-column gap-1">
                                         @foreach (var check in ReadinessChecks(store))
                                         {
-                                            <span class="badge text-bg-@(check.IsReady ? "success" : "warning")">@check.Label</span>
+                                            <StatusChip Text="@check.Label" Tone='@(check.IsReady ? "success" : "warning")' />
                                         }
                                     </div>
                                 </td>
@@ -288,7 +288,7 @@
 
 @if (showItemsModal && selectedStore is not null)
 {
-    <div class="modal fade show d-block" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">@Text("Sellable Items", "الأصناف القابلة للبيع")</h5><button type="button" class="btn-close" @onclick="CloseModals"></button></div><div class="modal-body"><div class="table-responsive"><table class="table align-middle"><thead><tr><th>@Text("Sell", "بيع")</th><th>@Text("SKU", "الصنف")</th><th>@Text("Manual Price", "سعر يدوي")</th><th>@Text("Require Note", "يتطلب ملاحظة")</th><th>@Text("Min", "الحد الأدنى")</th><th>@Text("Max", "الحد الأعلى")</th><th>@Text("Order", "الترتيب")</th></tr></thead><tbody>@foreach (var sku in allSkus){var item = ItemFor(sku);<tr><td><input type="checkbox" checked="@item.IsActive" disabled="@(!CanEditItems)" @onchange="args => ToggleSku(sku, args)" /></td><td><div class="fw-semibold">@Text(sku.NameEng, sku.Name)</div><div class="text-muted small">@sku.SkuCode</div></td><td><input type="checkbox" checked="@item.AllowManualPrice" disabled="@(!CanEditItems)" @onchange="args => ToggleManualPrice(item, args)" /></td><td><input type="checkbox" checked="@item.RequireManualPriceNote" disabled="@(!CanEditItems || !item.AllowManualPrice)" @onchange="args => item.RequireManualPriceNote = IsChecked(args)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.MinimumManualPrice" disabled="@(!CanEditItems || !item.AllowManualPrice)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.MaximumManualPrice" disabled="@(!CanEditItems || !item.AllowManualPrice)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.DisplayOrder" disabled="@(!CanEditItems)" /></td></tr>}</tbody></table></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" @onclick="CloseModals">@Text("Cancel", "إلغاء")</button>@if (CanEditItems){<button type="button" class="btn btn-primary" @onclick="SaveItemsAsync">@Text("Save Items", "حفظ الأصناف")</button>}</div></div></div></div><div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1"><div class="modal-dialog modal-xl modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">@Text("Sellable Items", "الأصناف القابلة للبيع")</h5><button type="button" class="btn-close" @onclick="CloseModals"></button></div><div class="modal-body"><div class="erp-table-wrap"><table class="table erp-table align-middle"><thead><tr><th>@Text("Sell", "بيع")</th><th>@Text("SKU", "الصنف")</th><th>@Text("Manual Price", "سعر يدوي")</th><th>@Text("Require Note", "يتطلب ملاحظة")</th><th>@Text("Min", "الحد الأدنى")</th><th>@Text("Max", "الحد الأعلى")</th><th>@Text("Order", "الترتيب")</th></tr></thead><tbody>@foreach (var sku in allSkus){var item = ItemFor(sku);<tr><td><input type="checkbox" checked="@item.IsActive" disabled="@(!CanEditItems)" @onchange="args => ToggleSku(sku, args)" /></td><td><div class="fw-semibold">@Text(sku.NameEng, sku.Name)</div><div class="text-muted small">@sku.SkuCode</div></td><td><input type="checkbox" checked="@item.AllowManualPrice" disabled="@(!CanEditItems)" @onchange="args => ToggleManualPrice(item, args)" /></td><td><input type="checkbox" checked="@item.RequireManualPriceNote" disabled="@(!CanEditItems || !item.AllowManualPrice)" @onchange="args => item.RequireManualPriceNote = IsChecked(args)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.MinimumManualPrice" disabled="@(!CanEditItems || !item.AllowManualPrice)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.MaximumManualPrice" disabled="@(!CanEditItems || !item.AllowManualPrice)" /></td><td><InputNumber class="form-control form-control-sm" @bind-Value="item.DisplayOrder" disabled="@(!CanEditItems)" /></td></tr>}</tbody></table></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" @onclick="CloseModals">@Text("Cancel", "إلغاء")</button>@if (CanEditItems){<button type="button" class="btn btn-primary" @onclick="SaveItemsAsync">@Text("Save Items", "حفظ الأصناف")</button>}</div></div></div></div><div class="modal-backdrop fade show"></div>
 }
 
 @if (showRolesModal && selectedStore is not null)
@@ -306,7 +306,7 @@
                             <div class="fw-semibold">@Text(selectedStore.NameEng, selectedStore.Name)</div>
                             <div class="text-muted small">@Text("Store branch", "فرع المتجر"): @BranchName(selectedStore.BranchId)</div>
                         </div>
-                        <span class="badge text-bg-secondary">@storeRoleAssignments.Count @Text("roles", "صلاحيات")</span>
+                        <StatusChip Text='@($"{storeRoleAssignments.Count} {Text("roles", "صلاحيات")}")' Tone="muted" />
                     </div>
 
                     <div class="row g-2 align-items-end mb-3">
@@ -347,8 +347,8 @@
                     }
                     else
                     {
-                        <div class="table-responsive">
-                            <table class="table align-middle mb-0">
+                        <div class="erp-table-wrap">
+                            <table class="table erp-table align-middle mb-0">
                                 <thead><tr><th>@Text("User", "المستخدم")</th><th>@Text("Role", "الدور")</th><th class="text-end">@Text("Actions", "الإجراءات")</th></tr></thead>
                                 <tbody>
                                     @foreach (var assignment in storeRoleAssignments)

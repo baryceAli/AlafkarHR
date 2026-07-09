@@ -37,11 +37,11 @@
                 <AppCard Title="@Text("Storage summary", "ملخص التخزين")" CssClass="mb-3">
                     <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                         <span class="text-muted">@Text("Provider", "المزود")</span>
-                        <span class="badge bg-secondary">@storageProvider</span>
+                        <StatusChip Text="@storageProvider" Tone="muted" />
                     </div>
                     <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                         <span class="text-muted">@Text("Policy source", "مصدر السياسة")</span>
-                        <span class="badge @(isDefaultPolicy ? "bg-info" : "bg-success")">@PolicySourceText</span>
+                        <StatusChip Text="@PolicySourceText" Tone="@(isDefaultPolicy ? "info" : "success")" />
                     </div>
                     <div class="small text-muted pt-3">
                         @Text("Storage location is configured by deployment settings and is not editable here.", "موقع التخزين يتم ضبطه من إعدادات التشغيل ولا يمكن تعديله هنا.")
@@ -73,7 +73,7 @@
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var extension in allowedExtensions)
                                 {
-                                    <span class="badge text-bg-light border d-inline-flex align-items-center gap-1">
+                                    <span class="erp-status-chip erp-status-chip-muted d-inline-flex align-items-center gap-1">
                                         @extension
                                         <button type="button" class="btn btn-sm p-0 border-0" title="@Text("Remove", "حذف")" @onclick="() => RemoveExtension(extension)" disabled="@isSaving">
                                             <i class="bi bi-x"></i>
@@ -94,7 +94,7 @@
                             <div class="d-flex flex-wrap gap-2">
                                 @foreach (var contentType in allowedContentTypes)
                                 {
-                                    <span class="badge text-bg-light border d-inline-flex align-items-center gap-1">
+                                    <span class="erp-status-chip erp-status-chip-muted d-inline-flex align-items-center gap-1">
                                         @contentType
                                         <button type="button" class="btn btn-sm p-0 border-0" title="@Text("Remove", "حذف")" @onclick="() => RemoveContentType(contentType)" disabled="@isSaving">
                                             <i class="bi bi-x"></i>

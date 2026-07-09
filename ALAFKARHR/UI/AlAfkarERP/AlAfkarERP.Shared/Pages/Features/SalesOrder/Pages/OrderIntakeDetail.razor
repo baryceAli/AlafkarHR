@@ -17,20 +17,20 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©")</div>
         return;
     }
 
-    <PageHeader Title="@(order?.Number ?? Text("Order Intake", "طلب البيع"))"
-                Subtitle="@Text("Review line items, payment state, and intake workflow decisions.", "مراجعة الأصناف وحالة الدفع وقرارات الطلب.")"
-                Overline="@Text("Order Intake", "طلب البيع")"
+    <PageHeader Title="@(order?.Number ?? Text("Order Intake", "Ø·Ù„Ø¨ Ø§Ù„Ø¨ÙŠØ¹"))"
+                Subtitle="@Text("Review line items, payment state, and intake workflow decisions.", "Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø£ØµÙ†Ø§Ù ÙˆØ­Ø§Ù„Ø© Ø§Ù„Ø¯ÙØ¹ ÙˆÙ‚Ø±Ø§Ø±Ø§Øª Ø§Ù„Ø·Ù„Ø¨.")"
+                Overline="@Text("Order Intake", "Ø·Ù„Ø¨ Ø§Ù„Ø¨ÙŠØ¹")"
                 Icon="bi-card-checklist">
         <Actions>
             <a class="btn btn-outline-secondary" href="/Orders/Intakes">
-                <i class="bi bi-arrow-left"></i> @Text("Back", "رجوع")
+                <i class="bi bi-arrow-left"></i> @Text("Back", "Ø±Ø¬ÙˆØ¹")
             </a>
         </Actions>
     </PageHeader>
@@ -39,29 +39,29 @@
     {
         <div class="erp-loading py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <div class="mt-2">@Text("Loading intake...", "جاري تحميل الطلب...")</div>
+            <div class="mt-2">@Text("Loading intake...", "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨...")</div>
         </div>
     }
     else if (order is null)
     {
-        <EmptyState Title="@Text("Order intake not found", "لم يتم العثور على الطلب")"
-                    Message="@Text("The requested intake could not be loaded.", "تعذر تحميل الطلب المطلوب.")"
+        <EmptyState Title="@Text("Order intake not found", "Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ø·Ù„Ø¨")"
+                    Message="@Text("The requested intake could not be loaded.", "ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨.")"
                     Icon="bi-exclamation-circle" />
     }
     else
     {
         <div class="row g-3">
             <div class="col-lg-8">
-                <AppCard Title="@Text("Lines", "الأصناف")">
+                <AppCard Title="@Text("Lines", "Ø§Ù„Ø£ØµÙ†Ø§Ù")">
                     <div class="erp-table-wrap">
                         <table class="table erp-table align-middle mb-0">
                             <thead>
                                 <tr>
-                                    <th>@Text("Item", "الصنف")</th>
-                                    <th>@Text("SKU", "الرمز")</th>
-                                    <th>@Text("Qty", "الكمية")</th>
-                                    <th>@Text("Price", "السعر")</th>
-                                    <th>@Text("Total", "الإجمالي")</th>
+                                    <th>@Text("Item", "Ø§Ù„ØµÙ†Ù")</th>
+                                    <th>@Text("SKU", "Ø§Ù„Ø±Ù…Ø²")</th>
+                                    <th>@Text("Qty", "Ø§Ù„ÙƒÙ…ÙŠØ©")</th>
+                                    <th>@Text("Price", "Ø§Ù„Ø³Ø¹Ø±")</th>
+                                    <th>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -81,13 +81,13 @@
                 </AppCard>
             </div>
             <div class="col-lg-4">
-                <AppCard Title="@Text("Summary", "الملخص")" CssClass="mb-3">
-                    <div class="summary-row"><span>@Text("Status", "الحالة")</span><strong>@StatusText(order.Status)</strong></div>
-                    <div class="summary-row"><span>@Text("Customer", "العميل")</span><strong>@(order.CustomerName ?? Text("Walk-in", "عميل مباشر"))</strong></div>
-                    <div class="summary-row"><span>@Text("Payment", "الدفع")</span><strong>@(order.PaymentStatus?.ToString() ?? "-")</strong></div>
-                    <div class="summary-row"><span>@Text("Payment method", "طريقة الدفع")</span><strong>@(order.PaymentMethod?.ToString() ?? "-")</strong></div>
-                    <div class="summary-row"><span>@Text("Submitted", "تاريخ الإرسال")</span><strong>@DateText(order.SubmittedAt)</strong></div>
-                    <div class="summary-row summary-total"><span>@Text("Total", "الإجمالي")</span><strong>@Money(order.CheckoutTotal)</strong></div>
+                <AppCard Title="@Text("Summary", "Ø§Ù„Ù…Ù„Ø®Øµ")" CssClass="mb-3">
+                    <div class="summary-row"><span>@Text("Status", "Ø§Ù„Ø­Ø§Ù„Ø©")</span><strong>@StatusText(order.Status)</strong></div>
+                    <div class="summary-row"><span>@Text("Customer", "Ø§Ù„Ø¹Ù…ÙŠÙ„")</span><strong>@(order.CustomerName ?? Text("Walk-in", "Ø¹Ù…ÙŠÙ„ Ù…Ø¨Ø§Ø´Ø±"))</strong></div>
+                    <div class="summary-row"><span>@Text("Payment", "Ø§Ù„Ø¯ÙØ¹")</span><strong>@(order.PaymentStatus?.ToString() ?? "-")</strong></div>
+                    <div class="summary-row"><span>@Text("Payment method", "Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹")</span><strong>@(order.PaymentMethod?.ToString() ?? "-")</strong></div>
+                    <div class="summary-row"><span>@Text("Submitted", "ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ø±Ø³Ø§Ù„")</span><strong>@DateText(order.SubmittedAt)</strong></div>
+                    <div class="summary-row summary-total"><span>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</span><strong>@Money(order.CheckoutTotal)</strong></div>
 
                     @if (!string.IsNullOrWhiteSpace(order.RejectionReason))
                     {
@@ -97,19 +97,19 @@
 
                 @if (order.Status is OrderIntakeStatus.Submitted or OrderIntakeStatus.Validated)
                 {
-                    <AppCard Title="@Text("Decision", "القرار")">
+                    <AppCard Title="@Text("Decision", "Ø§Ù„Ù‚Ø±Ø§Ø±")">
                         @if (CanAccept)
                         {
                             <button class="btn btn-success w-100 mb-2" @onclick="AcceptAsync" disabled="@isSaving">
-                                <i class="bi bi-check2-circle"></i> @Text("Accept", "قبول")
+                                <i class="bi bi-check2-circle"></i> @Text("Accept", "Ù‚Ø¨ÙˆÙ„")
                             </button>
                         }
                         @if (CanReject)
                         {
-                            <label class="form-label">@Text("Reject reason", "سبب الرفض")</label>
+                            <label class="form-label">@Text("Reject reason", "Ø³Ø¨Ø¨ Ø§Ù„Ø±ÙØ¶")</label>
                             <textarea class="form-control mb-2" rows="3" @bind="rejectReason"></textarea>
                             <button class="btn btn-outline-danger w-100" @onclick="RejectAsync" disabled="@isSaving">
-                                <i class="bi bi-x-circle"></i> @Text("Reject", "رفض")
+                                <i class="bi bi-x-circle"></i> @Text("Reject", "Ø±ÙØ¶")
                             </button>
                         }
                     </AppCard>
@@ -172,7 +172,7 @@
         var result = await OrderIntakeService.AcceptAsync(Id);
         if (result.IsSuccess)
         {
-            ToastService.ShowSuccess(Text("Order intake accepted.", "تم قبول الطلب."));
+            ToastService.ShowSuccess(Text("Order intake accepted.", "ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨."));
             if (result.Data?.SalesOrderId != Guid.Empty)
                 NavigationManager.NavigateTo($"/Sales/Orders/{result.Data!.SalesOrderId}");
             else
@@ -180,7 +180,7 @@
         }
         else
         {
-            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to accept intake.", "تعذر قبول الطلب."));
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to accept intake.", "ØªØ¹Ø°Ø± Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨."));
         }
         isSaving = false;
     }
@@ -189,7 +189,7 @@
     {
         if (string.IsNullOrWhiteSpace(rejectReason))
         {
-            ToastService.ShowWarning(Text("Enter a rejection reason.", "أدخل سبب الرفض."));
+            ToastService.ShowWarning(Text("Enter a rejection reason.", "Ø£Ø¯Ø®Ù„ Ø³Ø¨Ø¨ Ø§Ù„Ø±ÙØ¶."));
             return;
         }
 
@@ -197,25 +197,25 @@
         var result = await OrderIntakeService.RejectAsync(Id, rejectReason);
         if (result.IsSuccess)
         {
-            ToastService.ShowSuccess(Text("Order intake rejected.", "تم رفض الطلب."));
+            ToastService.ShowSuccess(Text("Order intake rejected.", "ØªÙ… Ø±ÙØ¶ Ø§Ù„Ø·Ù„Ø¨."));
             await LoadAsync();
         }
         else
         {
-            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to reject intake.", "تعذر رفض الطلب."));
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to reject intake.", "ØªØ¹Ø°Ø± Ø±ÙØ¶ Ø§Ù„Ø·Ù„Ø¨."));
         }
         isSaving = false;
     }
 
     private string StatusText(OrderIntakeStatus status) => status switch
     {
-        OrderIntakeStatus.Submitted => Text("Submitted", "مرسل"),
-        OrderIntakeStatus.Validated => Text("Validated", "تم التحقق"),
-        OrderIntakeStatus.Rejected => Text("Rejected", "مرفوض"),
-        OrderIntakeStatus.Accepted => Text("Accepted", "مقبول"),
-        OrderIntakeStatus.ConvertedToSales => Text("Converted", "محول للبيع"),
-        OrderIntakeStatus.Cancelled => Text("Cancelled", "ملغي"),
-        _ => Text("Draft", "مسودة")
+        OrderIntakeStatus.Submitted => Text("Submitted", "Ù…Ø±Ø³Ù„"),
+        OrderIntakeStatus.Validated => Text("Validated", "ØªÙ… Ø§Ù„ØªØ­Ù‚Ù‚"),
+        OrderIntakeStatus.Rejected => Text("Rejected", "Ù…Ø±ÙÙˆØ¶"),
+        OrderIntakeStatus.Accepted => Text("Accepted", "Ù…Ù‚Ø¨ÙˆÙ„"),
+        OrderIntakeStatus.ConvertedToSales => Text("Converted", "Ù…Ø­ÙˆÙ„ Ù„Ù„Ø¨ÙŠØ¹"),
+        OrderIntakeStatus.Cancelled => Text("Cancelled", "Ù…Ù„ØºÙŠ"),
+        _ => Text("Draft", "Ù…Ø³ÙˆØ¯Ø©")
     };
 
     private string DateText(DateTime? value) => value?.ToString("yyyy-MM-dd HH:mm") ?? "-";

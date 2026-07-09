@@ -14,36 +14,36 @@
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
 
-<section class="sales-page" dir="@SharedDataService.PageDirection">
+<section class="sales-page erp-page" dir="@SharedDataService.PageDirection">
     @if (!CanView)
     {
-        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</div>
+        <div class="alert alert-warning">@Text("You don't have permissions to view this page", "Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©")</div>
         return;
     }
 
-    <PageHeader Title="@Text("Sales Returns", "مرتجعات المبيعات")"
-                Subtitle="@Text("Post customer returns and optional credit notes.", "ترحيل مرتجعات العملاء وإشعارات الدائن عند الحاجة.")"
-                Overline="@Text("Sales", "المبيعات")"
+    <PageHeader Title="@Text("Sales Returns", "Ù…Ø±ØªØ¬Ø¹Ø§Øª Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")"
+                Subtitle="@Text("Post customer returns and optional credit notes.", "ØªØ±Ø­ÙŠÙ„ Ù…Ø±ØªØ¬Ø¹Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆØ¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„Ø¯Ø§Ø¦Ù† Ø¹Ù†Ø¯ Ø§Ù„Ø­Ø§Ø¬Ø©.")"
+                Overline="@Text("Sales", "Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª")"
                 Icon="bi-arrow-counterclockwise">
         <Actions>
             @if (CanCreate)
             {
                 <a class="btn btn-primary" href="/Sales/Returns/Create">
-                    <i class="bi bi-plus-lg"></i> @Text("Register Return", "تسجيل مرتجع")
+                    <i class="bi bi-plus-lg"></i> @Text("Register Return", "ØªØ³Ø¬ÙŠÙ„ Ù…Ø±ØªØ¬Ø¹")
                 </a>
             }
         </Actions>
     </PageHeader>
 
-    <AppCard Title="@Text("Returns", "المرتجعات")">
+    <AppCard Title="@Text("Returns", "Ø§Ù„Ù…Ø±ØªØ¬Ø¹Ø§Øª")">
         @if (isLoading)
         {
             <div class="erp-loading py-4"><div class="spinner-border text-primary" role="status"></div></div>
         }
         else if (!returns.Any())
         {
-            <EmptyState Title="@Text("No returns", "لا توجد مرتجعات")"
-                        Message="@Text("Customer returns will appear here.", "ستظهر مرتجعات العملاء هنا.")"
+            <EmptyState Title="@Text("No returns", "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ø±ØªØ¬Ø¹Ø§Øª")"
+                        Message="@Text("Customer returns will appear here.", "Ø³ØªØ¸Ù‡Ø± Ù…Ø±ØªØ¬Ø¹Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ Ù‡Ù†Ø§.")"
                         Icon="bi-arrow-counterclockwise" />
         }
         else
@@ -52,11 +52,11 @@
                 <table class="table erp-table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>@Text("Number", "الرقم")</th>
-                            <th>@Text("Status", "الحالة")</th>
-                            <th>@Text("Date", "التاريخ")</th>
-                            <th>@Text("Credit note", "إشعار دائن")</th>
-                            <th>@Text("Total", "الإجمالي")</th>
+                            <th>@Text("Number", "Ø§Ù„Ø±Ù‚Ù…")</th>
+                            <th>@Text("Status", "Ø§Ù„Ø­Ø§Ù„Ø©")</th>
+                            <th>@Text("Date", "Ø§Ù„ØªØ§Ø±ÙŠØ®")</th>
+                            <th>@Text("Credit note", "Ø¥Ø´Ø¹Ø§Ø± Ø¯Ø§Ø¦Ù†")</th>
+                            <th>@Text("Total", "Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ")</th>
                             <th></th>
                         </tr>
                     </thead>
@@ -65,15 +65,15 @@
                         {
                             <tr>
                                 <td class="fw-semibold">@salesReturn.Number</td>
-                                <td><span class="badge rounded-pill @StatusBadge(salesReturn.Status)">@salesReturn.Status</span></td>
+                                <td><StatusChip Text="@salesReturn.Status.ToString()" Tone="@StatusTone(salesReturn.Status)" /></td>
                                 <td>@salesReturn.ReturnDate.ToString("yyyy-MM-dd")</td>
-                                <td>@(salesReturn.CreateCreditNote ? Text("Yes", "نعم") : Text("No", "لا"))</td>
+                                <td>@(salesReturn.CreateCreditNote ? Text("Yes", "Ù†Ø¹Ù…") : Text("No", "Ù„Ø§"))</td>
                                 <td>@salesReturn.TotalAmount.ToString("N2")</td>
                                 <td class="text-end">
                                     @if (salesReturn.Status == SalesReturnStatus.Draft && CanPost)
                                     {
                                         <button class="btn btn-sm btn-primary" @onclick="() => PostAsync(salesReturn.Id)">
-                                            <i class="bi bi-check2-circle"></i> @Text("Post", "ترحيل")
+                                            <i class="bi bi-check2-circle"></i> @Text("Post", "ØªØ±Ø­ÙŠÙ„")
                                         </button>
                                     }
                                     @if (salesReturn.Status == SalesReturnStatus.Draft && CanCancel)
@@ -137,12 +137,12 @@
         var result = await SalesService.PostReturnAsync(id);
         if (result.IsSuccess)
         {
-            ToastService.ShowSuccess(Text("Return posted.", "تم ترحيل المرتجع."));
+            ToastService.ShowSuccess(Text("Return posted.", "ØªÙ… ØªØ±Ø­ÙŠÙ„ Ø§Ù„Ù…Ø±ØªØ¬Ø¹."));
             await LoadAsync();
         }
         else
         {
-            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to post return.", "تعذر ترحيل المرتجع."));
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to post return.", "ØªØ¹Ø°Ø± ØªØ±Ø­ÙŠÙ„ Ø§Ù„Ù…Ø±ØªØ¬Ø¹."));
         }
     }
 
@@ -152,14 +152,14 @@
         if (result.IsSuccess)
             await LoadAsync();
         else
-            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to cancel return.", "تعذر إلغاء المرتجع."));
+            ToastService.ShowError(result.Error?.Detail ?? Text("Unable to cancel return.", "ØªØ¹Ø°Ø± Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ù…Ø±ØªØ¬Ø¹."));
     }
 
-    private static string StatusBadge(SalesReturnStatus status) => status switch
+    private static string StatusTone(SalesReturnStatus status) => status switch
     {
-        SalesReturnStatus.Posted => "text-bg-success",
-        SalesReturnStatus.Cancelled => "text-bg-danger",
-        _ => "text-bg-secondary"
+        SalesReturnStatus.Posted => "success",
+        SalesReturnStatus.Cancelled => "danger",
+        _ => "muted"
     };
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);

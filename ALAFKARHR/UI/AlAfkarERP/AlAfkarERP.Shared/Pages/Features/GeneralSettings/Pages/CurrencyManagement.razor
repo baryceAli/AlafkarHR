@@ -88,8 +88,8 @@
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="table align-middle mb-0">
+                <div class="erp-table-wrap">
+                    <table class="table erp-table align-middle mb-0">
                         <thead>
                             <tr>
                                 <th>@Text("Currency", "العملة")</th>
@@ -114,7 +114,7 @@
                                     <td>
                                         @if (currency.IsDefault)
                                         {
-                                            <span class="badge text-bg-success">@Text("Default", "افتراضية")</span>
+                                            <StatusChip Text="@Text("Default", "افتراضية")" Tone="success" />
                                         }
                                         else
                                         {
