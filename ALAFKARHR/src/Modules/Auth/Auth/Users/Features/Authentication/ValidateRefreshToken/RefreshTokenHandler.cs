@@ -57,11 +57,15 @@ public class RefreshTokenHandler(
         var rawNewRefreshToken = RefreshTokenGenerator.Generate();
         var newRefreshTokenHash = RefreshTokenGenerator.Hash(rawNewRefreshToken);
 
-        var newRefreshToken = tokenOwner.RotateRefreshToken(
-            refreshTokenHash,
+        refreshToken.Revoke(tokenOwnerName);
+
+        var newRefreshToken = RefreshToken.Create(
+            tokenOwner.Id,
             newRefreshTokenHash,
             DateTime.UtcNow.AddDays(7),
             tokenOwnerName);
+
+        dbContext.Set<RefreshToken>().Add(newRefreshToken);
 
         var accessToken = await jwtTokenGenerator.GenerateTokenAsync(tokenOwner);
 

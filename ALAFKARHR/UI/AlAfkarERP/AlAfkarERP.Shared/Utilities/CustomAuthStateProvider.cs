@@ -37,6 +37,11 @@ public class CustomAuthStateProvider : AuthenticationStateProvider
     public async Task NotifyUserLogout()
     {
         await _tokenService.ClearTokensAsync(); // 🔴 remove token first
+        NotifyUserLogoutStateChanged();
+    }
+
+    public void NotifyUserLogoutStateChanged()
+    {
         NotifyAuthenticationStateChanged(
             Task.FromResult(new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()))));
     }

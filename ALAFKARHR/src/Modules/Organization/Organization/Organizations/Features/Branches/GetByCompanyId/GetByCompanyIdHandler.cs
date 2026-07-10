@@ -41,6 +41,21 @@ public class GetByCompanyIdHandler(OrganizationDbContext dbContext, ISender send
             .OrderBy(b => b.Name) // default sorting (important!)
             .Skip(request.PaginationRequest.PageIndex * request.PaginationRequest.PageSize)
             .Take(request.PaginationRequest.PageSize)
+            .Select(b => new BranchDto
+            {
+                Id = b.Id,
+                Name = b.Name,
+                NameEng = b.NameEng,
+                Location = b.Location,
+                Longitude = b.Longitude,
+                Latitude = b.Latitude,
+                Code = b.Code,
+                Phone = b.Phone,
+                Email = b.Email,
+                IsMainBranch = b.IsMainBranch,
+                Specialization = b.Specialization,
+                CompanyId = b.CompanyId
+            })
             .ToListAsync(cancellationToken);
 
         return new GetByCompanyIdResult(
@@ -48,7 +63,7 @@ public class GetByCompanyIdHandler(OrganizationDbContext dbContext, ISender send
                 request.PaginationRequest.PageIndex,
                 request.PaginationRequest.PageSize,
                 count,
-                branches.Adapt<List<BranchDto>>()
+                branches
             )
         );
         //return new GetByCompanyIdResult(companies.Adapt<List<BranchDto>>());

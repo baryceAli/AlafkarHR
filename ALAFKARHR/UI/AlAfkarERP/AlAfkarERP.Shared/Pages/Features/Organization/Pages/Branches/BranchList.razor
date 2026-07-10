@@ -1,5 +1,6 @@
 @layout AdminLayout
 @page "/Organization/Branch/List"
+@using AlAfkarERP.Shared.Pages.Features.Auth.Services
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @* @using AlAfkarERP.Shared.Pages.Reuable *@
@@ -13,6 +14,7 @@
 
 @inject IBranchService BranchService
 @inject ICompanySettingService CompanySettingService
+@inject IAuthService AuthService
 @inject ToastService ToastService
 @inject ModalService ModalService
 
@@ -35,7 +37,7 @@
     return;
 }
 
-    @if (!AuthState.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.View}"))
+    @if (!HasPermission(PermissionList.BranchPermissions.View))
 {
     <div class="alert alert-warning">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page", "ليس لديك الصلاحية لعرض هذه الصفحة")</span>
@@ -65,6 +67,17 @@
             </button>
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(branchLoadError))
+    {
+        <div class="alert alert-danger d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <span class="branch-load-error-message" dir="@BranchLoadErrorDirection">@branchLoadError</span>
+            <button class="btn btn-sm btn-outline-danger" type="button" @onclick="LoadBranches">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Retry", "Retry")
+            </button>
+        </div>
+    }
 
     <div class="row g-3 mb-4">
         <div class="col-md-4">
@@ -338,7 +351,19 @@
                 </tr>
                 
             }
-                        @if (!BranchesForDisplay.Any() && editingBranchId is null)
+                        @if (IsBranchLoadFailed && editingBranchId is null)
+                        {
+                            <tr>
+                                <td colspan="7">
+                                    <div class="branch-empty">
+                                        <i class="bi bi-exclamation-triangle"></i>
+                                        <div class="fw-semibold">@Text("Unable to load branches", "تعذر تحميل الفروع")</div>
+                                        <div class="text-muted small" dir="@BranchLoadErrorDirection">@branchLoadError</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                        else if (!BranchesForDisplay.Any() && editingBranchId is null)
                         {
                             <tr>
                                 <td colspan="7">
@@ -604,6 +629,10 @@
         margin-bottom: 0.5rem;
     }
 
+    .branch-load-error-message {
+        unicode-bidi: plaintext;
+    }
+
     .branch-pagination {
         align-items: center;
         display: flex;
@@ -636,12 +665,15 @@
     private bool isEdit = false;
     private AuthenticationState? AuthState;
     private CompanySettingDto? companySetting;
+    private string? branchLoadError;
     private readonly string mapElementId = $"branch-location-map-{Guid.NewGuid():N}";
     private DotNetObjectReference<BranchList>? dotNetReference;
     private Guid? mapInitializedBranchId;
-    private bool CanCreateBranch => AuthState?.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Create}") == true;
-    private bool CanEditBranch => AuthState?.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Edit}") == true;
-    private bool CanDeleteBranch => AuthState?.User.Claims.Any(c => c.Value == $"{PermissionList.BranchPermissions.Delete}") == true;
+    private bool IsBranchLoadFailed => !string.IsNullOrWhiteSpace(branchLoadError);
+    private string BranchLoadErrorDirection => ContainsArabic(branchLoadError) ? "rtl" : "ltr";
+    private bool CanCreateBranch => HasPermission(PermissionList.BranchPermissions.Create);
+    private bool CanEditBranch => HasPermission(PermissionList.BranchPermissions.Edit);
+    private bool CanDeleteBranch => HasPermission(PermissionList.BranchPermissions.Delete);
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -664,17 +696,33 @@
 
     protected override async Task OnInitializedAsync()
     {
-        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        AuthState = await PermissionAuthStateRefresher.RefreshOnceIfMissingPermissionAsync(
+            AuthenticationStateProvider,
+            AuthService,
+            PermissionList.BranchPermissions.View);
+
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            AuthState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        }
+
         if (AuthState.User.Identity?.IsAuthenticated != true)
         {
             NavigationManager.NavigateTo("/login", true);
-
+            return;
         }
+
         if (!CompanyContext.TryGetCompanyId(AuthState.User, out companyId))
         {
             NavigationManager.NavigateTo("/Dashboard");
             return;
         }
+
+        if (!HasPermission(PermissionList.BranchPermissions.View))
+        {
+            return;
+        }
+
         var settingResult = await CompanySettingService.GetAsync(companyId);
         if (settingResult.IsSuccess)
         {
@@ -871,6 +919,7 @@
     private long totalCount;
     private async Task LoadBranches()
     {
+        branchLoadError = null;
         var response = await BranchService.GetByCompanyIdAsync(companyId, pageIndex, pageSize, appliedSearchText);
 
         if (response.IsSuccess)
@@ -883,6 +932,17 @@
                 pageIndex = TotalPages - 1;
                 await LoadBranches();
             }
+        }
+        else
+        {
+            branches = [];
+            totalCount = 0;
+            TotalPages = 1;
+            branchLoadError = ApiErrorFormatter.GetDisplayMessage(
+                response.Error,
+                SharedDataService.Language,
+                Text("Unable to load branches. Please retry.", "تعذر تحميل الفروع. يرجى المحاولة مرة أخرى."));
+            ToastService.ShowError(branchLoadError);
         }
     }
 
@@ -943,6 +1003,12 @@
     }
 
     private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+
+    private static bool ContainsArabic(string? value)
+        => !string.IsNullOrWhiteSpace(value) && value.Any(c => c is >= '\u0600' and <= '\u06FF');
+
+    private bool HasPermission(string permission)
+        => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
 
     private string EmptyValue(string? value) => string.IsNullOrWhiteSpace(value) ? "-" : value;
 

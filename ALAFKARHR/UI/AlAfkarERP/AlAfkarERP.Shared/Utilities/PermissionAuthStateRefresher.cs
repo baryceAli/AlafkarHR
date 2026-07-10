@@ -17,10 +17,8 @@ public static class PermissionAuthStateRefresher
             return authState;
         }
 
-        var refreshed = await authService.RefreshTokenAsync();
-        return refreshed
-            ? await authenticationStateProvider.GetAuthenticationStateAsync()
-            : authState;
+        await authService.RefreshTokenAsync();
+        return await authenticationStateProvider.GetAuthenticationStateAsync();
     }
 
     private static bool ShouldTryRefresh(ClaimsPrincipal user, string permission)
