@@ -48,6 +48,18 @@ public static class ApiErrorFormatter
         return error;
     }
 
+    public static ErrorResponseDto FromResponseParseException(Exception exception)
+    {
+        return new ErrorResponseDto
+        {
+            Status = 502,
+            Title = "Response Error",
+            Detail = "The server response could not be read. Please refresh and try again.",
+            UserMessageEn = "The server response could not be read. Please refresh and try again.",
+            UserMessageAr = "تعذرت قراءة استجابة الخادم. يرجى تحديث الصفحة والمحاولة مرة أخرى."
+        };
+    }
+
     public static ErrorResponseDto FromClientException(Exception exception, int status)
     {
         var error = new ErrorResponseDto

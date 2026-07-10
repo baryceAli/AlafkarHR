@@ -6,7 +6,10 @@ public class RefreshTokenEndPoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/auth/refresh-token", async (RefreshTokenRequest request, ISender sender) =>
+        app.MapPost("/api/v1/auth/refresh-token", async (
+            RefreshTokenRequest request,
+            ISender sender,
+            Microsoft.Extensions.Logging.ILogger<RefreshTokenEndPoint> logger) =>
         {
             try
             {
@@ -15,8 +18,12 @@ public class RefreshTokenEndPoint : ICarterModule
                 var response = result.Adapt<RefreshTokenResponse>();
                 return Results.Ok(response);
             }
-            catch
+            catch (Exception ex)
             {
+                Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(
+                    logger,
+                    ex,
+                    "Refresh token request failed.");
                 return Results.Unauthorized();
             }
         })

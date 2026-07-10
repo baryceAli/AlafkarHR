@@ -99,37 +99,22 @@ public class AuthService : AuthBaseApiService, IAuthService
         var tokens = await _tokenService.GetTokensAsync();
         if (tokens == null) return false;
 
-        var response = await _http.PostAsJsonAsync($"{_path}/refresh-token", new
-        {
-            refreshToken = tokens.RefreshToken
-        });
-
-        if (!response.IsSuccessStatusCode)
-        {
-            await LogoutAsync();
-            return false;
-        }
-
-        var newTokens = await response.Content.ReadFromJsonAsync<AuthTokens>();
-        if (newTokens == null ||
-            string.IsNullOrWhiteSpace(newTokens.AccessToken) ||
-            string.IsNullOrWhiteSpace(newTokens.RefreshToken))
-        {
-            await LogoutAsync();
-            return false;
-        }
-
-        await _tokenService.SetTokensAsync(newTokens);
-
-        _authStateProvider.NotifyUserAuthentication(newTokens.AccessToken);
-
-        return true;
+        return await _tokenService.RefreshTokensAsync(
+            _http,
+            $"{_path}/refresh-token",
+            tokens.AccessToken,
+            accessToken =>
+            {
+                _authStateProvider.NotifyUserAuthentication(accessToken);
+                return Task.CompletedTask;
+            },
+            _authStateProvider.NotifyUserLogoutStateChanged);
     }
 
     public async Task LogoutAsync()
     {
         await _tokenService.ClearTokensAsync();
-        _authStateProvider.NotifyUserLogout();
+        _authStateProvider.NotifyUserLogoutStateChanged();
     }
 
     

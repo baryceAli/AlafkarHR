@@ -3,7 +3,6 @@ using AlAfkarERP.Shared.Dtos.Auth;
 using AlAfkarERP.Shared.Utilities;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Net.Http.Json;
 
 namespace AlAfkarERP.Shared.Services;
 
@@ -12,7 +11,6 @@ public abstract class BaseApiService
     protected readonly HttpClient _http;
     private readonly ITokenService _tokenService;
     private readonly ApiConfig _apiConfig;
-    private static readonly SemaphoreSlim RefreshLock = new(1, 1);
 
     protected BaseApiService(HttpClient http, ITokenService tokenService, ApiConfig apiConfig)
     {
@@ -35,7 +33,10 @@ public abstract class BaseApiService
             if (response.StatusCode == HttpStatusCode.Unauthorized &&
                 tokens != null &&
                 !string.IsNullOrWhiteSpace(tokens.RefreshToken) &&
-                await TryRefreshTokenAsync())
+                await _tokenService.RefreshTokensAsync(
+                    _http,
+                    $"api/{_apiConfig.Version}/auth/refresh-token",
+                    tokens.AccessToken))
             {
                 response.Dispose();
 
@@ -56,7 +57,15 @@ public abstract class BaseApiService
                 return ApiResult<T>.Failure(ApiErrorFormatter.FromHttpError(response.StatusCode, content));
             }
 
-            var result = DeserializeAPIResponse.Deserialize<T>(content, node);
+            T result;
+            try
+            {
+                result = DeserializeAPIResponse.Deserialize<T>(content, node);
+            }
+            catch (Exception ex)
+            {
+                return ApiResult<T>.Failure(ApiErrorFormatter.FromResponseParseException(ex));
+            }
 
             return ApiResult<T>.Success(result);
         }
@@ -73,44 +82,6 @@ public abstract class BaseApiService
 
         request.Headers.Authorization =
             new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
-    }
-
-    private async Task<bool> TryRefreshTokenAsync()
-    {
-        await RefreshLock.WaitAsync();
-        try
-        {
-            var tokens = await _tokenService.GetTokensAsync();
-            if (tokens == null || string.IsNullOrWhiteSpace(tokens.RefreshToken))
-                return false;
-
-            var response = await _http.PostAsJsonAsync($"api/{_apiConfig.Version}/auth/refresh-token", new
-            {
-                refreshToken = tokens.RefreshToken
-            });
-
-            if (!response.IsSuccessStatusCode)
-            {
-                await _tokenService.ClearTokensAsync();
-                return false;
-            }
-
-            var newTokens = await response.Content.ReadFromJsonAsync<AuthTokens>();
-            if (newTokens == null ||
-                string.IsNullOrWhiteSpace(newTokens.AccessToken) ||
-                string.IsNullOrWhiteSpace(newTokens.RefreshToken))
-            {
-                await _tokenService.ClearTokensAsync();
-                return false;
-            }
-
-            await _tokenService.SetTokensAsync(newTokens);
-            return true;
-        }
-        finally
-        {
-            RefreshLock.Release();
-        }
     }
 
     private static async Task<HttpRequestMessage> CloneHttpRequestMessageAsync(HttpRequestMessage request)

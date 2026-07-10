@@ -6,8 +6,6 @@ namespace AlAfkarERP.Shared.Utilities;
 
 public class AuthMessageHandler : DelegatingHandler
 {
-    private static readonly SemaphoreSlim RefreshLock = new(1, 1);
-
     private readonly ITokenService _tokenService;
     private readonly IAuthService _authService;
 
@@ -23,6 +21,7 @@ public class AuthMessageHandler : DelegatingHandler
     {
         var tokens = await _tokenService.GetTokensAsync();
 
+        var attemptedAccessToken = tokens?.AccessToken;
         if (tokens != null)
         {
             request.Headers.Authorization =
@@ -38,16 +37,16 @@ public class AuthMessageHandler : DelegatingHandler
             return response;
         }
 
-        await RefreshLock.WaitAsync(cancellationToken);
-        try
+        var refreshed = await _authService.RefreshTokenAsync();
+        if (!refreshed)
         {
-            var refreshed = await _authService.RefreshTokenAsync();
-            if (!refreshed)
+            var currentTokens = await _tokenService.GetTokensAsync();
+            if (currentTokens == null ||
+                string.IsNullOrWhiteSpace(currentTokens.AccessToken) ||
+                string.Equals(currentTokens.AccessToken, attemptedAccessToken, StringComparison.Ordinal))
+            {
                 return response;
-        }
-        finally
-        {
-            RefreshLock.Release();
+            }
         }
 
         var newTokens = await _tokenService.GetTokensAsync();
