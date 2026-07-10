@@ -160,6 +160,8 @@ public static class PermissionList
             CompanyPermissions.DisableChild,
             CompanyPermissions.ResetChildAdminPassword,
             ..BranchPermissions.Permissions,
+            ..OrganizationBranchAccessPermissions.Permissions,
+            ..AccountingBranchAccessPermissions.Permissions,
             ..UsersPermissions.Permissions,
             ..RolesPermissions.Permissions,
             SystemSettingsPermissions.Select,

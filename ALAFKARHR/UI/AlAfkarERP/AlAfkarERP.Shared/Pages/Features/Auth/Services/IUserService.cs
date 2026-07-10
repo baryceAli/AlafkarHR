@@ -6,6 +6,7 @@ namespace AlAfkarERP.Shared.Pages.Features.Auth.Services;
 public interface IUserService
 {
     Task<ApiResult<PaginatedResult<UserDto>>> GetUsersByCompany(Guid companyId, int pageIndex, int pageSize, string? searchText = null);
+    Task<ApiResult<CreateCompanyUserResultDto>> CreateCompanyUserAsync(Guid companyId, CreateCompanyUserDto user);
     Task<ApiResult<UserDto>> GetByUserName(string userName);
     Task<ApiResult<UpdateDeleteResponseDto>> AssignRoles(UserRoleDto assignRolesToUser);
     Task<ApiResult<UpdateDeleteResponseDto>> ResetPasswordAsync(string userName, string temporaryPassword);

@@ -94,6 +94,14 @@ public class CreateCompanyHandler(OrganizationDbContext dbContext, IHttpContextA
                     request.Company.AdminPhoneNumber!,
                     request.Company.AdminTemporaryPassword!),
                 cancellationToken);
+
+            var mainBranch = await sender.Send(new EnsureMainBranchCommand(company.Id, userId), cancellationToken);
+            await sender.Send(new EnsureBranchAccountingCommand(
+                company.Id,
+                mainBranch.BranchId,
+                "MAIN",
+                company.Name,
+                company.NameEng), cancellationToken);
         }
         catch
         {
