@@ -217,16 +217,16 @@
 @if (showCompanyModal && selectedCompany is not null)
 {
     <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content">
-                <EditForm Model="selectedCompany" OnValidSubmit="SaveCompanyAsync">
+    <div class="modal fade show d-block parent-company-create-modal" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable parent-company-modal-dialog">
+            <div class="modal-content parent-company-modal-content">
+                <EditForm Model="selectedCompany" OnValidSubmit="SaveCompanyAsync" class="parent-company-modal-form">
                     <DataAnnotationsValidator />
                     <div class="modal-header">
                         <h5 class="modal-title">@ModalTitle</h5>
                         <button type="button" class="btn-close" @onclick="CloseCompanyModal"></button>
                     </div>
-                    <div class="modal-body">
+                    <div class="modal-body parent-company-modal-body">
                         <div class="row g-3">
                             <div class="col-12"><h6>@Text("Company Information", "بيانات الشركة")</h6></div>
                             <div class="col-md-6">
@@ -257,6 +257,7 @@
                                 <label class="form-label">@Text("Time Zone", "المنطقة الزمنية")</label>
                                 <InputText class="form-control" @bind-Value="selectedCompany.TimeZone" />
                             </div>
+                            <div class="col-12"><h6>@Text("Location", "الموقع")</h6></div>
                             <div class="col-md-6">
                                 <label class="form-label">@Text("Headquarters Location", "موقع المقر الرئيسي")</label>
                                 <InputText class="form-control" @bind-Value="selectedCompany.HqLocation" />
@@ -377,7 +378,7 @@
 @if (showLicenseModal && selectedCompany is not null)
 {
     <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
         <div class="modal-dialog modal-lg modal-dialog-scrollable">
             <div class="modal-content">
                 <EditForm Model="selectedCompany.License" OnValidSubmit="SaveLicenseAsync">
@@ -449,7 +450,7 @@
 @if (showResetPassword && selectedCompany is not null)
 {
     <div class="modal-backdrop fade show"></div>
-    <div class="modal fade show d-block" tabindex="-1">
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" dir="@SharedDataService.PageDirection">
         <div class="modal-dialog">
             <div class="modal-content">
                 <EditForm Model="passwordReset" OnValidSubmit="ResetPasswordAsync">
@@ -558,6 +559,55 @@
         font-size: 0.9rem;
     }
 
+    .parent-company-create-modal .parent-company-modal-dialog {
+        margin-block: var(--erp-space-4);
+    }
+
+    .parent-company-create-modal .parent-company-modal-content {
+        max-height: calc(100dvh - (var(--erp-space-4) * 2));
+        overflow: hidden;
+    }
+
+    .parent-company-create-modal .parent-company-modal-form {
+        display: flex;
+        flex-direction: column;
+        max-height: inherit;
+        min-height: 0;
+    }
+
+    .parent-company-create-modal .parent-company-modal-body {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .parent-company-create-modal .modal-header,
+    .parent-company-create-modal .modal-footer {
+        flex: 0 0 auto;
+    }
+
+    .parent-company-create-modal .modal-footer {
+        inset-block-end: 0;
+        position: sticky;
+        z-index: 1;
+    }
+
+    .parent-company-create-modal .modal-body h6 {
+        background: var(--erp-bg-subtle);
+        border: 1px solid var(--erp-border);
+        border-radius: var(--erp-radius-md);
+        color: var(--erp-text);
+        font-size: var(--erp-type-title-sm-size);
+        font-weight: var(--erp-type-title-sm-weight);
+        margin: 0;
+        padding: var(--erp-space-2) var(--erp-space-3);
+    }
+
+    .parent-company-create-modal .modal-body hr {
+        display: none;
+    }
+
     .business-line-selector {
         display: flex;
         flex-wrap: wrap;
@@ -583,6 +633,10 @@
         overflow: hidden;
         position: relative;
         width: 100%;
+    }
+
+    .parent-company-create-modal .parent-company-map {
+        height: clamp(220px, 32dvh, 300px);
     }
 
     .parent-company-map.is-dragging {

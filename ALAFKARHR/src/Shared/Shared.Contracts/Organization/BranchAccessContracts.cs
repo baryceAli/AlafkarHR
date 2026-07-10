@@ -29,6 +29,11 @@ public record EnsureUserBranchAccessCommand(Guid UserId, Guid CompanyId, Guid Br
 
 public record EnsureUserBranchAccessResult(bool IsSuccess);
 
+public record AssignUserBranchesCommand(Guid UserId, Guid CompanyId, List<Guid> BranchIds, Guid? DefaultBranchId)
+    : ICommand<AssignUserBranchesResult>;
+
+public record AssignUserBranchesResult(int AssignedCount);
+
 public record GetCompanyBranchRoleAssignmentsForDashboardQuery(Guid CompanyId) : IQuery<GetCompanyBranchRoleAssignmentsForDashboardResult>;
 
 public record GetCompanyBranchRoleAssignmentsForDashboardResult(List<BranchRoleAssignmentInfo> Assignments);

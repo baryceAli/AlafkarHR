@@ -19,19 +19,22 @@ public class JwtTokenGenerator : IJwtTokenGenerator
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly AuthDbContext _authDbContext;
     private readonly ISender _sender;
+    private readonly ICompanyHierarchyReader _companyHierarchyReader;
 
     public JwtTokenGenerator(
         IOptions<JwtOptions> options,
         UserManager<ApplicationUser> userManager,
         RoleManager<ApplicationRole> roleManager,
         AuthDbContext authDbContext,
-        ISender sender)
+        ISender sender,
+        ICompanyHierarchyReader companyHierarchyReader)
     {
         _options = options.Value;
         _userManager = userManager;
         _roleManager = roleManager;
         _authDbContext = authDbContext;
         _sender = sender;
+        _companyHierarchyReader = companyHierarchyReader;
     }
 
     public async Task<string> GenerateTokenAsync(ApplicationUser user)
@@ -67,6 +70,7 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         if (user.CompanyId.HasValue)
         {
             await CompanyRoleTemplates.SyncAssignedTemplateRolesAsync(_roleManager, user.CompanyId.Value, roleNames);
+            await SyncParentCompanyAdminRoleAsync(user.CompanyId.Value, roleNames);
         }
 
         foreach (var role in roleNames)
@@ -125,5 +129,32 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private async Task SyncParentCompanyAdminRoleAsync(Guid companyId, IReadOnlyCollection<string> roleNames)
+    {
+        var adminRoleName = CompanyRoleTemplates.BuildSystemAdminRoleName(companyId);
+        if (!roleNames.Contains(adminRoleName, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        var parentCompanyId = await _companyHierarchyReader.GetParentCompanyIdForCompanyAsync(companyId, CancellationToken.None);
+        if (parentCompanyId != companyId)
+        {
+            return;
+        }
+
+        var role = await _roleManager.FindByNameAsync(adminRoleName);
+        if (role is null)
+        {
+            return;
+        }
+
+        await CompanyRoleTemplates.SyncPermissionClaimsAsync(
+            _roleManager,
+            role,
+            PermissionList.GetParentCompanyAdminPermissions(),
+            removeObsolete: true);
     }
 }

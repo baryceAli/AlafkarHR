@@ -4,7 +4,8 @@ public class AuthDataSeeder(
     UserManager<ApplicationUser> userManager,
     RoleManager<ApplicationRole> roleManager,
     IOptions<OTPOptions> oTPOptions,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    Shared.Contracts.Organization.ICompanyHierarchyReader companyHierarchyReader)
     : IDataSeeder<AuthDbContext>
 {
     private const string PlatformAdminUserName = "Admin";
@@ -20,8 +21,41 @@ public class AuthDataSeeder(
         await EnsurePlatformCustomerRoleAsync();
         await EnsurePlatformDriverRoleAsync();
         await SyncTenantTemplateRolesAsync(dbContext);
+        await SyncParentCompanyAdminRolesAsync();
         await EnsurePlatformAdminAsync();
         await EnsureDefaultTenantAdminAsync();
+    }
+
+    private async Task SyncParentCompanyAdminRolesAsync()
+    {
+        var adminRoles = await roleManager.Roles
+            .Where(role => role.CompanyId.HasValue && role.Name != null && role.Name.StartsWith("SystemAdmin-"))
+            .ToListAsync();
+
+        foreach (var role in adminRoles)
+        {
+            var companyId = role.CompanyId!.Value;
+            Guid parentCompanyId;
+            try
+            {
+                parentCompanyId = await companyHierarchyReader.GetParentCompanyIdForCompanyAsync(companyId, CancellationToken.None);
+            }
+            catch
+            {
+                continue;
+            }
+
+            if (parentCompanyId != companyId)
+            {
+                continue;
+            }
+
+            await CompanyRoleTemplates.SyncPermissionClaimsAsync(
+                roleManager,
+                role,
+                PermissionList.GetParentCompanyAdminPermissions(),
+                removeObsolete: true);
+        }
     }
 
     private async Task SyncTenantTemplateRolesAsync(AuthDbContext dbContext)

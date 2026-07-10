@@ -28,6 +28,19 @@ public class UserService : BaseApiService, IUserService
         return SendAsync<UpdateDeleteResponseDto>(request,null);
     }
 
+    public async Task<ApiResult<CreateCompanyUserResultDto>> CreateCompanyUserAsync(Guid companyId, CreateCompanyUserDto user)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"{_path}/users/company/{companyId}")
+        {
+            Content = JsonContent.Create(new
+            {
+                User = user
+            })
+        };
+
+        return await SendAsync<CreateCompanyUserResultDto>(request, null);
+    }
+
     public async Task<ApiResult<UserDto>> GetByUserName(string userName)
     {
         var encodedUserName = Uri.EscapeDataString(userName);

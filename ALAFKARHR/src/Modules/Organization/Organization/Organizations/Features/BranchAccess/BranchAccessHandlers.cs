@@ -3,9 +3,6 @@ using Shared.Contracts.Organization;
 
 namespace Organization.Organizations.Features.BranchAccess;
 
-public record AssignUserBranchesCommand(Guid UserId, Guid CompanyId, List<Guid> BranchIds, Guid? DefaultBranchId) : ICommand<AssignUserBranchesResult>;
-
-public record AssignUserBranchesResult(int AssignedCount);
 public record GetBranchRoleProfilesQuery() : IQuery<GetBranchRoleProfilesResult>;
 public record GetBranchRoleProfilesResult(List<BranchRoleProfileDto> Profiles);
 public record AssignUserBranchRoleCommand(Guid UserId, Guid CompanyId, Guid BranchId, string TemplateKey) : ICommand<AssignUserBranchRoleResult>;
