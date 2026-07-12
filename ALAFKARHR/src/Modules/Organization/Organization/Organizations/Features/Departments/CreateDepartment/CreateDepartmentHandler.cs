@@ -13,9 +13,12 @@ public class CreateDepartmentHandler(OrganizationDbContext dbContext, IHttpConte
         if (company is null)
             throw new NotFoundException($"Company not found: {request.Department.CompanyId}");
 
-        var administration = await dbContext.Administrations.FindAsync([request.Department.AdministrationId]);
+        var administrationId = request.Department.AdministrationId
+            ?? throw new BadRequestException("Administration is required");
+
+        var administration = await dbContext.Administrations.FindAsync([administrationId]);
         if (administration is null)
-            throw new NotFoundException($"Administration not found: {request.Department.AdministrationId}");
+            throw new NotFoundException($"Administration not found: {administrationId}");
 
         //if(request.Department.HeadOfDepartment.HasValue)
         //{
@@ -33,11 +36,11 @@ public class CreateDepartmentHandler(OrganizationDbContext dbContext, IHttpConte
             request.Department.Name,
             request.Department.NameEng,
             request.Department.Code,
-            request.Department.AdministrationId.Value,
+            administrationId,
             request.Department.HeadOfDepartment,
             request.Department.CompanyId,
             request.Department.IsActive,
-            request.Department.HeadOfDepartment,
+            request.Department.ParentDepartmentId,
             request.Department.Location,
             request.Department.Longitude,
             request.Department.Latitude,
