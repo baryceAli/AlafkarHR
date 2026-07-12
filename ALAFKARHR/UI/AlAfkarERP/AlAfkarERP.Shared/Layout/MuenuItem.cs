@@ -665,8 +665,8 @@ public class MenuItem
             {
                 new MenuItem
                 {
-                    TextEn="Dashboard",
-                    TextAr="لوحة التحكم",
+                    TextEn="Organization Tree",
+                    TextAr="شجرة الهيكل التنظيمي",
                     Icon="bi-speedometer2",
                     Url="/Organization/Dashboard",
                     PermissionPolicy=PermissionList.CompanyPermissions.Select

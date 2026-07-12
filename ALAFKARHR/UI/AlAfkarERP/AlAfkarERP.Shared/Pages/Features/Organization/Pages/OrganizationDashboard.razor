@@ -1,11 +1,15 @@
+﻿
 @layout AdminLayout
 @page "/Organization/Dashboard"
+@using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
 @using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.GeneralSettings.Dtos
 @using SharedWithUI.Organization.Dtos
+@using SharedWithUI.Permissions
 @implements IDisposable
 
 @inject ICompanyService CompanyService
@@ -17,430 +21,389 @@
 @inject NavigationManager NavigationManager
 @inject SharedDataService SharedDataService
 @inject ToastService ToastService
+@inject ModalService ModalService
 
-<div class="org-dashboard erp-page" dir="@SharedDataService.PageDirection">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
-        <div>
-            <h3 class="mb-1">@Text("Organizational Structure", "الهيكل التنظيمي")</h3>
-            <div class="text-muted">@Text("Company hierarchy from branches to departments", "تسلسل الشركة من الفروع إلى الأقسام")</div>
-        </div>
-        <div class="d-flex gap-2">
-            <a class="btn btn-outline-primary" href="/Organization/Company/List">
-                <i class="bi bi-building"></i>
-                @Text("Company", "الشركة")
-            </a>
-            <button class="btn btn-primary" @onclick="LoadDashboardAsync" disabled="@isLoading">
-                <i class="bi bi-arrow-clockwise"></i>
-                @Text("Refresh", "تحديث")
-            </button>
-        </div>
-    </div>
-
-    @if (isLoading)
+<div class="organization-tree-page erp-page" dir="@SharedDataService.PageDirection">
+    @if (AuthState is null)
     {
-        <AppCard BodyClass="py-5 text-center">
-                <div class="spinner-border text-primary mb-3" role="status"></div>
-                <div class="fw-semibold">@Text("Loading organization structure...", "جاري تحميل الهيكل التنظيمي...")</div>
-        </AppCard>
+        <AppCard BodyClass="py-5 text-center"><div class="spinner-border text-primary mb-3"></div><div class="fw-semibold">@T("Loading organization tree...", "جاري تحميل الهيكل التنظيمي...")</div></AppCard>
     }
-    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    else if (!CanViewTree)
     {
-        <AppPageMessage Message="@errorMessage"
-                        Type="error"
-                        Direction="@SharedDataService.PageDirection"
-                        Dismissible="false" />
+        <div class="alert alert-warning d-flex align-items-center gap-2"><i class="bi bi-shield-lock"></i><span>@T("You do not have permission to view the organizational structure.", "ليس لديك صلاحية عرض الهيكل التنظيمي.")</span></div>
     }
     else
     {
+        <PageHeader Title="@T("Organization Tree", "شجرة الهيكل التنظيمي")" Subtitle="@T("View and maintain companies, branches, administrations, and departments from one structure.", "عرض وإدارة الشركات والفروع والإدارات والأقسام من هيكل واحد.")" Overline="@T("Organization", "المنظمة")" Icon="bi-diagram-3">
+            <Actions>
+                <button class="btn btn-outline-primary" @onclick="LoadStructureAsync" disabled="@isLoading" title="@T("Refresh organization tree", "تحديث شجرة الهيكل التنظيمي")" aria-label="@T("Refresh organization tree", "تحديث شجرة الهيكل التنظيمي")"><i class="bi bi-arrow-clockwise"></i> @T("Refresh", "تحديث")</button>
+                <button class="btn btn-outline-secondary" @onclick="ExpandAll" disabled="@(structure is null)" title="@T("Expand all nodes", "توسيع كل العناصر")" aria-label="@T("Expand all nodes", "توسيع كل العناصر")"><i class="bi bi-arrows-expand"></i> @T("Expand All", "توسيع الكل")</button>
+                <button class="btn btn-outline-secondary" @onclick="CollapseAll" disabled="@(structure is null)" title="@T("Collapse all nodes", "طي كل العناصر")" aria-label="@T("Collapse all nodes", "طي كل العناصر")"><i class="bi bi-arrows-collapse"></i> @T("Collapse All", "طي الكل")</button>
+            </Actions>
+        </PageHeader>
+
         <div class="row g-3 mb-4">
-            <div class="col-sm-6 col-xl-3">
-                <div class="org-stat border-primary">
-                    <span>@Text("Companies", "الشركات")</span>
-                    <strong>@(company is null ? 0 : 1)</strong>
-                </div>
-            </div>
-            <div class="col-sm-6 col-xl-3">
-                <div class="org-stat border-info">
-                    <span>@Text("Branches", "الفروع")</span>
-                    <strong>@branches.Count</strong>
-                </div>
-            </div>
-            <div class="col-sm-6 col-xl-3">
-                <div class="org-stat border-success">
-                    <span>@Text("Administrations", "الإدارات")</span>
-                    <strong>@AdministrationCount</strong>
-                </div>
-            </div>
-            <div class="col-sm-6 col-xl-3">
-                <div class="org-stat border-warning">
-                    <span>@Text("Departments", "الأقسام")</span>
-                    <strong>@DepartmentCount</strong>
-                </div>
-            </div>
+            @StatCard("bi-buildings", T("Companies", "الشركات"), structure?.CompanyCount ?? 0, "text-primary")
+            @StatCard("bi-diagram-2", T("Branches", "الفروع"), structure?.BranchCount ?? 0, "text-info")
+            @StatCard("bi-kanban", T("Administrations", "الإدارات"), structure?.AdministrationCount ?? 0, "text-success")
+            @StatCard("bi-grid-1x2", T("Departments", "الأقسام"), structure?.DepartmentCount ?? 0, "text-warning")
         </div>
 
-        @if (company is null)
+        <AppCard CssClass="mb-4 allow-overflow"><div class="org-tree-toolbar"><div class="org-tree-search"><i class="bi bi-search"></i><input class="form-control" placeholder="@T("Search names or codes...", "ابحث بالاسم أو الكود...")" @bind="searchText" @bind:event="oninput" /></div>@if (!string.IsNullOrWhiteSpace(searchText)) { <button class="btn btn-outline-secondary" @onclick="ClearSearch" title="@T("Clear search", "مسح البحث")" aria-label="@T("Clear search", "مسح البحث")"><i class="bi bi-x-lg"></i> @T("Clear", "مسح")</button> }</div></AppCard>
+
+        @if (isLoading)
         {
-            <AppCard BodyClass="text-center py-5 text-muted">
-                    @Text("No company profile was found for the current user.", "لم يتم العثور على ملف شركة للمستخدم الحالي.")
-            </AppCard>
+            <AppCard BodyClass="py-5 text-center"><div class="spinner-border text-primary mb-3"></div><div class="fw-semibold">@T("Loading organization tree...", "جاري تحميل شجرة الهيكل التنظيمي...")</div></AppCard>
+        }
+        else if (!string.IsNullOrWhiteSpace(errorMessage))
+        {
+            <AppPageMessage Message="@errorMessage" Type="error" Direction="@SharedDataService.PageDirection" Dismissible="false" />
+        }
+        else if (structure is null || structure.Companies.Count == 0)
+        {
+            <AppCard BodyClass="py-5 text-center text-muted"><i class="bi bi-diagram-3 fs-2 d-block mb-2"></i>@T("No organization structure is available for the current user.", "لا يوجد هيكل تنظيمي متاح للمستخدم الحالي.")</AppCard>
         }
         else
         {
-            <AppCard CssClass="mb-4">
-                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
-                        <div>
-                            <div class="text-muted small">@Text("Company", "الشركة")</div>
-                            <h4 class="mb-1">@DisplayName(company.Name, company.NameEng)</h4>
-                            <div class="text-muted">@company.Code | @CurrencyDisplay(company.CurrencyId) | @company.TimeZone</div>
-                        </div>
-                        <div class="text-md-end">
-                            <div>@company.Phone</div>
-                            <div class="text-muted">@company.Email</div>
-                        </div>
-                    </div>
-            </AppCard>
-
-            @if (branches.Count == 0)
-            {
-                <AppCard BodyClass="text-center py-5 text-muted">
-                        @Text("No branches have been added yet.", "لم تتم إضافة فروع بعد.")
-                </AppCard>
-            }
-            else
-            {
-                <div class="org-tree">
-                    @foreach (var branchNode in branches)
-                    {
-                        <section class="org-branch">
-                            <div class="org-branch-header">
-                                <div>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <i class="bi bi-diagram-3 text-primary"></i>
-                                        <h5 class="mb-0">@DisplayName(branchNode.Branch.Name, branchNode.Branch.NameEng)</h5>
-                                        @if (branchNode.Branch.IsMainBranch)
-                                        {
-                                            <span class="badge text-bg-primary">@Text("Main", "رئيسي")</span>
-                                        }
-                                    </div>
-                                    <div class="text-muted small mt-1">@branchNode.Branch.Location</div>
-                                </div>
-                                <div class="org-branch-meta">
-                                    <span>@Text("Administrations", "الإدارات"): @branchNode.Administrations.Count</span>
-                                    <span>@Text("Departments", "الأقسام"): @branchNode.DepartmentCount</span>
-                                </div>
-                            </div>
-
-                            @if (branchNode.Administrations.Count == 0)
-                            {
-                                <div class="org-empty">@Text("No administrations under this branch.", "لا توجد إدارات ضمن هذا الفرع.")</div>
-                            }
-                            else
-                            {
-                                <div class="row g-3">
-                                    @foreach (var adminNode in branchNode.Administrations)
-                                    {
-                                        <div class="col-lg-6">
-                                            <article class="org-admin">
-                                                <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
-                                                    <div>
-                                                        <div class="fw-semibold">@DisplayName(adminNode.Administration.Name, adminNode.Administration.NameEng)</div>
-                                                        <div class="text-muted small">@adminNode.Administration.Code</div>
-                                                    </div>
-                                                    <span class="badge @(adminNode.Administration.IsActive ? "text-bg-success" : "text-bg-secondary")">
-                                                        @(adminNode.Administration.IsActive ? Text("Active", "فعال") : Text("Inactive", "غير فعال"))
-                                                    </span>
-                                                </div>
-
-                                                @if (adminNode.Departments.Count == 0)
-                                                {
-                                                    <div class="org-empty py-3">@Text("No departments.", "لا توجد أقسام.")</div>
-                                                }
-                                                else
-                                                {
-                                                    <div class="org-departments">
-                                                        @foreach (var department in adminNode.Departments)
-                                                        {
-                                                            <div class="org-department">
-                                                                <div>
-                                                                    <div class="fw-semibold">@DisplayName(department.Name, department.NameEng)</div>
-                                                                    <div class="text-muted small">@department.Location</div>
-                                                                </div>
-                                                                <span class="badge @(department.IsActive ? "text-bg-light" : "text-bg-secondary")">
-                                                                    @(department.IsActive ? Text("Active", "فعال") : Text("Inactive", "غير فعال"))
-                                                                </span>
-                                                            </div>
-                                                        }
-                                                    </div>
-                                                }
-                                            </article>
-                                        </div>
-                                    }
-                                </div>
-                            }
-                        </section>
-                    }
-                </div>
-            }
+            <div class="org-tree-surface">@foreach (var company in structure.Companies.Where(CompanyVisible)) { @RenderCompany(company, 0) }</div>
         }
     }
 </div>
 
+@if (activeForm != QuickFormKind.None)
+{
+    <div class="modal-backdrop fade show"></div><div class="modal fade show d-block" tabindex="-1"><div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content org-quick-modal"><div class="modal-header"><div><h5 class="modal-title">@QuickFormTitle</h5><div class="text-muted small">@QuickFormSubtitle</div></div><button type="button" class="btn-close" @onclick="CloseQuickForm" disabled="@isSaving" title="@T("Close form", "إغلاق النموذج")" aria-label="@T("Close form", "إغلاق النموذج")"></button></div><div class="modal-body">
+        @if (activeForm is QuickFormKind.CreateCompany or QuickFormKind.EditCompany)
+        {
+            <EditForm Model="companyForm" OnValidSubmit="SaveCompanyAsync"><DataAnnotationsValidator /><ValidationSummary /><div class="row g-3">
+                <div class="col-md-6"><label class="form-label">@T("Name", "الاسم")</label><InputText class="form-control" @bind-Value="companyForm.Name" /></div><div class="col-md-6"><label class="form-label">@T("Name (English)", "الاسم بالإنجليزية")</label><InputText class="form-control" @bind-Value="companyForm.NameEng" /></div>
+                <div class="col-md-4"><label class="form-label">@T("Code", "الكود")</label><InputText class="form-control" @bind-Value="companyForm.Code" /></div><div class="col-md-4"><label class="form-label">@T("VAT Number", "الرقم الضريبي")</label><InputText class="form-control" @bind-Value="companyForm.VatNo" /></div>
+                <div class="col-md-4"><label class="form-label">@T("Currency", "العملة")</label><InputSelect class="form-select" @bind-Value="companyForm.CurrencyId"><option value="">@T("Select currency", "اختر العملة")</option>@foreach (var currency in currencies) { <option value="@currency.Id">@currency.Code - @Name(currency.Name, currency.NameEng)</option> }</InputSelect></div>
+                <div class="col-md-6"><label class="form-label">@T("Email", "البريد الإلكتروني")</label><InputText class="form-control" @bind-Value="companyForm.Email" /></div><div class="col-md-6"><label class="form-label">@T("Phone", "الهاتف")</label><InputText class="form-control" @bind-Value="companyForm.Phone" /></div>
+                <div class="col-md-6"><label class="form-label">@T("Time Zone", "المنطقة الزمنية")</label><InputText class="form-control" @bind-Value="companyForm.TimeZone" /></div><div class="col-md-6"><label class="form-label">@T("HQ Location", "موقع المقر")</label><InputText class="form-control" @bind-Value="companyForm.HqLocation" /></div>
+                <div class="col-md-6"><label class="form-label">@T("Longitude", "خط الطول")</label><InputNumber class="form-control" @bind-Value="companyForm.HqLongitude" /></div><div class="col-md-6"><label class="form-label">@T("Latitude", "خط العرض")</label><InputNumber class="form-control" @bind-Value="companyForm.HqLatitude" /></div>
+                @if (activeForm == QuickFormKind.CreateCompany) { <div class="col-md-4"><label class="form-label">@T("Admin User Name", "اسم مستخدم المدير")</label><InputText class="form-control" @bind-Value="companyForm.AdminUserName" /></div><div class="col-md-4"><label class="form-label">@T("Admin Email", "بريد المدير")</label><InputText class="form-control" @bind-Value="companyForm.AdminEmail" /></div><div class="col-md-4"><label class="form-label">@T("Temporary Password", "كلمة المرور المؤقتة")</label><InputText type="password" class="form-control" @bind-Value="companyForm.AdminTemporaryPassword" /></div><div class="col-md-6"><label class="form-label">@T("Admin Phone", "هاتف المدير")</label><InputText class="form-control" @bind-Value="companyForm.AdminPhoneNumber" /></div> }
+            </div>@QuickFormFooter</EditForm>
+        }
+        else if (activeForm is QuickFormKind.CreateBranch or QuickFormKind.EditBranch)
+        {
+            <EditForm Model="branchForm" OnValidSubmit="SaveBranchAsync"><DataAnnotationsValidator /><ValidationSummary /><div class="row g-3">
+                <div class="col-md-6"><label class="form-label">@T("Name", "الاسم")</label><InputText class="form-control" @bind-Value="branchForm.Name" /></div><div class="col-md-6"><label class="form-label">@T("Name (English)", "الاسم بالإنجليزية")</label><InputText class="form-control" @bind-Value="branchForm.NameEng" /></div>
+                <div class="col-md-4"><label class="form-label">@T("Code", "الكود")</label><InputText class="form-control" @bind-Value="branchForm.Code" /></div><div class="col-md-4"><label class="form-label">@T("Specialization", "التخصص")</label><InputSelect class="form-select" @bind-Value="branchForm.Specialization"><option value="@BranchSpecialization.General">@T("General", "عام")</option><option value="@BranchSpecialization.StoreFront">@T("StoreFront", "واجهة متجر")</option></InputSelect></div><div class="col-md-4"><label class="form-label">@T("Phone", "الهاتف")</label><InputText class="form-control" @bind-Value="branchForm.Phone" /></div>
+                <div class="col-md-6"><label class="form-label">@T("Email", "البريد الإلكتروني")</label><InputText class="form-control" @bind-Value="branchForm.Email" /></div><div class="col-md-6"><label class="form-label">@T("Location", "الموقع")</label><InputText class="form-control" @bind-Value="branchForm.Location" /></div>
+                <div class="col-md-6"><label class="form-label">@T("Longitude", "خط الطول")</label><InputNumber class="form-control" @bind-Value="branchForm.Longitude" /></div><div class="col-md-6"><label class="form-label">@T("Latitude", "خط العرض")</label><InputNumber class="form-control" @bind-Value="branchForm.Latitude" /></div>
+            </div>@QuickFormFooter</EditForm>
+        }
+        else if (activeForm is QuickFormKind.CreateAdministration or QuickFormKind.EditAdministration)
+        {
+            <EditForm Model="administrationForm" OnValidSubmit="SaveAdministrationAsync"><DataAnnotationsValidator /><ValidationSummary /><div class="row g-3">
+                <div class="col-md-6"><label class="form-label">@T("Name", "الاسم")</label><InputText class="form-control" @bind-Value="administrationForm.Name" /></div><div class="col-md-6"><label class="form-label">@T("Name (English)", "الاسم بالإنجليزية")</label><InputText class="form-control" @bind-Value="administrationForm.NameEng" /></div>
+                <div class="col-md-6"><label class="form-label">@T("Code", "الكود")</label><InputText class="form-control" @bind-Value="administrationForm.Code" /></div><div class="col-md-6"><label class="form-label">@T("Scope", "النطاق")</label><input class="form-control" value="@AdministrationScopeLabel" disabled /></div>
+                <div class="col-md-6"><div class="org-check"><InputCheckbox class="form-check-input" @bind-Value="administrationForm.IsHigherManagement" /><span>@T("Higher management", "إدارة عليا")</span></div></div><div class="col-md-6"><div class="org-check"><InputCheckbox class="form-check-input" @bind-Value="administrationForm.IsActive" /><span>@T("Active", "نشط")</span></div></div>
+            </div>@QuickFormFooter</EditForm>
+        }
+        else if (activeForm is QuickFormKind.CreateDepartment or QuickFormKind.EditDepartment)
+        {
+            <EditForm Model="departmentForm" OnValidSubmit="SaveDepartmentAsync"><DataAnnotationsValidator /><ValidationSummary /><div class="row g-3">
+                <div class="col-md-6"><label class="form-label">@T("Name", "الاسم")</label><InputText class="form-control" @bind-Value="departmentForm.Name" /></div><div class="col-md-6"><label class="form-label">@T("Name (English)", "الاسم بالإنجليزية")</label><InputText class="form-control" @bind-Value="departmentForm.NameEng" /></div>
+                <div class="col-md-6"><label class="form-label">@T("Code", "الكود")</label><InputText class="form-control" @bind-Value="departmentForm.Code" /></div><div class="col-md-6"><label class="form-label">@T("Location", "الموقع")</label><InputText class="form-control" @bind-Value="departmentForm.Location" /></div>
+                <div class="col-md-4"><label class="form-label">@T("Longitude", "خط الطول")</label><InputNumber class="form-control" @bind-Value="departmentForm.Longitude" /></div><div class="col-md-4"><label class="form-label">@T("Latitude", "خط العرض")</label><InputNumber class="form-control" @bind-Value="departmentForm.Latitude" /></div><div class="col-md-4"><label class="form-label">@T("Allowed Radius", "نطاق الحضور")</label><InputNumber class="form-control" @bind-Value="departmentForm.AllowedRadiusMeters" /></div>
+                <div class="col-12"><div class="org-check"><InputCheckbox class="form-check-input" @bind-Value="departmentForm.IsActive" /><span>@T("Active", "نشط")</span></div></div>
+            </div>@QuickFormFooter</EditForm>
+        }
+        else if (activeForm == QuickFormKind.ResetPassword)
+        {
+            <EditForm Model="passwordResetForm" OnValidSubmit="ResetPasswordAsync"><DataAnnotationsValidator /><div class="row g-3"><div class="col-12"><label class="form-label">@T("Temporary Password", "كلمة المرور المؤقتة")</label><InputText type="password" class="form-control" @bind-Value="passwordResetForm.TemporaryPassword" /></div></div>@QuickFormFooter</EditForm>
+        }
+    </div></div></div></div>
+}
+
 <style>
-    .org-dashboard {
-        max-width: 1400px;
-    }
-
-    .org-stat {
-        background: var(--erp-surface);
-        border-inline-start: 4px solid;
-        border-radius: var(--erp-radius-lg);
-        box-shadow: var(--erp-shadow-sm);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        min-height: 88px;
-        padding: 1rem 1.125rem;
-    }
-
-    .org-stat span {
-        color: var(--erp-text-muted);
-        font-size: 0.95rem;
-    }
-
-    .org-stat strong {
-        font-size: 2rem;
-        line-height: 1;
-    }
-
-    .org-tree {
-        display: grid;
-        gap: 1rem;
-    }
-
-    .org-branch {
-        background: var(--erp-surface);
-        border: 1px solid var(--erp-border);
-        border-radius: var(--erp-radius-lg);
-        box-shadow: var(--erp-shadow-sm);
-        padding: 1rem;
-    }
-
-    .org-branch-header {
-        border-bottom: 1px solid var(--erp-border);
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 1rem;
-        margin-bottom: 1rem;
-        padding-bottom: 1rem;
-    }
-
-    .org-branch-meta {
-        color: var(--erp-text-muted);
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        justify-content: flex-end;
-        font-size: 0.9rem;
-    }
-
-    .org-admin {
-        background: var(--erp-surface-muted);
-        border: 1px solid var(--erp-border);
-        border-radius: var(--erp-radius-md);
-        height: 100%;
-        padding: 1rem;
-    }
-
-    .org-departments {
-        display: grid;
-        gap: 0.625rem;
-    }
-
-    .org-department {
-        background: var(--erp-surface);
-        border: 1px solid var(--erp-border);
-        border-radius: var(--erp-radius-md);
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: 0.75rem;
-        padding: 0.75rem;
-    }
-
-    .org-empty {
-        background: var(--erp-surface-muted);
-        border: 1px dashed var(--erp-border-strong);
-        border-radius: var(--erp-radius-md);
-        color: var(--erp-text-muted);
-        padding: 1rem;
-        text-align: center;
-    }
-
-    [dir="rtl"] .org-stat {
-        border-inline-start: 0;
-        border-inline-end: 4px solid;
-    }
-
-    @@media (max-width: 767.98px) {
-        .org-branch-header,
-        .org-department {
-            flex-direction: column;
-        }
-
-        .org-branch-meta {
-            justify-content: flex-start;
-        }
-    }
+    .organization-tree-page { max-width: 1480px; }
+    .org-tree-stat { align-items: center; background: var(--erp-surface); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-lg); box-shadow: var(--erp-shadow-sm); display: flex; gap: .875rem; min-height: 92px; padding: 1rem; }
+    .org-tree-stat-icon { align-items: center; background: var(--erp-surface-muted); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-md); display: inline-flex; height: 42px; justify-content: center; width: 42px; }
+    .org-tree-stat strong { display: block; font-size: 1.6rem; line-height: 1.1; }
+    .org-tree-toolbar { align-items: center; display: flex; gap: .75rem; }
+    .org-tree-search { flex: 1 1 320px; position: relative; }
+    .org-tree-search i { color: var(--erp-text-muted); inset-block-start: 50%; inset-inline-start: .875rem; position: absolute; transform: translateY(-50%); }
+    .org-tree-search .form-control { padding-inline-start: 2.35rem; }
+    .org-tree-surface { display: grid; gap: 1rem; }
+    .org-tree-node { margin-inline-start: calc(var(--tree-depth, 0) * 1rem); }
+    .org-node-card { background: var(--erp-surface); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-lg); box-shadow: var(--erp-shadow-sm); overflow: hidden; }
+    .org-node-card.is-company { border-inline-start: 4px solid var(--erp-primary); }
+    .org-node-card.is-branch { border-inline-start: 4px solid var(--erp-info); }
+    .org-node-card.is-administration { border-inline-start: 4px solid var(--erp-success); }
+    .org-node-card.is-department { border-inline-start: 4px solid var(--erp-warning); }
+    .org-node-main { align-items: flex-start; display: flex; gap: .75rem; justify-content: space-between; padding: .875rem 1rem; }
+    .org-node-title { align-items: flex-start; display: flex; gap: .75rem; min-width: 0; }
+    .org-node-icon { align-items: center; background: var(--erp-surface-muted); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-md); display: inline-flex; flex: 0 0 auto; height: 38px; justify-content: center; width: 38px; }
+    .org-node-name { font-weight: 700; overflow-wrap: anywhere; }
+    .org-node-meta { color: var(--erp-text-muted); display: flex; flex-wrap: wrap; gap: .5rem; font-size: .85rem; margin-top: .15rem; }
+    .org-node-actions { display: flex; flex-wrap: wrap; gap: .35rem; justify-content: flex-end; }
+    .org-node-actions .btn { align-items: center; display: inline-flex; height: 32px; justify-content: center; padding: 0; width: 34px; }
+    .org-node-children { border-block-start: 1px solid var(--erp-border); display: grid; gap: .75rem; padding: .875rem; }
+    .org-node-empty { background: var(--erp-surface-muted); border: 1px dashed var(--erp-border-strong); border-radius: var(--erp-radius-md); color: var(--erp-text-muted); padding: .75rem; text-align: center; }
+    .org-check { align-items: center; background: var(--erp-surface-muted); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-md); display: inline-flex; gap: .5rem; padding: .75rem 1rem; }
+    [dir="rtl"] .org-node-card { border-inline-start-width: 1px; border-inline-end-width: 4px; }
+    @@media (max-width: 767.98px) { .org-tree-toolbar, .org-node-main { flex-direction: column; } .org-tree-node { margin-inline-start: calc(var(--tree-depth, 0) * .45rem); } .org-node-actions { justify-content: flex-start; } }
 </style>
 
 @code {
-    private CompanyDto? company;
+    private OrganizationStructureDto? structure;
     private List<CurrencyDto> currencies = [];
-    private List<BranchNode> branches = [];
+    private AuthenticationState? AuthState;
     private bool isLoading = true;
+    private bool isSaving;
     private string? errorMessage;
+    private string searchText = string.Empty;
+    private readonly HashSet<string> expandedNodes = [];
+    private QuickFormKind activeForm = QuickFormKind.None;
+    private CompanyDto companyForm = new();
+    private BranchDto branchForm = new();
+    private AdministrationDto administrationForm = new();
+    private DepartmentDto departmentForm = new();
+    private PasswordResetForm passwordResetForm = new();
+    private Guid selectedChildCompanyId;
+    private string selectedScopeName = string.Empty;
 
-    private int AdministrationCount => branches.Sum(branch => branch.Administrations.Count);
-    private int DepartmentCount => branches.Sum(branch => branch.DepartmentCount);
+    private bool CanViewTree => HasPermission(PermissionList.CompanyPermissions.Select);
+    private bool CanCreateChildCompany => HasPermission(PermissionList.CompanyPermissions.CreateChild);
+    private bool CanEditChildCompany => HasPermission(PermissionList.CompanyPermissions.EditChild);
+    private bool CanDisableChildCompany => HasPermission(PermissionList.CompanyPermissions.DisableChild);
+    private bool CanResetChildAdminPassword => HasPermission(PermissionList.CompanyPermissions.ResetChildAdminPassword);
+    private bool CanCreateBranch => HasPermission(PermissionList.BranchPermissions.Create);
+    private bool CanEditBranch => HasPermission(PermissionList.BranchPermissions.Edit);
+    private bool CanDeleteBranch => HasPermission(PermissionList.BranchPermissions.Delete);
+    private bool CanCreateAdministration => HasPermission(PermissionList.AdministrationPermissions.Create);
+    private bool CanEditAdministration => HasPermission(PermissionList.AdministrationPermissions.Edit);
+    private bool CanDeleteAdministration => HasPermission(PermissionList.AdministrationPermissions.Delete);
+    private bool CanCreateDepartment => HasPermission(PermissionList.DepartmentPermissions.Create);
+    private bool CanEditDepartment => HasPermission(PermissionList.DepartmentPermissions.Edit);
+    private bool CanDeleteDepartment => HasPermission(PermissionList.DepartmentPermissions.Delete);
+
+    private string QuickFormTitle => activeForm switch
+    {
+        QuickFormKind.CreateCompany => T("Create Child Company", "إنشاء شركة تابعة"),
+        QuickFormKind.EditCompany => T("Edit Child Company", "تعديل الشركة التابعة"),
+        QuickFormKind.CreateBranch => T("Create Branch", "إنشاء فرع"),
+        QuickFormKind.EditBranch => T("Edit Branch", "تعديل الفرع"),
+        QuickFormKind.CreateAdministration => T("Create Administration", "إنشاء إدارة"),
+        QuickFormKind.EditAdministration => T("Edit Administration", "تعديل الإدارة"),
+        QuickFormKind.CreateDepartment => T("Create Department", "إنشاء قسم"),
+        QuickFormKind.EditDepartment => T("Edit Department", "تعديل القسم"),
+        QuickFormKind.ResetPassword => T("Reset Child Admin Password", "إعادة تعيين كلمة مرور مدير الشركة التابعة"),
+        _ => string.Empty
+    };
+
+    private string QuickFormSubtitle => string.IsNullOrWhiteSpace(selectedScopeName) ? T("Save changes and refresh the organization tree.", "احفظ التغييرات وسيتم تحديث الشجرة.") : selectedScopeName;
+    private string AdministrationScopeLabel => administrationForm.BranchId.HasValue ? T("Branch administration", "إدارة فرع") : T("Company-level administration", "إدارة على مستوى الشركة");
+    private RenderFragment QuickFormFooter => @<div class="d-flex justify-content-end gap-2 mt-4"><button type="button" class="btn btn-outline-secondary" @onclick="CloseQuickForm" disabled="@isSaving" title="@T("Cancel changes", "إلغاء التغييرات")" aria-label="@T("Cancel changes", "إلغاء التغييرات")">@T("Cancel", "إلغاء")</button><button type="submit" class="btn btn-primary" disabled="@isSaving" title="@T("Save changes", "حفظ التغييرات")" aria-label="@T("Save changes", "حفظ التغييرات")"><i class="bi bi-check2"></i> @T("Save", "حفظ")</button></div>;
+
+    protected override void OnInitialized() => SharedDataService.OnChange1 += HandleLanguageChangeAsync;
 
     protected override async Task OnInitializedAsync()
     {
-        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
-        await LoadDashboardAsync();
+        AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+        if (AuthState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        await LoadCurrenciesAsync();
+        await LoadStructureAsync();
     }
 
-    private async Task LoadDashboardAsync()
+    private async Task LoadCurrenciesAsync()
+    {
+        var result = await CurrencyService.GetAvailableAsync(0, 500);
+        if (result.IsSuccess && result.Data is not null)
+            currencies = result.Data.Data.ToList();
+    }
+
+    private async Task LoadStructureAsync()
     {
         isLoading = true;
         errorMessage = null;
-        branches = [];
-
         try
         {
-            var authState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
-            if (authState.User.Identity?.IsAuthenticated != true)
+            var result = await CompanyService.GetOrganizationStructureAsync();
+            if (!result.IsSuccess || result.Data is null)
             {
-                NavigationManager.NavigateTo("/login", true);
+                SetError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Unable to load organization tree.", "تعذر تحميل شجرة الهيكل التنظيمي."));
                 return;
             }
-
-            var companyIdValue = authState.User.Claims.FirstOrDefault(c => c.Type == "company_id")?.Value;
-            if (!Guid.TryParse(companyIdValue, out var companyId))
-            {
-                SetError(Text("The current user is not linked to a company.", "المستخدم الحالي غير مرتبط بشركة."));
-                return;
-            }
-
-            var companyResult = await CompanyService.GetByIdAsync(companyId);
-            if (companyResult.IsSuccess)
-            {
-                company = companyResult.Data;
-            }
-
-            var currencyResult = await CurrencyService.GetAsync(companyId, 0, 1000);
-            if (currencyResult.IsSuccess && currencyResult.Data is not null)
-            {
-                currencies = currencyResult.Data.Data.ToList();
-            }
-
-            var branchResult = await BranchService.GetByCompanyIdAsync(companyId, 0, 1000);
-            if (!branchResult.IsSuccess)
-            {
-                SetError(branchResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load branches.", "تعذر تحميل الفروع."));
-                return;
-            }
-
-            foreach (var branch in branchResult.Data?.Data ?? [])
-            {
-                var branchNode = new BranchNode(branch);
-                var administrationResult = await AdministrationService.GetByBranchAsync(branch.Id, 0, 1000);
-
-                if (administrationResult.IsSuccess)
-                {
-                    foreach (var administration in administrationResult.Data?.Data ?? [])
-                    {
-                        var adminNode = new AdministrationNode(administration);
-                        var departmentResult = await DepartmentService.GetByAdministrationAsync(administration.Id, 0, 1000);
-
-                        if (departmentResult.IsSuccess)
-                        {
-                            adminNode.Departments.AddRange(departmentResult.Data?.Data ?? []);
-                        }
-
-                        branchNode.Administrations.Add(adminNode);
-                    }
-                }
-
-                branches.Add(branchNode);
-            }
+            structure = result.Data;
+            ExpandAll();
         }
         catch
         {
-            SetError(Text("An error occurred while loading the organization structure.", "حدث خطأ أثناء تحميل الهيكل التنظيمي."));
+            SetError(T("An error occurred while loading the organization tree.", "حدث خطأ أثناء تحميل شجرة الهيكل التنظيمي."));
         }
-        finally
+        finally { isLoading = false; }
+    }
+
+    private RenderFragment StatCard(string icon, string label, int value, string tone) => @<div class="col-sm-6 col-xl-3"><div class="org-tree-stat"><span class="org-tree-stat-icon @tone"><i class="bi @icon"></i></span><div><div class="text-muted small">@label</div><strong>@value</strong></div></div></div>;
+
+    private RenderFragment RenderCompany(OrganizationCompanyNodeDto company, int depth) => @<div class="org-tree-node" style="--tree-depth:@depth"><article class="org-node-card is-company"><div class="org-node-main"><div class="org-node-title"><button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => Toggle(CompanyKey(company.Id))" title="@ToggleNodeTooltip(CompanyKey(company.Id))" aria-label="@ToggleNodeTooltip(CompanyKey(company.Id))"><i class="@ChevronIcon(CompanyKey(company.Id))"></i></button><span class="org-node-icon text-primary"><i class="bi bi-buildings"></i></span><div><div class="org-node-name">@Name(company.Name, company.NameEng)</div><div class="org-node-meta"><span>@company.Code</span><span>@T("Branches", "الفروع"): @company.BranchCount</span><span>@T("Administrations", "الإدارات"): @company.AdministrationCount</span><span>@T("Departments", "الأقسام"): @company.DepartmentCount</span><span class="@StatusBadgeClass(company.IsActive)">@(company.IsActive ? T("Active", "نشط") : T("Inactive", "غير نشط"))</span></div></div></div><div class="org-node-actions">@CompanyActions(company)</div></div>@if (IsExpanded(CompanyKey(company.Id))) { <div class="org-node-children">@if (!company.Administrations.Any(AdminVisible) && !company.Branches.Any(BranchVisible) && !company.ChildCompanies.Any(CompanyVisible)) { <div class="org-node-empty">@T("No visible structure under this company.", "لا يوجد هيكل ظاهر تحت هذه الشركة.")</div> } @foreach (var administration in company.Administrations.Where(AdminVisible)) { @RenderAdministration(administration, depth + 1) } @foreach (var branch in company.Branches.Where(BranchVisible)) { @RenderBranch(branch, depth + 1) } @foreach (var child in company.ChildCompanies.Where(CompanyVisible)) { @RenderCompany(child, depth + 1) }</div>}</article></div>;
+    private RenderFragment CompanyActions(OrganizationCompanyNodeDto company) => @<text>@if (company.ParentCompanyId is null && CanCreateChildCompany) { <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenCreateCompany(company)" title="@T("Add child company", "إضافة شركة تابعة")" aria-label="@T("Add child company", "إضافة شركة تابعة")"><i class="bi bi-building-add"></i></button> } @if (company.ParentCompanyId.HasValue && CanEditChildCompany) { <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEditCompany(company)" title="@T("Edit child company", "تعديل الشركة التابعة")" aria-label="@T("Edit child company", "تعديل الشركة التابعة")"><i class="bi bi-pencil-square"></i></button> } @if (company.ParentCompanyId.HasValue && CanDisableChildCompany) { <button class="btn btn-outline-warning btn-sm" @onclick="() => ToggleChildCompanyStatusAsync(company)" title="@T("Change company status", "تغيير حالة الشركة")" aria-label="@T("Change company status", "تغيير حالة الشركة")"><i class="bi bi-slash-circle"></i></button> } @if (company.ParentCompanyId.HasValue && CanResetChildAdminPassword) { <button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenResetPassword(company)" title="@T("Reset admin password", "إعادة تعيين كلمة مرور المدير")" aria-label="@T("Reset admin password", "إعادة تعيين كلمة مرور المدير")"><i class="bi bi-key"></i></button> } @if (CanCreateBranch) { <button class="btn btn-outline-info btn-sm" @onclick="() => OpenCreateBranch(company)" title="@T("Add branch", "إضافة فرع")" aria-label="@T("Add branch", "إضافة فرع")"><i class="bi bi-diagram-2"></i></button> } @if (CanCreateAdministration) { <button class="btn btn-outline-success btn-sm" @onclick="() => OpenCreateCompanyAdministration(company)" title="@T("Add administration", "إضافة إدارة")" aria-label="@T("Add administration", "إضافة إدارة")"><i class="bi bi-kanban"></i></button> }</text>;
+
+    private RenderFragment RenderBranch(OrganizationBranchNodeDto branch, int depth) => @<div class="org-tree-node" style="--tree-depth:@depth"><article class="org-node-card is-branch"><div class="org-node-main"><div class="org-node-title"><button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => Toggle(BranchKey(branch.Id))" title="@ToggleNodeTooltip(BranchKey(branch.Id))" aria-label="@ToggleNodeTooltip(BranchKey(branch.Id))"><i class="@ChevronIcon(BranchKey(branch.Id))"></i></button><span class="org-node-icon text-info"><i class="bi bi-diagram-2"></i></span><div><div class="org-node-name">@Name(branch.Name, branch.NameEng)</div><div class="org-node-meta"><span>@branch.Code</span><span>@branch.Location</span><span>@T("Administrations", "الإدارات"): @branch.AdministrationCount</span><span>@T("Departments", "الأقسام"): @branch.DepartmentCount</span>@if (branch.IsMainBranch) { <span class="badge rounded-pill text-bg-primary">@T("Main", "رئيسي")</span> } @if (branch.Specialization == BranchSpecialization.StoreFront) { <span class="badge rounded-pill text-bg-info">@T("StoreFront", "واجهة متجر")</span> }</div></div></div><div class="org-node-actions">@BranchActions(branch)</div></div>@if (IsExpanded(BranchKey(branch.Id))) { <div class="org-node-children">@if (!branch.Administrations.Any(AdminVisible)) { <div class="org-node-empty">@T("No administrations under this branch.", "لا توجد إدارات تحت هذا الفرع.")</div> } @foreach (var administration in branch.Administrations.Where(AdminVisible)) { @RenderAdministration(administration, depth + 1) }</div>}</article></div>;
+    private RenderFragment BranchActions(OrganizationBranchNodeDto branch) => @<text>@if (CanCreateAdministration) { <button class="btn btn-outline-success btn-sm" @onclick="() => OpenCreateBranchAdministration(branch)" title="@T("Add administration", "إضافة إدارة")" aria-label="@T("Add administration", "إضافة إدارة")"><i class="bi bi-kanban"></i></button> } @if (CanEditBranch) { <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEditBranch(branch)" title="@T("Edit branch", "تعديل الفرع")" aria-label="@T("Edit branch", "تعديل الفرع")"><i class="bi bi-pencil-square"></i></button> } @if (CanDeleteBranch && !branch.IsMainBranch) { <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteBranchAsync(branch)" title="@T("Delete branch", "حذف الفرع")" aria-label="@T("Delete branch", "حذف الفرع")"><i class="bi bi-trash"></i></button> }</text>;
+
+    private RenderFragment RenderAdministration(OrganizationAdministrationNodeDto administration, int depth) => @<div class="org-tree-node" style="--tree-depth:@depth"><article class="org-node-card is-administration"><div class="org-node-main"><div class="org-node-title"><button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => Toggle(AdminKey(administration.Id))" title="@ToggleNodeTooltip(AdminKey(administration.Id))" aria-label="@ToggleNodeTooltip(AdminKey(administration.Id))"><i class="@ChevronIcon(AdminKey(administration.Id))"></i></button><span class="org-node-icon text-success"><i class="bi bi-kanban"></i></span><div><div class="org-node-name">@Name(administration.Name, administration.NameEng)</div><div class="org-node-meta"><span>@administration.Code</span><span>@T("Departments", "الأقسام"): @administration.DepartmentCount</span>@if (administration.IsHigherManagement) { <span class="badge rounded-pill text-bg-primary">@T("Higher Management", "إدارة عليا")</span> }<span class="@StatusBadgeClass(administration.IsActive)">@(administration.IsActive ? T("Active", "نشط") : T("Inactive", "غير نشط"))</span></div></div></div><div class="org-node-actions">@AdministrationActions(administration)</div></div>@if (IsExpanded(AdminKey(administration.Id))) { <div class="org-node-children">@if (!administration.ChildAdministrations.Any(AdminVisible) && !administration.Departments.Any(DepartmentVisible)) { <div class="org-node-empty">@T("No child administrations or departments.", "لا توجد إدارات تابعة أو أقسام.")</div> } @foreach (var child in administration.ChildAdministrations.Where(AdminVisible)) { @RenderAdministration(child, depth + 1) } @foreach (var department in administration.Departments.Where(DepartmentVisible)) { @RenderDepartment(department, depth + 1) }</div>}</article></div>;
+    private RenderFragment AdministrationActions(OrganizationAdministrationNodeDto administration) => @<text>@if (CanCreateAdministration) { <button class="btn btn-outline-success btn-sm" @onclick="() => OpenCreateChildAdministration(administration)" title="@T("Add child administration", "إضافة إدارة تابعة")" aria-label="@T("Add child administration", "إضافة إدارة تابعة")"><i class="bi bi-node-plus"></i></button> } @if (CanCreateDepartment) { <button class="btn btn-outline-warning btn-sm" @onclick="() => OpenCreateDepartment(administration)" title="@T("Add department", "إضافة قسم")" aria-label="@T("Add department", "إضافة قسم")"><i class="bi bi-grid-1x2"></i></button> } @if (CanEditAdministration) { <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEditAdministration(administration)" title="@T("Edit administration", "تعديل الإدارة")" aria-label="@T("Edit administration", "تعديل الإدارة")"><i class="bi bi-pencil-square"></i></button> } @if (CanDeleteAdministration) { <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteAdministrationAsync(administration)" title="@T("Delete administration", "حذف الإدارة")" aria-label="@T("Delete administration", "حذف الإدارة")"><i class="bi bi-trash"></i></button> }</text>;
+
+    private RenderFragment RenderDepartment(OrganizationDepartmentNodeDto department, int depth) => @<div class="org-tree-node" style="--tree-depth:@depth"><article class="org-node-card is-department"><div class="org-node-main"><div class="org-node-title"><button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => Toggle(DeptKey(department.Id))" title="@ToggleNodeTooltip(DeptKey(department.Id))" aria-label="@ToggleNodeTooltip(DeptKey(department.Id))"><i class="@ChevronIcon(DeptKey(department.Id))"></i></button><span class="org-node-icon text-warning"><i class="bi bi-grid-1x2"></i></span><div><div class="org-node-name">@Name(department.Name, department.NameEng)</div><div class="org-node-meta"><span>@department.Code</span><span>@department.Location</span><span class="@StatusBadgeClass(department.IsActive)">@(department.IsActive ? T("Active", "نشط") : T("Inactive", "غير نشط"))</span></div></div></div><div class="org-node-actions">@DepartmentActions(department)</div></div>@if (IsExpanded(DeptKey(department.Id))) { <div class="org-node-children">@if (!department.ChildDepartments.Any(DepartmentVisible)) { <div class="org-node-empty">@T("No child departments.", "لا توجد أقسام تابعة.")</div> } @foreach (var child in department.ChildDepartments.Where(DepartmentVisible)) { @RenderDepartment(child, depth + 1) }</div>}</article></div>;
+    private RenderFragment DepartmentActions(OrganizationDepartmentNodeDto department) => @<text>@if (CanCreateDepartment) { <button class="btn btn-outline-warning btn-sm" @onclick="() => OpenCreateChildDepartment(department)" title="@T("Add child department", "إضافة قسم تابع")" aria-label="@T("Add child department", "إضافة قسم تابع")"><i class="bi bi-node-plus"></i></button> } @if (CanEditDepartment) { <button class="btn btn-outline-primary btn-sm" @onclick="() => OpenEditDepartment(department)" title="@T("Edit department", "تعديل القسم")" aria-label="@T("Edit department", "تعديل القسم")"><i class="bi bi-pencil-square"></i></button> } @if (CanDeleteDepartment) { <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteDepartmentAsync(department)" title="@T("Delete department", "حذف القسم")" aria-label="@T("Delete department", "حذف القسم")"><i class="bi bi-trash"></i></button> }</text>;
+
+    private void OpenCreateCompany(OrganizationCompanyNodeDto parent) { selectedScopeName = Name(parent.Name, parent.NameEng); companyForm = new CompanyDto { ParentCompanyId = parent.Id, IsActive = true, TimeZone = "Asia/Riyadh", Logo = string.Empty, HqLocation = string.Empty, Phone = string.Empty, Email = string.Empty, VatNo = string.Empty, Code = string.Empty }; activeForm = QuickFormKind.CreateCompany; }
+    private void OpenEditCompany(OrganizationCompanyNodeDto company) { selectedChildCompanyId = company.Id; selectedScopeName = Name(company.Name, company.NameEng); companyForm = new CompanyDto { Id = company.Id, ParentCompanyId = company.ParentCompanyId, Name = company.Name, NameEng = company.NameEng, Code = company.Code, IsActive = company.IsActive, Logo = company.Logo, HqLocation = company.HqLocation, HqLongitude = company.HqLongitude, HqLatitude = company.HqLatitude, VatNo = company.VatNo, CurrencyId = company.CurrencyId, Phone = company.Phone, Email = company.Email, TimeZone = company.TimeZone }; activeForm = QuickFormKind.EditCompany; }
+    private void OpenResetPassword(OrganizationCompanyNodeDto company) { selectedChildCompanyId = company.Id; selectedScopeName = Name(company.Name, company.NameEng); passwordResetForm = new PasswordResetForm(); activeForm = QuickFormKind.ResetPassword; }
+    private void OpenCreateBranch(OrganizationCompanyNodeDto company) { selectedScopeName = Name(company.Name, company.NameEng); branchForm = new BranchDto { CompanyId = company.Id, Specialization = BranchSpecialization.General, Location = string.Empty, Phone = string.Empty, Email = string.Empty }; activeForm = QuickFormKind.CreateBranch; }
+    private void OpenEditBranch(OrganizationBranchNodeDto branch) { selectedScopeName = Name(branch.Name, branch.NameEng); branchForm = new BranchDto { Id = branch.Id, CompanyId = branch.CompanyId, Name = branch.Name, NameEng = branch.NameEng, Code = branch.Code, Location = branch.Location, Phone = branch.Phone, Email = branch.Email, IsMainBranch = branch.IsMainBranch, Specialization = branch.Specialization }; activeForm = QuickFormKind.EditBranch; }
+    private void OpenCreateCompanyAdministration(OrganizationCompanyNodeDto company) { selectedScopeName = Name(company.Name, company.NameEng); administrationForm = new AdministrationDto { CompanyId = company.Id, IsActive = true, IsHigherManagement = true }; activeForm = QuickFormKind.CreateAdministration; }
+    private void OpenCreateBranchAdministration(OrganizationBranchNodeDto branch) { selectedScopeName = Name(branch.Name, branch.NameEng); administrationForm = new AdministrationDto { CompanyId = branch.CompanyId, BranchId = branch.Id, IsActive = true }; activeForm = QuickFormKind.CreateAdministration; }
+    private void OpenCreateChildAdministration(OrganizationAdministrationNodeDto parent) { selectedScopeName = Name(parent.Name, parent.NameEng); administrationForm = new AdministrationDto { CompanyId = parent.CompanyId, BranchId = parent.BranchId, ParentAdministrationId = parent.Id, IsActive = true }; activeForm = QuickFormKind.CreateAdministration; }
+    private void OpenEditAdministration(OrganizationAdministrationNodeDto administration) { selectedScopeName = Name(administration.Name, administration.NameEng); administrationForm = new AdministrationDto { Id = administration.Id, CompanyId = administration.CompanyId, BranchId = administration.BranchId, ParentAdministrationId = administration.ParentAdministrationId, Name = administration.Name, NameEng = administration.NameEng, Code = administration.Code, ManagerId = administration.ManagerId, IsHigherManagement = administration.IsHigherManagement, IsActive = administration.IsActive }; activeForm = QuickFormKind.EditAdministration; }
+    private void OpenCreateDepartment(OrganizationAdministrationNodeDto administration) { selectedScopeName = Name(administration.Name, administration.NameEng); departmentForm = new DepartmentDto { CompanyId = administration.CompanyId, AdministrationId = administration.Id, IsActive = true, Location = string.Empty, AllowedRadiusMeters = 100 }; activeForm = QuickFormKind.CreateDepartment; }
+    private void OpenCreateChildDepartment(OrganizationDepartmentNodeDto parent) { selectedScopeName = Name(parent.Name, parent.NameEng); departmentForm = new DepartmentDto { CompanyId = parent.CompanyId, AdministrationId = parent.AdministrationId, ParentDepartmentId = parent.Id, IsActive = true, Location = parent.Location, Longitude = parent.Longitude, Latitude = parent.Latitude, AllowedRadiusMeters = parent.AllowedRadiusMeters <= 0 ? 100 : parent.AllowedRadiusMeters }; activeForm = QuickFormKind.CreateDepartment; }
+    private void OpenEditDepartment(OrganizationDepartmentNodeDto department) { selectedScopeName = Name(department.Name, department.NameEng); departmentForm = new DepartmentDto { Id = department.Id, CompanyId = department.CompanyId, AdministrationId = department.AdministrationId, ParentDepartmentId = department.ParentDepartmentId, Name = department.Name, NameEng = department.NameEng, Code = department.Code, HeadOfDepartment = department.HeadOfDepartment, IsActive = department.IsActive, Location = department.Location, Longitude = department.Longitude, Latitude = department.Latitude, AllowedRadiusMeters = department.AllowedRadiusMeters }; activeForm = QuickFormKind.EditDepartment; }
+
+    private async Task SaveCompanyAsync() { isSaving = true; try { ApiResult<UpdateDeleteResponseDto>? updateResult = null; ApiResult<CompanyDto>? createResult = null; if (activeForm == QuickFormKind.CreateCompany) createResult = await CompanyService.CreateChildAsync(companyForm); else updateResult = await CompanyService.UpdateChildAsync(companyForm); if ((createResult?.IsSuccess ?? false) || (updateResult?.IsSuccess ?? false)) { ToastService.ShowSuccess(T("Company saved.", "تم حفظ الشركة.")); CloseQuickForm(); await LoadStructureAsync(); return; } ShowError(createResult?.Error?.GetDisplayMessage(SharedDataService.Language) ?? updateResult?.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save company.", "تعذر حفظ الشركة.")); } finally { isSaving = false; } }
+    private async Task SaveBranchAsync()
+    {
+        isSaving = true;
+        try
         {
-            isLoading = false;
+            if (activeForm == QuickFormKind.CreateBranch)
+            {
+                var createResult = await BranchService.CreateAsync(branchForm);
+                if (!createResult.IsSuccess)
+                {
+                    ShowError(createResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save branch.", "تعذر حفظ الفرع."));
+                    return;
+                }
+            }
+            else
+            {
+                var updateResult = await BranchService.UpdateAsync(branchForm);
+                if (!updateResult.IsSuccess)
+                {
+                    ShowError(updateResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save branch.", "تعذر حفظ الفرع."));
+                    return;
+                }
+            }
+
+            ToastService.ShowSuccess(T("Branch saved.", "تم حفظ الفرع."));
+            CloseQuickForm();
+            await LoadStructureAsync();
         }
+        finally { isSaving = false; }
     }
 
-    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
-
-    private void SetError(string message)
+    private async Task SaveAdministrationAsync()
     {
-        errorMessage = message;
-        ToastService.ShowError(message);
+        isSaving = true;
+        try
+        {
+            if (activeForm == QuickFormKind.CreateAdministration)
+            {
+                var createResult = await AdministrationService.CreateAsync(administrationForm);
+                if (!createResult.IsSuccess)
+                {
+                    ShowError(createResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save administration.", "تعذر حفظ الإدارة."));
+                    return;
+                }
+            }
+            else
+            {
+                var updateResult = await AdministrationService.UpdateAsync(administrationForm);
+                if (!updateResult.IsSuccess)
+                {
+                    ShowError(updateResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save administration.", "تعذر حفظ الإدارة."));
+                    return;
+                }
+            }
+
+            ToastService.ShowSuccess(T("Administration saved.", "تم حفظ الإدارة."));
+            CloseQuickForm();
+            await LoadStructureAsync();
+        }
+        finally { isSaving = false; }
     }
 
-    private string DisplayName(string? name, string? nameEng)
-        => SharedDataService.Language == "Ar"
-            ? FirstNotEmpty(name, nameEng)
-            : FirstNotEmpty(nameEng, name);
-
-    private string CurrencyDisplay(Guid? currencyId)
+    private async Task SaveDepartmentAsync()
     {
-        var currency = currencyId.HasValue
-            ? currencies.FirstOrDefault(x => x.Id == currencyId.Value)
-            : null;
+        isSaving = true;
+        try
+        {
+            if (activeForm == QuickFormKind.CreateDepartment)
+            {
+                var createResult = await DepartmentService.CreateAsync(departmentForm);
+                if (!createResult.IsSuccess)
+                {
+                    ShowError(createResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save department.", "تعذر حفظ القسم."));
+                    return;
+                }
+            }
+            else
+            {
+                var updateResult = await DepartmentService.UpdateAsync(departmentForm);
+                if (!updateResult.IsSuccess)
+                {
+                    ShowError(updateResult.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not save department.", "تعذر حفظ القسم."));
+                    return;
+                }
+            }
 
-        if (currency is null)
-            return "-";
-
-        var name = SharedDataService.Language == "Ar"
-            ? FirstNotEmpty(currency.Name, currency.NameEng)
-            : FirstNotEmpty(currency.NameEng, currency.Name);
-
-        return $"{currency.Code} - {name}";
+            ToastService.ShowSuccess(T("Department saved.", "تم حفظ القسم."));
+            CloseQuickForm();
+            await LoadStructureAsync();
+        }
+        finally { isSaving = false; }
     }
+    private async Task ResetPasswordAsync() { isSaving = true; try { var result = await CompanyService.ResetChildAdminPasswordAsync(selectedChildCompanyId, passwordResetForm.TemporaryPassword); if (result.IsSuccess) { ToastService.ShowSuccess(T("Password reset.", "تمت إعادة تعيين كلمة المرور.")); CloseQuickForm(); return; } ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not reset password.", "تعذر إعادة تعيين كلمة المرور.")); } finally { isSaving = false; } }
 
-    private static string FirstNotEmpty(string? primary, string? fallback)
-        => !string.IsNullOrWhiteSpace(primary)
-            ? primary
-            : !string.IsNullOrWhiteSpace(fallback) ? fallback : "-";
+    private async Task ToggleChildCompanyStatusAsync(OrganizationCompanyNodeDto company) => await ModalService.ShowAsync(new ModalOptions { Title = T("Change Company Status", "تغيير حالة الشركة"), Message = T("Do you want to change this child company's status?", "هل تريد تغيير حالة هذه الشركة التابعة؟"), Variant = ModalVariant.Warning, ShowCancel = true, OkText = T("Confirm", "تأكيد"), CancelText = T("Cancel", "إلغاء"), OnOk = async () => { var result = await CompanyService.SetChildStatusAsync(company.Id, !company.IsActive); if (result.IsSuccess) { ToastService.ShowSuccess(T("Company status updated.", "تم تحديث حالة الشركة.")); await LoadStructureAsync(); } else { ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Could not update company status.", "تعذر تحديث حالة الشركة.")); } } });
+    private async Task ConfirmDeleteBranchAsync(OrganizationBranchNodeDto branch) => await ConfirmDeleteAsync(T("Delete Branch", "حذف الفرع"), Name(branch.Name, branch.NameEng), async () => await BranchService.DeleteAsync(branch.Id));
+    private async Task ConfirmDeleteAdministrationAsync(OrganizationAdministrationNodeDto administration) => await ConfirmDeleteAsync(T("Delete Administration", "حذف الإدارة"), Name(administration.Name, administration.NameEng), async () => await AdministrationService.DeleteAsync(administration.Id));
+    private async Task ConfirmDeleteDepartmentAsync(OrganizationDepartmentNodeDto department) => await ConfirmDeleteAsync(T("Delete Department", "حذف القسم"), Name(department.Name, department.NameEng), async () => await DepartmentService.DeleteAsync(department.Id));
+    private async Task ConfirmDeleteAsync(string title, string name, Func<Task<ApiResult<UpdateDeleteResponseDto>>> action) => await ModalService.ShowAsync(new ModalOptions { Title = title, Message = T($"Delete {name}?", $"حذف {name}؟"), Variant = ModalVariant.Danger, ShowCancel = true, OkText = T("Delete", "حذف"), CancelText = T("Cancel", "إلغاء"), OnOk = async () => { var result = await action(); if (result.IsSuccess) { ToastService.ShowSuccess(T("Deleted successfully.", "تم الحذف بنجاح.")); await LoadStructureAsync(); } else { ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? T("Delete failed.", "تعذر الحذف.")); } } });
 
-    private async Task HandleLanguageChangeAsync()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
+    private bool CompanyVisible(OrganizationCompanyNodeDto company) => Matches(company.Name, company.NameEng, company.Code) || company.ChildCompanies.Any(CompanyVisible) || company.Branches.Any(BranchVisible) || company.Administrations.Any(AdminVisible);
+    private bool BranchVisible(OrganizationBranchNodeDto branch) => Matches(branch.Name, branch.NameEng, branch.Code, branch.Location) || branch.Administrations.Any(AdminVisible);
+    private bool AdminVisible(OrganizationAdministrationNodeDto administration) => Matches(administration.Name, administration.NameEng, administration.Code) || administration.ChildAdministrations.Any(AdminVisible) || administration.Departments.Any(DepartmentVisible);
+    private bool DepartmentVisible(OrganizationDepartmentNodeDto department) => Matches(department.Name, department.NameEng, department.Code, department.Location) || department.ChildDepartments.Any(DepartmentVisible);
+    private bool Matches(params string?[] values) { if (string.IsNullOrWhiteSpace(searchText)) return true; var search = searchText.Trim(); return values.Any(value => !string.IsNullOrWhiteSpace(value) && value.Contains(search, StringComparison.OrdinalIgnoreCase)); }
 
-    public void Dispose()
-    {
-        SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
-    }
+    private void ExpandAll() { expandedNodes.Clear(); if (structure is null) return; foreach (var company in structure.Companies) AddCompanyKeys(company); }
+    private void CollapseAll() => expandedNodes.Clear();
+    private void AddCompanyKeys(OrganizationCompanyNodeDto company) { expandedNodes.Add(NodeKey("company", company.Id)); foreach (var administration in company.Administrations) AddAdministrationKeys(administration); foreach (var branch in company.Branches) AddBranchKeys(branch); foreach (var child in company.ChildCompanies) AddCompanyKeys(child); }
+    private void AddBranchKeys(OrganizationBranchNodeDto branch) { expandedNodes.Add(NodeKey("branch", branch.Id)); foreach (var administration in branch.Administrations) AddAdministrationKeys(administration); }
+    private void AddAdministrationKeys(OrganizationAdministrationNodeDto administration) { expandedNodes.Add(NodeKey("admin", administration.Id)); foreach (var child in administration.ChildAdministrations) AddAdministrationKeys(child); foreach (var department in administration.Departments) AddDepartmentKeys(department); }
+    private void AddDepartmentKeys(OrganizationDepartmentNodeDto department) { expandedNodes.Add(NodeKey("dept", department.Id)); foreach (var child in department.ChildDepartments) AddDepartmentKeys(child); }
+    private void Toggle(string key) { if (!expandedNodes.Add(key)) expandedNodes.Remove(key); }
+    private bool IsExpanded(string key) => expandedNodes.Contains(key);
+    private static string CompanyKey(Guid id) => NodeKey("company", id);
+    private static string BranchKey(Guid id) => NodeKey("branch", id);
+    private static string AdminKey(Guid id) => NodeKey("admin", id);
+    private static string DeptKey(Guid id) => NodeKey("dept", id);
+    private static string NodeKey(string kind, Guid id) => $"{kind}:{id:N}";
+    private string ChevronIcon(string key) => IsExpanded(key) ? "bi bi-chevron-down" : "bi bi-chevron-left";
+    private string ToggleNodeTooltip(string key) => IsExpanded(key) ? T("Collapse node", "طي العنصر") : T("Expand node", "توسيع العنصر");
+    private static string StatusBadgeClass(bool isActive) => $"badge rounded-pill {(isActive ? "text-bg-success" : "text-bg-secondary")}";
+    private void ClearSearch() => searchText = string.Empty;
+    private void CloseQuickForm() => activeForm = QuickFormKind.None;
+    private bool HasPermission(string permission) => AuthState?.User.Claims.Any(c => c.Value == permission) == true;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string Name(string? name, string? nameEng) => SharedDataService.Language == "Ar" ? FirstNotEmpty(name, nameEng) : FirstNotEmpty(nameEng, name);
+    private static string FirstNotEmpty(string? primary, string? fallback) => !string.IsNullOrWhiteSpace(primary) ? primary : !string.IsNullOrWhiteSpace(fallback) ? fallback : "-";
+    private void SetError(string message) { errorMessage = message; ToastService.ShowError(message); }
+    private void ShowError(string message) => ToastService.ShowError(message);
+    private async Task HandleLanguageChangeAsync() => await InvokeAsync(StateHasChanged);
+    public void Dispose() => SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
 
-    private sealed class BranchNode(BranchDto branch)
-    {
-        public BranchDto Branch { get; } = branch;
-        public List<AdministrationNode> Administrations { get; } = [];
-        public int DepartmentCount => Administrations.Sum(admin => admin.Departments.Count);
-    }
-
-    private sealed class AdministrationNode(AdministrationDto administration)
-    {
-        public AdministrationDto Administration { get; } = administration;
-        public List<DepartmentDto> Departments { get; } = [];
-    }
+    private enum QuickFormKind { None, CreateCompany, EditCompany, CreateBranch, EditBranch, CreateAdministration, EditAdministration, CreateDepartment, EditDepartment, ResetPassword }
+    private sealed class PasswordResetForm { public string TemporaryPassword { get; set; } = string.Empty; }
 }

@@ -12,6 +12,7 @@ public interface ICompanyService
     Task<ApiResult<CompanyDto>> GetByIdAsync(Guid Id);
     Task<ApiResult<PagedResult<CompanyDto>>> GetAsync(int pageIndex, int pageSize);
     Task<ApiResult<PagedResult<CompanyDto>>> GetChildCompaniesAsync(int pageIndex, int pageSize, string? searchText = null);
+    Task<ApiResult<OrganizationStructureDto>> GetOrganizationStructureAsync();
     Task<ApiResult<CompanyLicenseSummaryDto>> GetCurrentLicenseAsync();
     Task<ApiResult<CompanyDto>> CreateChildAsync(CompanyDto company);
     Task<ApiResult<UpdateDeleteResponseDto>> UpdateChildAsync(CompanyDto company);
