@@ -19,11 +19,11 @@
         <Actions>
             <button class="btn btn-outline-secondary" @onclick="LoadDashboard">
                 <i class="bi bi-arrow-clockwise"></i>
-                @Text("Refresh", "?????")
+                @Text("Refresh", "تحديث")
             </button>
             <button class="btn btn-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/MyAttendance")'>
                 <i class="bi bi-person-check"></i>
-                @Text("Employee terminal", "????? ??????")
+                @Text("Employee terminal", "بوابة الموظف")
             </button>
         </Actions>
     </PageHeader>
@@ -37,16 +37,16 @@
     {
         <div class="erp-loading py-5">
             <div class="spinner-border text-primary" role="status"></div>
-            <div class="mt-2">@Text("Loading attendance dashboard...", "???? ????? ???? ??????...")</div>
+            <div class="mt-2">@Text("Loading attendance dashboard...", "جاري تحميل لوحة الحضور...")</div>
         </div>
     }
     else if (dashboard is not null)
     {
         <div class="row g-3 mb-3">
-            <div class="col-12 col-md-3"><StatsCard Title="@Text("Active", "???")" Value="@dashboard.ActiveSessions.ToString("N0")" Icon="bi-play-circle" Tone="primary" /></div>
-            <div class="col-12 col-md-3"><StatsCard Title="@Text("On break", "?? ???????")" Value="@dashboard.OnBreakSessions.ToString("N0")" Icon="bi-cup-hot" Tone="warning" /></div>
-            <div class="col-12 col-md-3"><StatsCard Title="@Text("Completed today", "????? ?????")" Value="@dashboard.CompletedToday.ToString("N0")" Icon="bi-check2-circle" Tone="success" /></div>
-            <div class="col-12 col-md-3"><StatsCard Title="@Text("Pending requests", "????? ?????")" Value="@dashboard.PendingLateCheckInRequests.ToString("N0")" Icon="bi-exclamation-triangle" Tone="danger" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Active", "نشط")" Value="@dashboard.ActiveSessions.ToString("N0")" Icon="bi-play-circle" Tone="primary" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("On break", "في استراحة")" Value="@dashboard.OnBreakSessions.ToString("N0")" Icon="bi-cup-hot" Tone="warning" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Completed today", "مكتملة اليوم")" Value="@dashboard.CompletedToday.ToString("N0")" Icon="bi-check2-circle" Tone="success" /></div>
+            <div class="col-12 col-md-3"><StatsCard Title="@Text("Pending requests", "طلبات معلقة")" Value="@dashboard.PendingLateCheckInRequests.ToString("N0")" Icon="bi-exclamation-triangle" Tone="danger" /></div>
         </div>
 
         <div class="row g-3">
@@ -55,7 +55,7 @@
                     <div class="attendance-type-bars">
                         <div>
                             <div class="d-flex justify-content-between">
-                                <span>@Text("Fixed location", "???? ????")</span>
+                                <span>@Text("Fixed location", "موقع ثابت")</span>
                                 <strong>@dashboard.FixedLocationSessionsToday</strong>
                             </div>
                             <div class="erp-progress">
@@ -64,7 +64,7 @@
                         </div>
                         <div>
                             <div class="d-flex justify-content-between">
-                                <span>@Text("Mobile", "?????")</span>
+                                <span>@Text("Mobile", "متنقل")</span>
                                 <strong>@dashboard.MobileSessionsToday</strong>
                             </div>
                             <div class="erp-progress">
@@ -78,7 +78,7 @@
             <div class="col-lg-5">
                 <AppCard Title="@PendingCardTitle" CssClass="h-100">
                     <Actions>
-                        <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/LateRequests")'>@Text("Review", "??????")</button>
+                        <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/LateRequests")'>@Text("Review", "مراجعة")</button>
                     </Actions>
 
                     <ChildContent>
@@ -110,7 +110,7 @@
 
         <AppCard Title="@RecentSessionsTitle" CssClass="mt-3">
             <Actions>
-                <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/Sessions")'>@Text("View all", "??? ????")</button>
+                <button class="btn btn-sm btn-outline-primary" @onclick='() => NavigationManager.NavigateTo("/Attendance/Sessions")'>@Text("View all", "عرض الكل")</button>
             </Actions>
 
             <ChildContent>
@@ -122,12 +122,12 @@
                     <table class="table erp-table align-middle mb-0">
                         <thead>
                             <tr>
-                                <th>@Text("Employee", "??????")</th>
-                                <th>@Text("Type", "?????")</th>
-                                <th>@Text("Status", "??????")</th>
-                                <th>@Text("Start", "???????")</th>
-                                <th>@Text("End", "???????")</th>
-                                <th>@Text("Hours", "???????")</th>
+                                <th>@Text("Employee", "الموظف")</th>
+                                <th>@Text("Type", "النوع")</th>
+                                <th>@Text("Status", "الحالة")</th>
+                                <th>@Text("Start", "البداية")</th>
+                                <th>@Text("End", "النهاية")</th>
+                                <th>@Text("Hours", "الساعات")</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -158,14 +158,14 @@
     private int TotalToday => (dashboard?.FixedLocationSessionsToday ?? 0) + (dashboard?.MobileSessionsToday ?? 0);
     private int FixedPercent => TotalToday == 0 ? 0 : (dashboard!.FixedLocationSessionsToday * 100 / TotalToday);
     private int MobilePercent => TotalToday == 0 ? 0 : (dashboard!.MobileSessionsToday * 100 / TotalToday);
-    private string PageTitle => Text("Live attendance dashboard", "???? ?????? ????????");
-    private string PageSubtitle => Text("Monitor attendance sessions, pending requests, and today's attendance type split.", "?????? ????? ?????? ???????? ??????? ?????? ????? ?????? ?????.");
-    private string PageOverline => Text("Attendance", "?????? ?????????");
-    private string AttendanceTypeCardTitle => Text("Today by attendance type", "????? ??? ??? ??????");
-    private string PendingCardTitle => Text("Pending late check-ins", "????? ?????? ??????? ???????");
-    private string NoPendingTitle => Text("No pending requests", "?? ???? ????? ?????");
-    private string NoPendingMessage => Text("Late check-in requests that need review will appear here.", "????? ??? ????? ?????? ??????? ???? ????? ??? ??????.");
-    private string RecentSessionsTitle => Text("Recent sessions", "???? ????? ??????");
+    private string PageTitle => Text("Live attendance dashboard", "لوحة الحضور المباشرة");
+    private string PageSubtitle => Text("Monitor attendance sessions, pending requests, and today's attendance type split.", "متابعة جلسات الحضور والطلبات المعلقة وتوزيع أنواع الحضور اليوم.");
+    private string PageOverline => Text("Attendance", "الحضور والانصراف");
+    private string AttendanceTypeCardTitle => Text("Today by attendance type", "اليوم حسب نوع الحضور");
+    private string PendingCardTitle => Text("Pending late check-ins", "طلبات تسجيل الحضور المتأخر المعلقة");
+    private string NoPendingTitle => Text("No pending requests", "لا توجد طلبات معلقة");
+    private string NoPendingMessage => Text("Late check-in requests that need review will appear here.", "ستظهر هنا طلبات تسجيل الحضور المتأخر التي تحتاج إلى مراجعة.");
+    private string RecentSessionsTitle => Text("Recent sessions", "أحدث جلسات الحضور");
 
     protected override async Task OnInitializedAsync() => await LoadDashboard();
 
@@ -181,7 +181,7 @@
         }
         else
         {
-            errorMessage = result.Error?.Detail ?? Text("Unable to load attendance dashboard.", "???? ????? ???? ??????.");
+            errorMessage = result.Error?.Detail ?? Text("Unable to load attendance dashboard.", "تعذر تحميل لوحة الحضور.");
         }
 
         isLoading = false;
@@ -196,25 +196,25 @@
 
     private string AttendanceTypeText(EmployeeAttendanceType type) => type switch
     {
-        EmployeeAttendanceType.FixedLocation => Text("Fixed location", "???? ????"),
-        EmployeeAttendanceType.Mobile => Text("Mobile", "?????"),
+        EmployeeAttendanceType.FixedLocation => Text("Fixed location", "موقع ثابت"),
+        EmployeeAttendanceType.Mobile => Text("Mobile", "متنقل"),
         _ => type.ToString()
     };
 
     private string SessionStatusText(AttendanceSessionStatus status) => status switch
     {
-        AttendanceSessionStatus.Active => Text("Active", "???"),
-        AttendanceSessionStatus.OnBreak => Text("On break", "?? ???????"),
-        AttendanceSessionStatus.Completed => Text("Completed", "?????"),
-        AttendanceSessionStatus.Cancelled => Text("Cancelled", "????"),
+        AttendanceSessionStatus.Active => Text("Active", "نشط"),
+        AttendanceSessionStatus.OnBreak => Text("On break", "في استراحة"),
+        AttendanceSessionStatus.Completed => Text("Completed", "مكتمل"),
+        AttendanceSessionStatus.Cancelled => Text("Cancelled", "ملغى"),
         _ => status.ToString()
     };
 
     private string LateRequestStatusText(AttendanceExceptionStatus status) => status switch
     {
-        AttendanceExceptionStatus.Pending => Text("Pending", "????"),
-        AttendanceExceptionStatus.Approved => Text("Approved", "????? ????"),
-        AttendanceExceptionStatus.Rejected => Text("Rejected", "?????"),
+        AttendanceExceptionStatus.Pending => Text("Pending", "معلق"),
+        AttendanceExceptionStatus.Approved => Text("Approved", "تمت الموافقة"),
+        AttendanceExceptionStatus.Rejected => Text("Rejected", "مرفوض"),
         _ => status.ToString()
     };
 
