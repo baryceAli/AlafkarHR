@@ -4,6 +4,7 @@ using FluentValidation;
 using Shared.Contracts.CQRS;
 using Shared.Exceptions;
 using Shared.SaveImages;
+using SharedWithUI.General;
 using System.Globalization;
 using System.Security.Claims;
 using System.Text;
@@ -28,7 +29,6 @@ public class UpdateEmployeeCommandValidator : AbstractValidator<UpdateEmployeeCo
         RuleFor(e => e.Employee.DateOfBirth).NotEmpty().WithMessage("DateOfBirth is required");
         RuleFor(e => e.Employee.EmployeeNo).NotEmpty().WithMessage("EmployeeNo is required");
         RuleFor(e => e.Employee.NationalId).NotEmpty().WithMessage("NationalId is required");
-        RuleFor(e => e.Employee.PositionId).NotEmpty().WithMessage("Position is required");
         RuleFor(e => e.Employee.AttendanceType).IsInEnum().WithMessage("AttendanceType is invalid");
         RuleFor(e => e.Employee.AllowedRadiusMeters)
             .GreaterThan(0)
@@ -42,29 +42,16 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
 {
     public async Task<UpdateEmployeeResult> Handle(UpdateEmployeeCommand request, CancellationToken cancellationToken)
     {
-        var position = await dbContext.Positions.AsNoTracking().FirstOrDefaultAsync(p => p.Id == request.Employee.PositionId, cancellationToken);
-        if (position is null)
-            throw new NotFoundException($"Position not found: {request.Employee.PositionId}");
-
         var employee = await dbContext.Employees.FirstOrDefaultAsync(e => e.Id == request.Employee.Id, cancellationToken);
         if (employee is null)
             throw new NotFoundException($"Employee not found: {request.Employee.Id}");
         await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureCanMutateAsync(sender, employee.CompanyId, employee.BranchId, cancellationToken);
-        await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureCanMutateAsync(sender, employee.CompanyId, request.Employee.BranchId, cancellationToken);
-
-        var placement = await sender.Send(new ValidateOrganizationPlacementQuery(
-            employee.CompanyId,
-            request.Employee.BranchId,
-            request.Employee.AdministrationId,
-            request.Employee.DepartmentId), cancellationToken);
-        if (!placement.IsValid)
-            throw new BadRequestException(placement.Message ?? "Invalid organization placement.");
 
         await EmployeeModule.Employees.Features.Employees.EmployeeBranchScope.EnsureLinkedUserBranchAccessAsync(
             sender,
             employee.CompanyId,
             request.Employee.LinkedUserId,
-            request.Employee.BranchId,
+            employee.BranchId,
             makeDefault: false,
             cancellationToken);
 
@@ -116,6 +103,10 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             finalImagePath,
             request.Employee.Email,
             request.Employee.Phone,
+            DateTimeToUTC.ToUtc(request.Employee.DateOfBirth),
+            request.Employee.NationalId,
+            request.Employee.IdentityType,
+            request.Employee.Nationality,
             request.Employee.Address,
             request.Employee.MaritalStatus,
             request.Employee.EmploymentType,
@@ -125,14 +116,11 @@ public class UpdateEmployeeHandler(EmployeeDbContext dbContext, IHttpContextAcce
             request.Employee.SpecializationId.Value,
             request.Employee.AcademicInstituteId.Value,
             request.Employee.GraduationYear,
-            request.Employee.ManagerEmployeeId,
-            request.Employee.Grade,
-            request.Employee.WorkLocation,
+            employee.ManagerEmployeeId,
+            employee.Grade,
+            employee.WorkLocation,
             request.Employee.LinkedUserId,
             userId);
-
-        employee.ChangePosition(request.Employee.PositionId!.Value, userId);
-        employee.TransferDepartment(request.Employee.BranchId!.Value, request.Employee.AdministrationId, request.Employee.DepartmentId, userId);
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

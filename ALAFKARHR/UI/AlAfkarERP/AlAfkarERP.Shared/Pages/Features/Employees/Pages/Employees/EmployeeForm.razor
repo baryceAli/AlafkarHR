@@ -56,7 +56,7 @@
             </button>
             <button type="submit" form="employee-form" class="btn btn-primary employee-form-action">
                 <i class="bi bi-floppy2-fill"></i>
-                @(Id.HasValue ? SharedDataService.SelectViewLang("Update", "تعديل") : SharedDataService.SelectViewLang("Save", "حفظ"))
+                @(IsEditMode ? SharedDataService.SelectViewLang("Update Profile", "تحديث الملف") : SharedDataService.SelectViewLang("Save", "حفظ"))
             </button>
         </Actions>
     </PageHeader>
@@ -68,7 +68,7 @@
             <AppCard Title="@(SharedDataService.SelectViewLang("Employment Location", "الموقع الوظيفي"))"
                      Subtitle="@(SharedDataService.SelectViewLang("Connect the employee to the correct branch, administration, and department.", "ربط الموظف بالفرع والإدارة والقسم المناسب."))"
                      CssClass="allow-overflow">
-                @if (!Id.HasValue || 1 == 1)
+                @if (!IsEditMode)
                 {
                     <div class="employee-form-grid employee-form-grid-three">
                         <div class="employee-field">
@@ -107,6 +107,32 @@
                                 </div>
                             }
                             @* <ValidationMessage For="() => employee.DepartmentId" /> *@
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info mb-3">
+                        <i class="bi bi-info-circle"></i>
+                        @SharedDataService.SelectViewLang(
+                            "Branch, administration, and department changes are controlled through Employee Lifecycle.",
+                            "يتم التحكم في تغييرات الفرع والإدارة والقسم من خلال دورة حياة الموظف.")
+                        <a class="alert-link ms-2" href="/HR/EmployeeLifecycle?employeeId=@employee.Id">
+                            @SharedDataService.SelectViewLang("Open Lifecycle", "فتح دورة الحياة")
+                        </a>
+                    </div>
+                    <div class="employee-form-grid employee-form-grid-three">
+                        <div class="employee-field">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Branch", "الفرع")</label>
+                            <input class="form-control" value="@CurrentBranchText" readonly />
+                        </div>
+                        <div class="employee-field">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Administration", "الإدارة")</label>
+                            <input class="form-control" value="@CurrentAdministrationText" readonly />
+                        </div>
+                        <div class="employee-field">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Department", "القسم")</label>
+                            <input class="form-control" value="@CurrentDepartmentText" readonly />
                         </div>
                     </div>
                 }
@@ -365,37 +391,54 @@
                         <ValidationMessage For="() => employee.HireDate" />
                     </div>
 
-                    <div class="employee-field">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Position", "المسمى الوظيفي")</label>
-                        <AutoCompleteComponent TItem="PositionDto"
-                                               Items="positions"
-                                               Value="selectedPosition"
-                                               ValueChanged="OnPositionSelected"
-                                               ItemText="(b=> SharedDataService.SelectViewLang(b.TitleEng,b.Title))">
-                        </AutoCompleteComponent>
-                        <ValidationMessage For="() => employee.PositionId" />
-                    </div>
+                    @if (!IsEditMode)
+                    {
+                        <div class="employee-field">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Position", "المسمى الوظيفي")</label>
+                            <AutoCompleteComponent TItem="PositionDto"
+                                                   Items="positions"
+                                                   Value="selectedPosition"
+                                                   ValueChanged="OnPositionSelected"
+                                                   ItemText="(b=> SharedDataService.SelectViewLang(b.TitleEng,b.Title))">
+                            </AutoCompleteComponent>
+                            <ValidationMessage For="() => employee.PositionId" />
+                        </div>
 
-                    <div class="employee-field">
-                        <label class="form-label">@SharedDataService.SelectViewLang("Manager", "المدير")</label>
-                        <select class="form-select" @bind="managerEmployeeIdText">
-                            <option value="">@SharedDataService.SelectViewLang("No manager", "بدون مدير")</option>
-                            @foreach (var manager in managerEmployees.Where(e => e.Id != employee.Id))
-                            {
-                                <option value="@manager.Id">@EmployeeDisplay(manager)</option>
-                            }
-                        </select>
-                    </div>
+                        <div class="employee-field">
+                            <label class="form-label">@SharedDataService.SelectViewLang("Manager", "المدير")</label>
+                            <select class="form-select" @bind="managerEmployeeIdText">
+                                <option value="">@SharedDataService.SelectViewLang("No manager", "بدون مدير")</option>
+                                @foreach (var manager in managerEmployees.Where(e => e.Id != employee.Id))
+                                {
+                                    <option value="@manager.Id">@EmployeeDisplay(manager)</option>
+                                }
+                            </select>
+                        </div>
 
-                    <div class="employee-field">
-                        <label for="employee-grade" class="form-label">@SharedDataService.SelectViewLang("Grade", "الدرجة")</label>
-                        <InputText class="form-control" id="employee-grade" @bind-Value="employee.Grade" />
-                    </div>
+                        <div class="employee-field">
+                            <label for="employee-grade" class="form-label">@SharedDataService.SelectViewLang("Grade", "الدرجة")</label>
+                            <InputText class="form-control" id="employee-grade" @bind-Value="employee.Grade" />
+                        </div>
 
-                    <div class="employee-field">
-                        <label for="employee-work-location" class="form-label">@SharedDataService.SelectViewLang("Work Location", "موقع العمل")</label>
-                        <InputText class="form-control" id="employee-work-location" @bind-Value="employee.WorkLocation" />
-                    </div>
+                        <div class="employee-field">
+                            <label for="employee-work-location" class="form-label">@SharedDataService.SelectViewLang("Work Location", "موقع العمل")</label>
+                            <InputText class="form-control" id="employee-work-location" @bind-Value="employee.WorkLocation" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="employee-field employee-field-wide">
+                            <div class="alert alert-info mb-0">
+                                <i class="bi bi-signpost-split"></i>
+                                @SharedDataService.SelectViewLang(
+                                    "Position, manager, grade, and work-location changes are completed through Employee Lifecycle.",
+                                    "تتم تغييرات المسمى الوظيفي والمدير والدرجة وموقع العمل من خلال دورة حياة الموظف.")
+                                <a class="alert-link ms-2" href="/HR/EmployeeLifecycle?employeeId=@employee.Id">
+                                    @SharedDataService.SelectViewLang("Open Lifecycle", "فتح دورة الحياة")
+                                </a>
+                            </div>
+                        </div>
+                    }
 
                     <div class="employee-field">
                         <label class="form-label">@SharedDataService.SelectViewLang("Linked User", "المستخدم المرتبط")</label>
@@ -464,7 +507,7 @@
                 </button>
                 <button type="submit" class="btn btn-primary employee-form-action">
                     <i class="bi bi-floppy2-fill"></i>
-                    @(Id.HasValue ? SharedDataService.SelectViewLang("Update", "تعديل") : SharedDataService.SelectViewLang("Save", "حفظ"))
+                    @(IsEditMode ? SharedDataService.SelectViewLang("Update Profile", "تحديث الملف") : SharedDataService.SelectViewLang("Save", "حفظ"))
                 </button>
             </div>
         </div>
@@ -481,6 +524,7 @@
     [SupplyParameterFromQuery(Name = "returnUrl")]
     public string? ReturnUrl { get; set; }
 
+    private bool IsEditMode => Id.HasValue && Id.Value != Guid.Empty;
     private List<BranchDto> branches = [];
     private List<AdministrationDto> administrations = [];
     private List<DepartmentDto> departments = [];
@@ -550,7 +594,7 @@
 
         if (Id.HasValue)
         {
-            title = SharedDataService.SelectViewLang("Edit Employee", "تعديل بيانات موظف");
+            title = SharedDataService.SelectViewLang("Correct Employee Profile", "تصحيح ملف الموظف");
             var empResponse = await EmployeeService.GetByIdAsync(Id.Value);
             if (empResponse.IsSuccess)
             {
@@ -850,6 +894,15 @@
         selectedPosition = position;
         employee.PositionId = selectedPosition?.Id??null;
     }
+
+    private string CurrentBranchText =>
+        selectedBranch is null ? SharedDataService.SelectViewLang("Not assigned", "غير معين") : SharedDataService.SelectViewLang(selectedBranch.NameEng, selectedBranch.Name);
+
+    private string CurrentAdministrationText =>
+        selectedAdministration is null ? SharedDataService.SelectViewLang("Not assigned", "غير معين") : SharedDataService.SelectViewLang(selectedAdministration.NameEng, selectedAdministration.Name);
+
+    private string CurrentDepartmentText =>
+        selectedDepartment is null ? SharedDataService.SelectViewLang("Not assigned", "غير معين") : SharedDataService.SelectViewLang(selectedDepartment.NameEng, selectedDepartment.Name);
 
     private string EmployeeDisplay(EmployeeDto manager)
     {

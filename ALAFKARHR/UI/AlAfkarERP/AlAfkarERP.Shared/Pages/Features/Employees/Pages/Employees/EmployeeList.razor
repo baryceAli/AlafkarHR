@@ -200,10 +200,13 @@ else
                                             <button class="btn btn-outline-warning btn-sm employee-action"
                                                     @onclick="() => EditEmployee(emp.Id)"
                                                     disabled="@(!CanEditEmployee)"
-                                                    title="@Text("Edit", "تعديل")"
-                                                    aria-label="@Text("Edit employee", "تعديل الموظف")">
+                                                    title="@Text("Correct Profile", "تصحيح الملف")"
+                                                    aria-label="@Text("Correct employee profile", "تصحيح ملف الموظف")">
                                                 <i class="bi bi-pencil-square"></i>
                                             </button>
+                                            <a class="btn btn-outline-success btn-sm employee-action" href="/HR/EmployeeLifecycle?employeeId=@emp.Id" title="@Text("Lifecycle", "دورة الحياة")" aria-label="@Text("Open employee lifecycle", "فتح دورة حياة الموظف")">
+                                                <i class="bi bi-signpost-split"></i>
+                                            </a>
                                             <button class="btn btn-outline-danger btn-sm employee-action"
                                                     @onclick="() => DeleteEmployee(emp)"
                                                     disabled="@(!CanDeleteEmployee)"

@@ -11,6 +11,7 @@
 @inject IEmployeeService EmployeeService
 @inject IBranchService BranchService
 @inject IPositionService PositionService
+@inject IDepartmentService DepartmentService
 @inject ApiConfig ApiConfig
 @inject SharedDataService SharedDataService
 
@@ -54,17 +55,19 @@
                 <div class="row g-3">
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Event Type", "نوع الحدث")</label>
-                        <InputSelect class="form-select" @bind-Value="editingEvent.EventType">
-                            @foreach (var type in Enum.GetValues<HrLifecycleEventType>())
+                        <select class="form-select" value="@editingEvent.EventType" @onchange="OnEventTypeChanged">
+                            @foreach (var type in FormEventTypes)
                             {
                                 <option value="@type">@LifecycleTypeText(type)</option>
                             }
-                        </InputSelect>
+                        </select>
                     </div>
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Effective Date", "تاريخ السريان")</label>
                         <InputDate class="form-control" @bind-Value="editingEvent.EffectiveDate" />
                     </div>
+                    @if (ShowTransferFields)
+                    {
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Target Branch", "الفرع المستهدف")</label>
                         <select class="form-select" @bind="targetBranchIdText">
@@ -74,7 +77,14 @@
                                 <option value="@branch.Id">@SharedDataService.SelectViewLang(branch.NameEng, branch.Name)</option>
                             }
                         </select>
+                        @if (!string.IsNullOrWhiteSpace(targetBranchValidationMessage))
+                        {
+                            <div class="text-danger small mt-1">@targetBranchValidationMessage</div>
+                        }
                     </div>
+                    }
+                    @if (ShowPromotionFields)
+                    {
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Target Position", "المسمى المستهدف")</label>
                         <select class="form-select" @bind="targetPositionIdText">
@@ -84,7 +94,27 @@
                                 <option value="@position.Id">@SharedDataService.SelectViewLang(position.TitleEng, position.Title)</option>
                             }
                         </select>
+                        @if (!string.IsNullOrWhiteSpace(targetPositionValidationMessage))
+                        {
+                            <div class="text-danger small mt-1">@targetPositionValidationMessage</div>
+                        }
                     </div>
+                    }
+                    @if (ShowTransferFields)
+                    {
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@Text("Target Department", "القسم المستهدف")</label>
+                        <select class="form-select" @bind="targetDepartmentIdText">
+                            <option value="">@Text("No department change", "بدون تغيير قسم")</option>
+                            @foreach (var department in departments)
+                            {
+                                <option value="@department.Id">@SharedDataService.SelectViewLang(department.NameEng, department.Name)</option>
+                            }
+                        </select>
+                    </div>
+                    }
+                    @if (ShowPlacementFields)
+                    {
                     <div class="col-12 col-md-3">
                         <label class="form-label">@Text("Target Manager", "المدير المستهدف")</label>
                         <select class="form-select" @bind="targetManagerIdText">
@@ -100,8 +130,17 @@
                         <InputText class="form-control" @bind-Value="editingEvent.ToGrade" placeholder="@Text("G5, Band 3, Senior", "G5، النطاق 3، Senior")" />
                     </div>
                     <div class="col-12 col-md-3">
-                        <label class="form-label">@Text("Reason", "السبب")</label>
+                        <label class="form-label">@Text("Target Work Location", "موقع العمل المستهدف")</label>
+                        <InputText class="form-control" @bind-Value="editingEvent.ToWorkLocation" placeholder="@Text("Head office, Remote, Riyadh", "المقر الرئيسي، عن بعد، الرياض")" />
+                    </div>
+                    }
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">@ReasonLabel</label>
                         <InputText class="form-control" @bind-Value="editingEvent.Reason" />
+                        @if (!string.IsNullOrWhiteSpace(reasonValidationMessage))
+                        {
+                            <div class="text-danger small mt-1">@reasonValidationMessage</div>
+                        }
                     </div>
                     <div class="col-12">
                         <label class="form-label">@Text("Notes", "ملاحظات")</label>
@@ -144,7 +183,7 @@
                                 <td>@TargetSummary(item)</td>
                                 <td class="text-end">
                                     <div class="btn-group btn-group-sm flex-wrap">
-                                        <button class="btn btn-outline-secondary" type="button" @onclick="() => EditEvent(item)"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-outline-secondary" type="button" disabled="@(item.EventType == HrLifecycleEventType.Onboarding)" title="@EditButtonTitle(item)" @onclick="() => EditEvent(item)"><i class="bi bi-pencil"></i></button>
                                         <button class="btn btn-outline-primary" type="button" @onclick="() => SubmitAsync(item.Id)">@Text("Submit", "إرسال")</button>
                                         <button class="btn btn-outline-success" type="button" @onclick="() => ApproveAsync(item.Id)">@Text("Approve", "اعتماد")</button>
                                         <button class="btn btn-outline-success" type="button" @onclick="() => CompleteAsync(item.Id)">@Text("Complete", "إكمال")</button>
@@ -162,27 +201,55 @@
 </main>
 
 @code {
+    [SupplyParameterFromQuery(Name = "employeeId")]
+    public Guid? PreselectedEmployeeId { get; set; }
+
     private List<EmployeeDto> employees = [];
     private List<BranchDto> branches = [];
     private CurrentUserBranchAccessDto branchAccess = new();
     private List<PositionDto> positions = [];
+    private List<DepartmentDto> departments = [];
     private List<HrLifecycleEventDto> events = [];
     private HrLifecycleEventDto editingEvent = NewEventDto();
     private string selectedEmployeeIdText = string.Empty;
     private string targetBranchIdText = string.Empty;
+    private string targetDepartmentIdText = string.Empty;
     private string targetPositionIdText = string.Empty;
     private string targetManagerIdText = string.Empty;
+    private string? targetBranchValidationMessage;
+    private string? targetPositionValidationMessage;
+    private string? reasonValidationMessage;
     private string? errorMessage;
     private bool isLoading;
     private bool isEditing;
 
     private Guid? SelectedEmployeeId => Guid.TryParse(selectedEmployeeIdText, out var id) ? id : null;
     private string FormTitle => editingEvent.Id == Guid.Empty ? Text("New Lifecycle Event", "حدث دورة حياة جديد") : Text("Edit Lifecycle Event", "تعديل حدث دورة الحياة");
+    private static readonly HrLifecycleEventType[] FormEventTypes =
+    [
+        HrLifecycleEventType.Transfer,
+        HrLifecycleEventType.Promotion,
+        HrLifecycleEventType.Separation,
+        HrLifecycleEventType.ExitInterview,
+        HrLifecycleEventType.FinalSettlementReady
+    ];
+    private bool ShowTransferFields => editingEvent.EventType == HrLifecycleEventType.Transfer;
+    private bool ShowPromotionFields => editingEvent.EventType == HrLifecycleEventType.Promotion;
+    private bool ShowPlacementFields => editingEvent.EventType is HrLifecycleEventType.Transfer or HrLifecycleEventType.Promotion;
+    private string ReasonLabel => editingEvent.EventType == HrLifecycleEventType.Separation
+        ? Text("Reason (required)", "السبب (مطلوب)")
+        : Text("Reason", "السبب");
 
     protected override async Task OnInitializedAsync()
     {
         SharedDataService.OnChange1 += HandleChangeAsync;
         await LoadLookupsAsync();
+        if (PreselectedEmployeeId.HasValue && employees.Any(employee => employee.Id == PreselectedEmployeeId.Value))
+        {
+            selectedEmployeeIdText = PreselectedEmployeeId.Value.ToString();
+            await LoadSelectedEmployeeDepartmentsAsync();
+            await LoadLifecycleAsync();
+        }
     }
 
     private async Task LoadLookupsAsync()
@@ -244,7 +311,43 @@
     {
         selectedEmployeeIdText = args.Value?.ToString() ?? string.Empty;
         CancelEdit();
+        await LoadSelectedEmployeeDepartmentsAsync();
         await LoadLifecycleAsync();
+    }
+
+    private void OnEventTypeChanged(ChangeEventArgs args)
+    {
+        if (Enum.TryParse<HrLifecycleEventType>(args.Value?.ToString(), out var eventType)
+            && FormEventTypes.Contains(eventType))
+        {
+            editingEvent.EventType = eventType;
+        }
+        else
+        {
+            editingEvent.EventType = HrLifecycleEventType.Transfer;
+        }
+
+        ClearValidationMessages();
+        ClearFieldsNotUsedBySelectedEvent();
+    }
+
+    private async Task LoadSelectedEmployeeDepartmentsAsync()
+    {
+        departments = [];
+        var employee = SelectedEmployeeId.HasValue
+            ? employees.FirstOrDefault(item => item.Id == SelectedEmployeeId.Value)
+            : null;
+
+        if (employee?.AdministrationId is not Guid administrationId)
+        {
+            return;
+        }
+
+        var departmentsResult = await DepartmentService.GetByAdministrationAsync(administrationId, 0, 1000);
+        if (departmentsResult.IsSuccess)
+        {
+            departments = departmentsResult.Data?.Data.ToList() ?? [];
+        }
     }
 
     private async Task LoadLifecycleAsync()
@@ -261,8 +364,10 @@
     {
         editingEvent = NewEventDto();
         targetBranchIdText = string.Empty;
+        targetDepartmentIdText = string.Empty;
         targetPositionIdText = string.Empty;
         targetManagerIdText = string.Empty;
+        ClearValidationMessages();
         isEditing = true;
     }
 
@@ -281,21 +386,32 @@
             ToPositionId = item.ToPositionId,
             ToManagerEmployeeId = item.ToManagerEmployeeId,
             ToGrade = item.ToGrade,
+            ToWorkLocation = item.ToWorkLocation,
             Reason = item.Reason,
             Notes = item.Notes
         };
         targetBranchIdText = item.ToBranchId?.ToString() ?? string.Empty;
+        targetDepartmentIdText = item.ToDepartmentId?.ToString() ?? string.Empty;
         targetPositionIdText = item.ToPositionId?.ToString() ?? string.Empty;
         targetManagerIdText = item.ToManagerEmployeeId?.ToString() ?? string.Empty;
+        ClearValidationMessages();
+        ClearFieldsNotUsedBySelectedEvent();
         isEditing = true;
     }
 
     private async Task SaveEventAsync()
     {
         if (!SelectedEmployeeId.HasValue) return;
+        ClearFieldsNotUsedBySelectedEvent();
+        if (!ValidateEventForm())
+        {
+            return;
+        }
+
         editingEvent.EmployeeId = SelectedEmployeeId.Value;
         editingEvent.CompanyId = ApiConfig.CompanyId;
         editingEvent.ToBranchId = ParseGuid(targetBranchIdText);
+        editingEvent.ToDepartmentId = ParseGuid(targetDepartmentIdText);
         editingEvent.ToPositionId = ParseGuid(targetPositionIdText);
         editingEvent.ToManagerEmployeeId = ParseGuid(targetManagerIdText);
 
@@ -309,6 +425,64 @@
             CancelEdit();
             await LoadLifecycleAsync();
         }
+    }
+
+    private bool ValidateEventForm()
+    {
+        ClearValidationMessages();
+        var isValid = true;
+
+        if (editingEvent.EventType == HrLifecycleEventType.Transfer && !ParseGuid(targetBranchIdText).HasValue)
+        {
+            targetBranchValidationMessage = Text("Transfer lifecycle events require a target branch.", "تتطلب أحداث النقل فرعا مستهدفا.");
+            isValid = false;
+        }
+
+        if (editingEvent.EventType == HrLifecycleEventType.Promotion && !ParseGuid(targetPositionIdText).HasValue)
+        {
+            targetPositionValidationMessage = Text("Promotion lifecycle events require a target position.", "تتطلب أحداث الترقية مسمى وظيفيا مستهدفا.");
+            isValid = false;
+        }
+
+        if (editingEvent.EventType == HrLifecycleEventType.Separation && string.IsNullOrWhiteSpace(editingEvent.Reason))
+        {
+            reasonValidationMessage = Text("Separation lifecycle events require a reason.", "تتطلب أحداث إنهاء العلاقة سببا.");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private void ClearFieldsNotUsedBySelectedEvent()
+    {
+        if (!ShowTransferFields)
+        {
+            targetBranchIdText = string.Empty;
+            targetDepartmentIdText = string.Empty;
+            editingEvent.ToBranchId = null;
+            editingEvent.ToDepartmentId = null;
+        }
+
+        if (!ShowPromotionFields)
+        {
+            targetPositionIdText = string.Empty;
+            editingEvent.ToPositionId = null;
+        }
+
+        if (!ShowPlacementFields)
+        {
+            targetManagerIdText = string.Empty;
+            editingEvent.ToManagerEmployeeId = null;
+            editingEvent.ToGrade = null;
+            editingEvent.ToWorkLocation = null;
+        }
+    }
+
+    private void ClearValidationMessages()
+    {
+        targetBranchValidationMessage = null;
+        targetPositionValidationMessage = null;
+        reasonValidationMessage = null;
     }
 
     private async Task TransitionAsync(Guid eventId, string transition)
@@ -335,10 +509,15 @@
     private void CancelEdit()
     {
         editingEvent = NewEventDto();
+        targetBranchIdText = string.Empty;
+        targetDepartmentIdText = string.Empty;
+        targetPositionIdText = string.Empty;
+        targetManagerIdText = string.Empty;
+        ClearValidationMessages();
         isEditing = false;
     }
 
-    private static HrLifecycleEventDto NewEventDto() => new() { EffectiveDate = DateTime.Today, EventType = HrLifecycleEventType.Onboarding };
+    private static HrLifecycleEventDto NewEventDto() => new() { EffectiveDate = DateTime.Today, EventType = HrLifecycleEventType.Transfer };
     private static Guid? ParseGuid(string value) => Guid.TryParse(value, out var id) ? id : null;
     private string EmployeeDisplay(EmployeeDto employee) => $"{(SharedDataService.Language == "Ar" ? employee.FullName : employee.FullNameEng)} ({employee.EmployeeNo})";
     private string TargetSummary(HrLifecycleEventDto item)
@@ -346,9 +525,11 @@
         var parts = new[]
         {
             TargetPart("Branch", "الفرع", BranchName(item.ToBranchId)),
+            TargetPart("Department", "القسم", DepartmentName(item.ToDepartmentId)),
             TargetPart("Position", "المسمى", PositionName(item.ToPositionId)),
             TargetPart("Manager", "المدير", ManagerName(item.ToManagerEmployeeId)),
-            TargetPart("Grade", "الدرجة", item.ToGrade)
+            TargetPart("Grade", "الدرجة", item.ToGrade),
+            TargetPart("Work Location", "موقع العمل", item.ToWorkLocation)
         }.Where(x => !string.IsNullOrWhiteSpace(x));
 
         var summary = string.Join(" / ", parts);
@@ -369,6 +550,13 @@
         return position is null ? Text("Unknown position", "مسمى غير معروف") : SharedDataService.SelectViewLang(position.TitleEng, position.Title);
     }
 
+    private string? DepartmentName(Guid? id)
+    {
+        if (!id.HasValue || id.Value == Guid.Empty) return null;
+        var department = departments.FirstOrDefault(x => x.Id == id.Value);
+        return department is null ? Text("Unknown department", "قسم غير معروف") : SharedDataService.SelectViewLang(department.NameEng, department.Name);
+    }
+
     private string? ManagerName(Guid? id)
     {
         if (!id.HasValue || id.Value == Guid.Empty) return null;
@@ -378,6 +566,11 @@
 
     private string? TargetPart(string labelEn, string labelAr, string? value)
         => string.IsNullOrWhiteSpace(value) ? null : $"{Text(labelEn, labelAr)}: {value}";
+
+    private string EditButtonTitle(HrLifecycleEventDto item)
+        => item.EventType == HrLifecycleEventType.Onboarding
+            ? Text("Legacy onboarding events are read-only on this page.", "أحداث التهيئة القديمة للقراءة فقط في هذه الصفحة.")
+            : Text("Edit", "تعديل");
 
     private string LifecycleTypeText(HrLifecycleEventType type) => type.ToString();
     private string LifecycleStatusText(HrLifecycleEventStatus status) => status.ToString();
