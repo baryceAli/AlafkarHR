@@ -52,9 +52,13 @@
                     <i class="bi bi-eye"></i>
                     @Text("Public View", "العرض العام")
                 </a>
+                <a class="btn btn-outline-success" href="/HR/EmployeeLifecycle?employeeId=@employee.Id">
+                    <i class="bi bi-signpost-split"></i>
+                    @Text("Lifecycle", "دورة الحياة")
+                </a>
                 <a class="btn btn-primary" href="/Employee/Employee/Form/@employee.Id">
                     <i class="bi bi-pencil-square"></i>
-                    @Text("Edit", "تعديل")
+                    @Text("Correct Profile", "تصحيح الملف")
                 </a>
             }
         </Actions>

@@ -191,6 +191,10 @@ public class Employee : Aggregate<Guid>
         string? photoUrl,
         string email,
         string phone,
+        DateTime dateOfBirth,
+        string nationalId,
+        IdentityType identityType,
+        string nationality,
         string address,
         MaritalStatus maritalStatus,
         EmploymentType employmentType,
@@ -218,6 +222,10 @@ public class Employee : Aggregate<Guid>
         PhotoUrl = photoUrl;
         Email = email;
         Phone = phone;
+        DateOfBirth = dateOfBirth;
+        NationalId = nationalId;
+        IdentityType = identityType;
+        Nationality = nationality;
         Address = address;
         MaritalStatus = maritalStatus;
         EmploymentType = employmentType;
