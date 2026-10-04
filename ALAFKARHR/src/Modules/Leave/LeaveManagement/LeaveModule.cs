@@ -1,5 +1,7 @@
 using LeaveManagement.Data;
 using Shared.Data;
+using LeaveManagement.Leave.Features.SystemSetup;
+using Shared.Setup;
 
 namespace LeaveManagement;
 
@@ -9,6 +11,7 @@ public static class LeaveModule
     {
         var connectionString = configuration.GetConnectionString("Database");
         services.AddDbContext<LeaveDbContext>(options => options.UseSqlServer(connectionString));
+        services.AddScoped<ISetupReadinessContributor, LeaveReadinessContributor>();
 
         return services;
     }

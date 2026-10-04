@@ -1,5 +1,6 @@
 ﻿using CustomersModule.Data;
 using CustomersModule.Data.Seed;
+using CustomersModule.Customers.Features.SystemSetup;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,7 @@ public static class CustomerModule
         });
 
         services.AddScoped<IDataSeeder<CustomerDbContext>, CustomerDataSeeder>();
+        services.AddScoped<Shared.Setup.ISetupReadinessContributor, CustomerReadinessContributor>();
 
 
         return services;

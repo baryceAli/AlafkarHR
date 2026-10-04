@@ -4,6 +4,11 @@ namespace AlAfkarERP.Shared.Layout;
 
 public class MenuItem
 {
+    static MenuItem()
+    {
+        NavigationMenuResolver.NormalizeMenuMetadata(Menu);
+    }
+
     public string TextAr { get; set; } = default!;
     public string TextEn { get; set; } = default!;
     public string PermissionPolicy { get; set; }
@@ -257,7 +262,11 @@ public class MenuItem
                             TextAr = "مجموعات العملاء",
                             Icon = "bi-collection-fill",
                             Url = "/Customers/CustomerGroup/List",
-                            PermissionPolicy = PermissionList.CustomerGroupPermissions.View
+                            PermissionPolicy = PermissionList.CustomerGroupPermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 311,
+                            KeywordsEn = "sales customer groups foundation setup configuration",
+                            KeywordsAr = "المبيعات مجموعات العملاء أساس إعداد تهيئة"
                         },
                         new MenuItem
                         {
@@ -265,7 +274,11 @@ public class MenuItem
                             TextAr = "تخصيص تسعير العملاء",
                             Icon = "bi-percent",
                             Url = "/Customers/CustomerPricingProfile/List",
-                            PermissionPolicy = PermissionList.CustomerPricingProfilePermissions.View
+                            PermissionPolicy = PermissionList.CustomerPricingProfilePermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 320,
+                            KeywordsEn = "sales customer pricing profiles defaults setup",
+                            KeywordsAr = "المبيعات تسعير العملاء ملفات افتراضيات إعداد"
                         }
                     }
                 }
@@ -582,7 +595,11 @@ public class MenuItem
                     Icon = "bi-box-seam",
                     Url = "/Catering/Meals",
                     PermissionPolicy = PermissionList.CateringMealPermissions.View,
-                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupMeals
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupMeals,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 620,
+                    KeywordsEn = "catering meal foundation components catalog setup",
+                    KeywordsAr = "الإعاشة الوجبات المكونات الكتالوج أساس إعداد"
                 },
                 new MenuItem
                 {
@@ -591,7 +608,11 @@ public class MenuItem
                     Icon = "bi-geo-alt",
                     Url = "/Catering/Locations",
                     PermissionPolicy = PermissionList.CateringLocationPermissions.View,
-                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupLocations
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.CateringFunctionalGroupLocations,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 610,
+                    KeywordsEn = "catering locations areas squares setup configuration",
+                    KeywordsAr = "الإعاشة المواقع المناطق المربعات إعداد تهيئة"
                 },
                 new MenuItem
                 {
@@ -799,7 +820,13 @@ public class MenuItem
                             TextAr = "المسميات الوظيفية",
                             Icon = "bi-briefcase-fill",
                             Url = "/Employee/Position/List",
-                            PermissionPolicy = PermissionList.PositionPermissions.View
+                            PermissionPolicy = PermissionList.PositionPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceHr,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.HrFunctionalGroupEmployees,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 140,
+                            KeywordsEn = "employee positions job titles workforce setup configuration",
+                            KeywordsAr = "الموظفون الوظائف المسميات الوظيفية إعداد القوى العاملة تهيئة"
                         },
                         new MenuItem
                         {
@@ -1309,7 +1336,11 @@ public class MenuItem
                             TextAr = "عقود الرواتب",
                             Icon = "bi-file-earmark-text",
                             Url = "/Payroll/Contracts",
-                            PermissionPolicy = PermissionList.PayrollContractPermissions.View
+                            PermissionPolicy = PermissionList.PayrollContractPermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 510,
+                            KeywordsEn = "payroll salary contracts setup configuration",
+                            KeywordsAr = "الرواتب عقود الرواتب إعداد تهيئة"
                         },
                         new MenuItem
                         {
@@ -1317,7 +1348,11 @@ public class MenuItem
                             TextAr = "تعيين عقد",
                             Icon = "bi-person-check",
                             Url = "/Payroll/AssignContract",
-                            PermissionPolicy = PermissionList.PayrollContractPermissions.View
+                            PermissionPolicy = PermissionList.PayrollContractPermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 511,
+                            KeywordsEn = "payroll assign employee contract setup",
+                            KeywordsAr = "الرواتب تعيين عقد موظف إعداد"
                         },
                         new MenuItem
                         {
@@ -1325,7 +1360,11 @@ public class MenuItem
                             TextAr = "مكونات الرواتب",
                             Icon = "bi-sliders",
                             Url = "/Payroll/Components",
-                            PermissionPolicy = PermissionList.PayrollContractPermissions.View
+                            PermissionPolicy = PermissionList.PayrollContractPermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 512,
+                            KeywordsEn = "payroll salary components earnings deductions setup",
+                            KeywordsAr = "الرواتب مكونات الراتب الاستحقاقات الخصومات إعداد"
                         },
                         new MenuItem
                         {
@@ -1333,7 +1372,11 @@ public class MenuItem
                             TextAr = "هياكل الرواتب",
                             Icon = "bi-diagram-3",
                             Url = "/HR/PayrollStructures",
-                            PermissionPolicy = PermissionList.PayrollStructurePermissions.View
+                            PermissionPolicy = PermissionList.PayrollStructurePermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 513,
+                            KeywordsEn = "payroll salary structures assignments setup configuration",
+                            KeywordsAr = "الرواتب هياكل الرواتب التعيينات إعداد تهيئة"
                         },
                         new MenuItem
                         {
@@ -1349,7 +1392,11 @@ public class MenuItem
                             TextAr = "رواتب السعودية",
                             Icon = "bi-bank",
                             Url = "/HR/SaudiPayroll",
-                            PermissionPolicy = PermissionList.PayrollPayslipPermissions.Generate
+                            PermissionPolicy = PermissionList.PayrollPayslipPermissions.Generate,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 514,
+                            KeywordsEn = "saudi payroll wps gosi iban setup compliance",
+                            KeywordsAr = "الرواتب السعودية حماية الأجور التأمينات آيبان إعداد امتثال"
                         },
                         new MenuItem
                         {
@@ -1441,7 +1488,13 @@ public class MenuItem
                             TextAr = "العلامات التجارية",
                             Icon = "bi-award-fill",
                             Url = "/Warehouse/Product/Brand/List",
-                            PermissionPolicy = PermissionList.BrandPermissions.View
+                            PermissionPolicy = PermissionList.BrandPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupProducts,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 211,
+                            KeywordsEn = "catalog brand product brands setup classification",
+                            KeywordsAr = "الكتالوج العلامات التجارية إعداد تصنيف المنتجات"
                         },
                         new MenuItem
                         {
@@ -1449,7 +1502,13 @@ public class MenuItem
                             TextAr = "الأصناف",
                             Icon = "bi-diagram-3-fill",
                             Url = "/Warehouse/Product/Category/List",
-                            PermissionPolicy = PermissionList.CategoryPermissions.View
+                            PermissionPolicy = PermissionList.CategoryPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupProducts,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 212,
+                            KeywordsEn = "catalog product categories setup classification",
+                            KeywordsAr = "الكتالوج فئات المنتجات الأصناف إعداد تصنيف"
                         },
                         new MenuItem
                         {
@@ -1457,7 +1516,13 @@ public class MenuItem
                             TextAr = "الوحدات",
                             Icon = "bi-rulers",
                             Url = "/Warehouse/Product/Unit/List",
-                            PermissionPolicy = PermissionList.UnitPermissions.View
+                            PermissionPolicy = PermissionList.UnitPermissions.View,
+                            WorkspaceKey = NavigationMenuResolver.WorkspaceWarehouse,
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.WarehouseFunctionalGroupProducts,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 213,
+                            KeywordsEn = "catalog units of measure uom conversion setup",
+                            KeywordsAr = "الكتالوج وحدات القياس التحويل إعداد"
                         }
                     }
                 },
@@ -1698,6 +1763,10 @@ public class MenuItem
                             Icon = "bi-collection",
                             Url = "/Suppliers/SupplierGroup/List",
                             PermissionPolicy = PermissionList.SupplierGroupPermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 411,
+                            KeywordsEn = "purchasing supplier groups foundation setup configuration",
+                            KeywordsAr = "المشتريات مجموعات الموردين أساس إعداد تهيئة"
                         }
                     }
                 },
@@ -2309,18 +2378,26 @@ public class MenuItem
                         new MenuItem
                         {
                             TextEn = "Properties",
-                            TextAr = "Properties",
+                            TextAr = "العقارات",
                             Icon = "bi-buildings",
                             Url = "/RealEstate/Properties",
                             PermissionPolicy = PermissionList.RealEstatePropertyPermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 710,
+                            KeywordsEn = "real estate property foundation setup configuration",
+                            KeywordsAr = "العقارات أساس العقار إعداد تهيئة"
                         },
                         new MenuItem
                         {
                             TextEn = "Units",
-                            TextAr = "Units",
+                            TextAr = "الوحدات",
                             Icon = "bi-door-open",
                             Url = "/RealEstate/Units",
                             PermissionPolicy = PermissionList.RealEstateUnitPermissions.View,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 720,
+                            KeywordsEn = "real estate property units structure setup",
+                            KeywordsAr = "العقارات الوحدات الهيكل إعداد"
                         },
                         new MenuItem
                         {
@@ -2352,11 +2429,15 @@ public class MenuItem
                         new MenuItem
                         {
                             TextEn = "Utilities",
-                            TextAr = "Utilities",
+                            TextAr = "الخدمات",
                             Icon = "bi-lightning-charge",
                             Url = "/RealEstate/Utilities",
                             PermissionPolicy = PermissionList.RealEstateUtilityPermissions.View,
-                            NavigationFunctionalGroupKey = NavigationMenuResolver.RealEstateFunctionalGroupUtilitiesExpenses
+                            NavigationFunctionalGroupKey = NavigationMenuResolver.RealEstateFunctionalGroupUtilitiesExpenses,
+                            NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                            NavigationOrder = 730,
+                            KeywordsEn = "real estate utilities accounts meters setup optional",
+                            KeywordsAr = "العقارات الخدمات الحسابات العدادات إعداد اختياري"
                         },
                         new MenuItem
                         {
@@ -2449,11 +2530,32 @@ public class MenuItem
             {
                 new MenuItem
                 {
+                    TextEn = "Setup Center",
+                    TextAr = "مركز إعداد النظام",
+                    Icon = "bi-magic",
+                    Url = "/GeneralSettings/Setup",
+                    PermissionPolicy = PermissionList.SystemSetupPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupGeneralSettings,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupStart,
+                    NavigationOrder = 5,
+                    NavigationAliases = new() { "/Setup", "/Settings/Setup", "/Configuration" },
+                    KeywordsEn = "setup center guided onboarding configuration readiness defaults policies templates controls wizard",
+                    KeywordsAr = "مركز إعداد تهيئة معالج جاهزية افتراضيات سياسات قوالب ضوابط"
+                },
+                new MenuItem
+                {
                     TextEn = "System Settings",
                     TextAr = "إعدادات النظام",
                     Icon = "bi-gear-wide-connected",
                     Url = "/GeneralSettings/SystemSettings",
-                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
+                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupGeneralSettings,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 100,
+                    KeywordsEn = "system settings configuration defaults location pos customer setup",
+                    KeywordsAr = "إعدادات النظام تهيئة افتراضيات موقع عميل نقطة البيع"
                 },
                 new MenuItem
                 {
@@ -2461,7 +2563,13 @@ public class MenuItem
                     TextAr = "قوالب الصفحة الرئيسية",
                     Icon = "bi-window",
                     Url = "/GeneralSettings/HomePageTemplates",
-                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
+                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupGeneralSettings,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 110,
+                    KeywordsEn = "home page templates storefront website setup configuration",
+                    KeywordsAr = "قوالب الصفحة الرئيسية واجهة المتجر الموقع إعداد تهيئة"
                 },
                 new MenuItem
                 {
@@ -2469,7 +2577,13 @@ public class MenuItem
                     TextAr = "العملات",
                     Icon = "bi-currency-exchange",
                     Url = "/GeneralSettings/Currencies",
-                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View
+                    PermissionPolicy = PermissionList.SystemSettingsPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupGeneralSettings,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 120,
+                    KeywordsEn = "currencies default currency exchange setup configuration",
+                    KeywordsAr = "عملات العملة الافتراضية صرف إعداد تهيئة"
                 },
                 new MenuItem
                 {

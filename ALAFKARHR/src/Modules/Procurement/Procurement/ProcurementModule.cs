@@ -1,4 +1,5 @@
 using Shared.Data;
+using Procurement.Procurement.Features.SystemSetup;
 
 namespace Procurement;
 
@@ -8,6 +9,7 @@ public static class ProcurementModule
     {
         var connectionString = configuration.GetConnectionString("Database");
         services.AddDbContext<ProcurementDbContext>(options => options.UseSqlServer(connectionString));
+        services.AddScoped<Shared.Setup.ISetupReadinessContributor, ProcurementReadinessContributor>();
         return services;
     }
 

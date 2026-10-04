@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SalesOrder.Data;
+using SalesOrder.Orders.Features.SystemSetup;
 using Shared.Data;
 using Shared.Data.Seed;
 
@@ -33,6 +34,8 @@ public static class SalesOrderModule
             //options.UseNpgsql(connectionString);
             options.UseSqlServer(connectionString);
         });
+
+        services.AddScoped<Shared.Setup.ISetupReadinessContributor, SalesReadinessContributor>();
 
         //services.AddScoped<IDataSeeder<SalesOrderDbContext>, CatalogDataSeeder>();
 

@@ -8,6 +8,8 @@ using Microsoft.Extensions.Hosting;
 using Shared.Data;
 using Shared.Data.Seed;
 using Microsoft.EntityFrameworkCore;
+using GeneralSettings.GeneralSettings.Features.SystemSetup;
+using Shared.Setup;
 namespace GeneralSettings;
 
 public static class GeneralSettingsModule
@@ -36,6 +38,8 @@ public static class GeneralSettingsModule
         });
 
         services.AddScoped<IDataSeeder<GeneralSettingsDbContext>, GeneralSettingsDataSeeder>();
+        services.AddScoped<ISetupReadinessContributor, GeneralSettingsReadinessContributor>();
+        services.AddScoped<ISetupReadinessContributor, PosDefaultsReadinessContributor>();
 
 
         return services;

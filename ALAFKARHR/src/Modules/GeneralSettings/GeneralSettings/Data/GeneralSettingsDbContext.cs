@@ -15,6 +15,7 @@ public class GeneralSettingsDbContext:DbContext
 
     public DbSet<Currency> Currencies => Set<Currency>();
     public DbSet<CompanySetting> CompanySettings => Set<CompanySetting>();
+    public DbSet<CompanySetupProfile> CompanySetupProfiles => Set<CompanySetupProfile>();
     public DbSet<HomePageTemplateSelection> HomePageTemplateSelections => Set<HomePageTemplateSelection>();
     public DbSet<CurrentStorefrontHomePageContent> CurrentStorefrontHomePageContents => Set<CurrentStorefrontHomePageContent>();
     public DbSet<MinimalistLandingHomePageContent> MinimalistLandingHomePageContents => Set<MinimalistLandingHomePageContent>();
@@ -30,6 +31,15 @@ public class GeneralSettingsDbContext:DbContext
         // 🔥 Apply all IEntityTypeConfiguration<>
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         ConfigureHomePageTemplates(modelBuilder);
+        modelBuilder.Entity<CompanySetupProfile>(builder =>
+        {
+            builder.ToTable("CompanySetupProfiles");
+            builder.HasKey(x => x.Id);
+            builder.HasIndex(x => x.CompanyId).IsUnique();
+            builder.Property(x => x.CurrentStepKey).HasMaxLength(100).IsRequired();
+            builder.Property(x => x.SelectedTrackKeys).HasMaxLength(1000).IsRequired();
+            builder.Property(x => x.SkippedStepKeys).HasMaxLength(2000).IsRequired();
+        });
 
         // 🔥 Global Conventions (optional but recommended)
         //ApplyGlobalConfigurations(modelBuilder);

@@ -52,6 +52,18 @@
     </div>
 
     <div class="ms-auto d-flex align-items-center topbar-actions">
+        @if (ShowSetupProgress)
+        {
+            <button type="button"
+                    class="btn topbar-setup-progress"
+                    title="@SharedDataService.SelectViewLang("Open Setup Center", "فتح مركز إعداد النظام")"
+                    @onclick="OpenSetupCenter">
+                <i class="bi @(SetupComplete ? "bi-check-circle-fill" : "bi-magic")"></i>
+                <span class="d-none d-xl-inline">@SharedDataService.SelectViewLang("Setup", "الإعداد")</span>
+                <strong>@SetupPercent%</strong>
+            </button>
+        }
+
         <ThemeSelector />
 
         <button @onclick="async () => { await SharedDataService.UpdateLanguageAsync(); }"
@@ -94,6 +106,9 @@
     [Parameter] public bool IsMoreOpen { get; set; }
     [Parameter] public AuthenticationState? ShellAuthState { get; set; }
     [Parameter] public IReadOnlySet<string>? LicensedBusinessLineKeys { get; set; }
+    [Parameter] public bool ShowSetupProgress { get; set; }
+    [Parameter] public int SetupPercent { get; set; }
+    [Parameter] public bool SetupComplete { get; set; }
 
     private AuthenticationState? authState;
     private IReadOnlyList<MenuItem> ActivePath { get; set; } = Array.Empty<MenuItem>();
@@ -169,6 +184,8 @@
         await ((CustomAuthStateProvider)AuthenticationStateProvider).NotifyUserLogout();
         NavigationManager.NavigateTo("/", true);
     }
+
+    private void OpenSetupCenter() => NavigationManager.NavigateTo("/GeneralSettings/Setup");
 
     private void UpdateActivePath()
     {

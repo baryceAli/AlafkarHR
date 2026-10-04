@@ -104,6 +104,52 @@ public static partial class NavigationMenuResolver
     public const string HubAdmin = WorkspaceAdmin;
     public const string HubSecurity = WorkspaceSecurity;
 
+    public static void NormalizeMenuMetadata(IReadOnlyCollection<MenuItem> items)
+    {
+        var order = 1;
+        foreach (var item in items)
+        {
+            NormalizeMenuMetadata(item, null, null, null, ref order);
+        }
+    }
+
+    private static void NormalizeMenuMetadata(
+        MenuItem item,
+        string? inheritedWorkspace,
+        string? inheritedFunctionalGroup,
+        string? inheritedPermission,
+        ref int order)
+    {
+        item.WorkspaceKey ??= inheritedWorkspace ?? GetWorkspaceKey(item);
+        item.NavigationFunctionalGroupKey ??= inheritedFunctionalGroup ?? GetFunctionalGroupKey(item);
+        item.PermissionPolicy = string.IsNullOrWhiteSpace(item.PermissionPolicy) ? inheritedPermission ?? string.Empty : item.PermissionPolicy;
+        item.Icon = string.IsNullOrWhiteSpace(item.Icon) ? "bi-file-earmark" : item.Icon;
+        item.NavigationOrder ??= order++;
+
+        if (!string.IsNullOrWhiteSpace(item.Url))
+        {
+            item.NavigationGroupKey ??= ResolveNavigationGroupKey(item);
+            var setupEn = item.NavigationGroupKey == NavigationGroupSetup
+                ? " setup settings configuration defaults policies templates controls wizard"
+                : string.Empty;
+            var setupAr = item.NavigationGroupKey == NavigationGroupSetup
+                ? " إعداد تهيئة إعدادات افتراضيات سياسات قوالب ضوابط معالج"
+                : string.Empty;
+            item.KeywordsEn = $"{item.KeywordsEn} {item.TextEn} {item.Url}{setupEn}".Trim();
+            item.KeywordsAr = $"{item.KeywordsAr} {item.TextAr}{setupAr}".Trim();
+        }
+
+        foreach (var child in item.Children)
+        {
+            NormalizeMenuMetadata(
+                child,
+                item.WorkspaceKey,
+                item.NavigationFunctionalGroupKey,
+                item.PermissionPolicy,
+                ref order);
+        }
+    }
+
     public static readonly IReadOnlyList<NavigationWorkspace> MobileWorkspaces =
     [
         new(WorkspaceHome, "Home", "\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629", "bi-house-door", "/Dashboard"),

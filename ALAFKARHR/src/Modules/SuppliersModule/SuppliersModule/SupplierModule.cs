@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using Shared.Data;
 using Shared.Data.Seed;
 using SuppliersModule.Data;
+using SuppliersModule.Suppliers.Features.SystemSetup;
 
 namespace SuppliersModule;
 
@@ -33,6 +34,8 @@ public static class SupplierModule
             //options.UseNpgsql(connectionString);
             options.UseSqlServer(connectionString);
         });
+
+        services.AddScoped<Shared.Setup.ISetupReadinessContributor, SupplierReadinessContributor>();
 
         //services.AddScoped<IDataSeeder<SupplierDbContext>, CatalogDataSeeder>();
 
