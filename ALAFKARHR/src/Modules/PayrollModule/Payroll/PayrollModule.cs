@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using Payroll.Data.Seed;
 using Microsoft.Extensions.Hosting;
 using Shared.Data;
+using Payroll.Salaries.Features.SystemSetup;
+using Shared.Setup;
 namespace Payroll;
 
 public static class PayrollModule
@@ -35,6 +37,7 @@ public static class PayrollModule
         });
 
         services.AddScoped<IDataSeeder<PayrollDbContext>, PayrollDataSeeder>();
+        services.AddScoped<ISetupReadinessContributor, PayrollReadinessContributor>();
 
 
         return services;

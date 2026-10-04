@@ -130,6 +130,7 @@ public static class PermissionList
             .. ZatcaSettingsPermissions.Permissions,
             .. ZatcaEInvoicePermissions.Permissions,
             .. SystemSettingsPermissions.Permissions,
+            .. SystemSetupPermissions.Permissions,
         ];
 
 
@@ -167,6 +168,8 @@ public static class PermissionList
             SystemSettingsPermissions.Select,
             SystemSettingsPermissions.View,
             SystemSettingsPermissions.Edit,
+            SystemSetupPermissions.View,
+            SystemSetupPermissions.Manage,
         ];
 
         return list
@@ -1771,6 +1774,14 @@ public static class PermissionList
                 $"{Create}",
                 $"{Edit}",
             };
+    }
+
+    public static class SystemSetupPermissions
+    {
+        public static string GroupName { get; set; } = "GeneralSettings.SystemSetup";
+        public static string View { get; set; } = $"{GroupName}.View";
+        public static string Manage { get; set; } = $"{GroupName}.Manage";
+        public static List<string> Permissions => [View, Manage];
     }
 
     public static class DemoDataPermissions

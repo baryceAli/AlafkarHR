@@ -6,6 +6,8 @@ using Organization.Data.Seed;
 using Shared.Contracts.Organization;
 using Shared.Data;
 using Shared.Data.Seed;
+using Organization.Organizations.Features.SystemSetup;
+using Shared.Setup;
 
 namespace Organization;
 
@@ -39,6 +41,7 @@ public static class OrganizationModule
         services.AddScoped<ICompanyHierarchyContext, CompanyHierarchyContext>();
         services.AddScoped<ICompanyHierarchyReader, CompanyHierarchyContext>();
         services.AddScoped<IBusinessLineEntitlementService, BusinessLineEntitlementService>();
+        services.AddScoped<ISetupReadinessContributor, OrganizationReadinessContributor>();
 
 
         return services;

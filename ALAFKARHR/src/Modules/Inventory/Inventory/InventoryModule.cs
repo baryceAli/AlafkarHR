@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Shared.Data;
 using Shared.Data.Seed;
+using Inventory.Warehouses.Features.SystemSetup;
+using Shared.Setup;
 
 namespace Inventory;
 
@@ -34,6 +36,7 @@ public static class InventoryModule
         });
 
         services.AddScoped<IDataSeeder<InventoryDbContext>, InventoryDataSeeder>();
+        services.AddScoped<ISetupReadinessContributor, InventoryReadinessContributor>();
 
 
         return services;

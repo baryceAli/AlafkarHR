@@ -1,5 +1,7 @@
 namespace StoreFront;
 
+using StoreFront.Features.SystemSetup;
+
 public static class StoreFrontModule
 {
     public static IServiceCollection AddStoreFrontModule(this IServiceCollection services, IConfiguration configuration)
@@ -7,6 +9,7 @@ public static class StoreFrontModule
         var connectionString = configuration.GetConnectionString("Database");
         services.AddDbContext<StoreFrontDbContext>(options => options.UseSqlServer(connectionString));
         services.AddHttpContextAccessor();
+        services.AddScoped<Shared.Setup.ISetupReadinessContributor, StoreFrontReadinessContributor>();
         return services;
     }
 

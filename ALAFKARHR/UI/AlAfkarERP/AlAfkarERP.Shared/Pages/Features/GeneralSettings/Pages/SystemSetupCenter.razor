@@ -1,0 +1,563 @@
+@page "/GeneralSettings/Setup"
+@layout AdminLayout
+@using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Permissions
+@implements IDisposable
+
+@inject ISystemSetupService SystemSetupService
+@inject ICompanySettingService CompanySettingService
+@inject ICompanyService CompanyService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject SharedDataService SharedDataService
+@inject ToastService ToastService
+
+<div class="erp-page setup-center" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@Text("Setup Center", "مركز إعداد النظام")"
+                Subtitle="@Text("Configure the ERP in a guided sequence and return at any time.", "هيئ نظام تخطيط الموارد بخطوات موجهة وارجع إليها في أي وقت.")"
+                Overline="@Text("General Settings", "الإعدادات العامة")"
+                Icon="bi-magic">
+        <Actions>
+            <button type="button" class="btn btn-outline-secondary" @onclick="LoadAsync" disabled="@isLoading">
+                <i class="bi bi-arrow-clockwise"></i>
+                @Text("Refresh readiness", "تحديث الجاهزية")
+            </button>
+            @if (CanManageSetup && summary is not null)
+            {
+                @if (summary.IsComplete)
+                {
+                    <button type="button" class="btn btn-outline-primary" @onclick="RestartReviewAsync" disabled="@isSaving">
+                        <i class="bi bi-arrow-repeat"></i>
+                        @Text("Rerun setup", "إعادة الإعداد")
+                    </button>
+                }
+                <button type="button" class="btn btn-outline-secondary" @onclick="ToggleReminderAsync" disabled="@isSaving">
+                    <i class="bi @(summary.RemindersDismissed ? "bi-bell" : "bi-bell-slash")"></i>
+                    @(summary.RemindersDismissed ? Text("Enable reminders", "تفعيل التذكيرات") : Text("Dismiss reminders", "إخفاء التذكيرات"))
+                </button>
+            }
+        </Actions>
+    </PageHeader>
+
+    @if (isLoading)
+    {
+        <AppCard>
+            <div class="erp-loading py-5">
+                <div class="spinner-border text-primary" role="status"></div>
+                <span>@Text("Evaluating company readiness...", "جارٍ تقييم جاهزية الشركة...")</span>
+            </div>
+        </AppCard>
+    }
+    else if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <AppPageMessage Message="@errorMessage" Type="error" Direction="@SharedDataService.PageDirection" Dismissible="false" />
+        <button type="button" class="btn btn-primary mt-3" @onclick="LoadAsync" disabled="@isLoading">
+            <i class="bi bi-arrow-clockwise"></i>
+            @Text("Retry readiness", "إعادة محاولة الجاهزية")
+        </button>
+    }
+    else if (summary is null || !summary.Tracks.Any())
+    {
+        <EmptyState Icon="bi-sliders2" Title="@Text("No setup tracks available", "لا توجد مسارات إعداد متاحة")" Message="@Text("No authorized setup descriptors were returned for this company.", "لم يتم إرجاع مسارات إعداد مصرح بها لهذه الشركة.")" />
+    }
+    else if (summary is not null)
+    {
+        <AppCard CssClass="setup-summary-card mb-3">
+            <div class="setup-summary-grid">
+                <div>
+                    <div class="setup-summary-heading">
+                        <strong>@(summary.IsComplete ? Text("Selected setup complete", "اكتمل الإعداد المحدد") : Text("Selected setup in progress", "الإعداد المحدد قيد التنفيذ"))</strong>
+                        <StatusChip Text="@Text($"{summary.CompletionPercent}% complete", $"مكتمل بنسبة {summary.CompletionPercent}%")"
+                                    Tone="@(summary.IsComplete ? "success" : "primary")"
+                                    Icon="@(summary.IsComplete ? "bi-check-circle" : "bi-hourglass-split")" />
+                    </div>
+                    <div class="erp-progress mt-3" role="progressbar" aria-valuenow="@summary.CompletionPercent" aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar" style="--erp-progress-value: @(summary.CompletionPercent)%"></div>
+                    </div>
+                    <div class="text-muted small mt-2">
+                        @Text("Readiness is calculated from live ERP data. Normal system use remains available.", "تُحسب الجاهزية من بيانات النظام الفعلية، ويظل استخدام النظام متاحاً.")
+                    </div>
+                </div>
+                <div class="setup-summary-stat">
+                    <span>@Text("Core readiness", "جاهزية الإعداد الأساسي")</span>
+                    <strong>@summary.CoreCompletionPercent%</strong>
+                </div>
+                <div class="setup-summary-stat">
+                    <span>@Text("Required steps", "الخطوات المطلوبة")</span>
+                    <strong>@RequiredSteps.Count()</strong>
+                </div>
+                <div class="setup-summary-stat">
+                    <span>@Text("Completed", "المكتملة")</span>
+                    <strong>@RequiredSteps.Count(x => x.IsComplete)</strong>
+                </div>
+            </div>
+        </AppCard>
+
+        @if (summary.Tracks.Any(x => x.IsOptional))
+        {
+            <AppCard CssClass="mb-3" Title="@Text("Setup packs", "حزم الإعداد")" Subtitle="@Text("Choose the business areas to include. Required dependencies are selected automatically.", "اختر مجالات العمل المراد تضمينها، وسيتم تحديد المتطلبات التابعة تلقائياً.")">
+                <div class="row g-3">
+                    @foreach (var track in summary.Tracks.Where(x => x.IsOptional).OrderBy(x => x.Order))
+                    {
+                        <div class="col-12 col-md-6 col-xl-4">
+                            <label class="form-check border rounded p-3 h-100 d-flex gap-3 align-items-start">
+                                <input class="form-check-input" type="checkbox" checked="@track.IsSelected"
+                                       disabled="@(!CanManageSetup || IsRequiredBySelectedTrack(track.Key) || isSaving)"
+                                       @onchange="() => ToggleTrackAsync(track)" />
+                                <span class="d-grid gap-1">
+                                    <strong><i class="bi @track.Icon me-1"></i>@Text(track.TitleEn, track.TitleAr)</strong>
+                                    <small class="text-muted">@Text(track.DescriptionEn, track.DescriptionAr)</small>
+                                    @if (track.IsSelected)
+                                    {
+                                        <small class="text-primary">@Text($"{track.CompletionPercent}% complete", $"مكتمل بنسبة {track.CompletionPercent}%")</small>
+                                    }
+                                </span>
+                            </label>
+                        </div>
+                    }
+                </div>
+            </AppCard>
+        }
+
+        <div class="setup-workspace">
+            <aside class="setup-step-panel" aria-label="@Text("Setup steps", "خطوات الإعداد")">
+                @foreach (var track in summary.Tracks.Where(x => x.IsSelected))
+                {
+                    <section class="setup-track">
+                        <header>
+                            <i class="bi @track.Icon"></i>
+                            <span>
+                                <strong>@Text(track.TitleEn, track.TitleAr)</strong>
+                                <small>@Text(track.DescriptionEn, track.DescriptionAr) · @track.CompletionPercent%</small>
+                            </span>
+                        </header>
+                        <div class="setup-step-list">
+                            @foreach (var step in track.Steps)
+                            {
+                                <button type="button"
+                                        class="setup-step-button @(step.Key == activeStepKey ? "is-active" : "")"
+                                        aria-current="@(step.Key == activeStepKey ? "step" : null)"
+                                        aria-label="@Text($"{step.TitleEn}: {StatusLabel(step)}", $"{step.TitleAr}: {StatusLabel(step)}")"
+                                        @onkeydown="args => HandleStepKeyDownAsync(args, step)"
+                                        @onclick="() => SelectStepAsync(step)">
+                                    <span class="setup-step-icon"><i class="bi @StepIcon(step)"></i></span>
+                                    <span class="setup-step-copy">
+                                        <strong>@Text(step.TitleEn, step.TitleAr)</strong>
+                                        <small>@StatusLabel(step)</small>
+                                    </span>
+                                </button>
+                            }
+                        </div>
+                    </section>
+                }
+            </aside>
+
+            <main class="setup-step-content">
+                @if (ActiveStep is not null)
+                {
+                    <AppCard CssClass="mb-3 allow-overflow">
+                        <div class="setup-step-header">
+                            <span class="setup-step-hero-icon"><i class="bi @ActiveStep.Icon"></i></span>
+                            <div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                    <h2 class="erp-card-title mb-0">@Text(ActiveStep.TitleEn, ActiveStep.TitleAr)</h2>
+                                    <StatusChip Text="@StatusLabel(ActiveStep)" Tone="@StatusTone(ActiveStep)" Icon="@StepIcon(ActiveStep)" />
+                                </div>
+                                <p class="text-muted mb-0">@Text(ActiveStep.DescriptionEn, ActiveStep.DescriptionAr)</p>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(StepDetail(ActiveStep)))
+                        {
+                            <div class="setup-readiness-note mt-3">
+                                <i class="bi bi-info-circle"></i>
+                                <span>@StepDetail(ActiveStep)</span>
+                            </div>
+                        }
+
+                        @if (ActiveStep.Key == "company-defaults" && ActiveStep.IsAvailable)
+                        {
+                            @if (isLoadingDefaults)
+                            {
+                                <div class="erp-loading py-4"><div class="spinner-border spinner-border-sm"></div></div>
+                            }
+                            else
+                            {
+                                <EditForm Model="companySetting" OnValidSubmit="SaveDefaultsAsync" class="setup-inline-form mt-4">
+                                    <DataAnnotationsValidator />
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label class="form-label">@Text("Default location", "الموقع الافتراضي")</label>
+                                            <InputText class="form-control" @bind-Value="companySetting.DefaultLocation" disabled="@(!CanEditSystemSettings)" />
+                                            <ValidationMessage For="@(() => companySetting.DefaultLocation)" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">@Text("Latitude", "خط العرض")</label>
+                                            <InputNumber class="form-control" @bind-Value="companySetting.DefaultLatitude" disabled="@(!CanEditSystemSettings)" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">@Text("Longitude", "خط الطول")</label>
+                                            <InputNumber class="form-control" @bind-Value="companySetting.DefaultLongitude" disabled="@(!CanEditSystemSettings)" />
+                                        </div>
+                                    </div>
+                                    <div class="setup-inline-actions">
+                                        <button type="submit" class="btn btn-primary" disabled="@(!CanEditSystemSettings || isSavingDefaults)">
+                                            <i class="bi bi-save"></i>
+                                            @Text("Save defaults", "حفظ الإعدادات")
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary" @onclick="OpenCurrenciesAsync">
+                                            <i class="bi bi-currency-exchange"></i>
+                                            @Text("Manage currencies", "إدارة العملات")
+                                        </button>
+                                    </div>
+                                </EditForm>
+                            }
+                        }
+
+                        <div class="setup-step-actions">
+                            @if (ActiveStep.IsAvailable && ActiveStep.Key is not ("company-defaults" or "review-summary") && !string.IsNullOrWhiteSpace(ActiveStep.Route))
+                            {
+                                <button type="button" class="btn btn-primary" @onclick="() => OpenRouteAsync(ActiveStep.Route!)">
+                                    <i class="bi bi-box-arrow-up-right"></i>
+                                    @Text("Open configuration page", "فتح صفحة الإعداد")
+                                </button>
+                            }
+                            @if (!ActiveStep.IsAvailable)
+                            {
+                                <span class="text-muted small">
+                                    <i class="bi bi-lock"></i>
+                                    @Text("Required permission", "الصلاحية المطلوبة"): @ActiveStep.RequiredPermission
+                                </span>
+                            }
+                            @if (CanManageSetup && ActiveStep.IsOptional)
+                            {
+                                <button type="button" class="btn btn-outline-secondary" @onclick="() => ToggleSkipAsync(ActiveStep)">
+                                    <i class="bi @(ActiveStep.IsSkipped ? "bi-arrow-counterclockwise" : "bi-skip-forward")"></i>
+                                    @(ActiveStep.IsSkipped ? Text("Include step", "تضمين الخطوة") : Text("Skip for now", "تخطي الآن"))
+                                </button>
+                            }
+                        </div>
+                    </AppCard>
+
+                    <div class="setup-pager">
+                        <button type="button" class="btn btn-outline-secondary" @onclick="PreviousStepAsync" disabled="@(ActiveStepIndex <= 0)">
+                            <i class="bi bi-arrow-left-short"></i>
+                            @Text("Previous", "السابق")
+                        </button>
+                        <button type="button" class="btn btn-primary" @onclick="NextStepAsync" disabled="@(ActiveStepIndex >= VisibleSteps.Count - 1)">
+                            @Text("Next", "التالي")
+                            <i class="bi bi-arrow-right-short"></i>
+                        </button>
+                    </div>
+                }
+            </main>
+        </div>
+
+        <AppCard CssClass="mt-3"
+                 Title="@Text("All configuration pages", "جميع صفحات الإعداد")"
+                 Subtitle="@Text("Search authorized setup, defaults, policies, templates, and master configuration across workspaces.", "ابحث في صفحات الإعداد والافتراضيات والسياسات والقوالب والتهيئة الأساسية المصرح بها.")">
+            <div class="erp-search-control mb-3">
+                <i class="bi bi-search"></i>
+                <input class="form-control" @bind="catalogSearch" @bind:event="oninput" placeholder="@Text("Search configuration pages", "ابحث في صفحات الإعداد")" />
+            </div>
+            @if (!FilteredCatalogItems.Any())
+            {
+                <EmptyState Icon="bi-search" Title="@Text("No configuration pages found", "لم يتم العثور على صفحات إعداد")" Message="@Text("Try another search term.", "جرب كلمة بحث أخرى.")" />
+            }
+            else
+            {
+                <div class="setup-catalog-grid">
+                    @foreach (var group in FilteredCatalogItems.GroupBy(NavigationMenuResolver.GetWorkspaceKey).OrderBy(x => WorkspaceLabel(x.Key)))
+                    {
+                        <section class="setup-catalog-group">
+                            <h3>@WorkspaceLabel(group.Key)</h3>
+                            <div class="setup-catalog-links">
+                                @foreach (var item in group.OrderBy(x => x.NavigationOrder ?? 999).ThenBy(x => Text(x.TextEn, x.TextAr)))
+                                {
+                                    <button type="button" class="setup-catalog-link" @onclick="() => OpenRouteAsync(item.Url!)">
+                                        <i class="bi @item.Icon"></i>
+                                        <span>@Text(item.TextEn, item.TextAr)</span>
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                }
+                            </div>
+                        </section>
+                    }
+                </div>
+            }
+        </AppCard>
+    }
+</div>
+
+@code {
+    private AuthenticationState? authState;
+    private SetupSummaryDto? summary;
+    private CompanySettingDto companySetting = new();
+    private IReadOnlySet<string>? licensedBusinessLineKeys;
+    private string activeStepKey = "company-profile";
+    private string catalogSearch = string.Empty;
+    private string? errorMessage;
+    private bool isLoading = true;
+    private bool isSaving;
+    private bool isLoadingDefaults;
+    private bool isSavingDefaults;
+    private int loadRequestVersion;
+
+    private bool CanManageSetup => HasPermission(PermissionList.SystemSetupPermissions.Manage);
+    private bool CanEditSystemSettings => HasPermission(PermissionList.SystemSettingsPermissions.Edit);
+    private IEnumerable<SetupStepDto> RequiredSteps => summary?.Tracks.SelectMany(x => x.Steps).Where(x => x.IsBlocking) ?? [];
+    private List<SetupStepDto> VisibleSteps => summary?.Tracks.Where(x => x.IsSelected).SelectMany(x => x.Steps).OrderBy(x => x.Order).ToList() ?? [];
+    private SetupStepDto? ActiveStep => VisibleSteps.FirstOrDefault(x => x.Key == activeStepKey) ?? VisibleSteps.FirstOrDefault();
+    private int ActiveStepIndex => ActiveStep is null ? -1 : VisibleSteps.FindIndex(x => x.Key == ActiveStep.Key);
+    private IEnumerable<MenuItem> CatalogItems => authState is null
+        ? []
+        : NavigationMenuResolver.GetAuthorizedNavigableItems(authState.User, licensedBusinessLineKeys)
+            .Where(IsConfigurationItem)
+            .Where(x => !string.Equals(x.Url, "/GeneralSettings/Setup", StringComparison.OrdinalIgnoreCase));
+    private IEnumerable<MenuItem> FilteredCatalogItems => string.IsNullOrWhiteSpace(catalogSearch)
+        ? CatalogItems
+        : CatalogItems.Where(x => NavigationPanelShared.NormalizeSearchText(string.Join(' ', x.TextEn, x.TextAr, x.KeywordsEn, x.KeywordsAr, x.Url))
+            .Contains(NavigationPanelShared.NormalizeSearchText(catalogSearch)));
+
+    protected override void OnInitialized()
+    {
+        SharedDataService.OnChange1 += HandleLanguageChangeAsync;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated != true)
+        {
+            NavigationManager.NavigateTo("/login", true);
+            return;
+        }
+
+        var licenseResult = await CompanyService.GetCurrentLicenseAsync();
+        licensedBusinessLineKeys = licenseResult.IsSuccess && licenseResult.Data is not null
+            ? licenseResult.Data.BusinessLines.Select(x => x.Key).ToHashSet(StringComparer.OrdinalIgnoreCase)
+            : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var requestVersion = ++loadRequestVersion;
+        isLoading = true;
+        errorMessage = null;
+        var result = await SystemSetupService.GetCurrentAsync();
+        if (!result.IsSuccess)
+        {
+            await Task.Delay(250);
+            if (requestVersion != loadRequestVersion) return;
+            result = await SystemSetupService.GetCurrentAsync();
+        }
+        if (requestVersion != loadRequestVersion) return;
+        if (result.IsSuccess && result.Data is not null)
+        {
+            summary = result.Data;
+            activeStepKey = summary.Tracks.SelectMany(x => x.Steps).Any(x => x.Key == summary.CurrentStepKey)
+                ? summary.CurrentStepKey
+                : summary.Tracks.SelectMany(x => x.Steps).FirstOrDefault()?.Key ?? "company-profile";
+            await LoadDefaultsAsync();
+        }
+        else
+        {
+            errorMessage = result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to load setup readiness.", "تعذر تحميل جاهزية الإعداد.");
+        }
+        isLoading = false;
+    }
+
+    private async Task HandleStepKeyDownAsync(KeyboardEventArgs args, SetupStepDto step)
+    {
+        var index = VisibleSteps.FindIndex(x => x.Key == step.Key);
+        var target = args.Key switch
+        {
+            "ArrowDown" or "ArrowRight" when index < VisibleSteps.Count - 1 => index + 1,
+            "ArrowUp" or "ArrowLeft" when index > 0 => index - 1,
+            "Home" when VisibleSteps.Count > 0 => 0,
+            "End" when VisibleSteps.Count > 0 => VisibleSteps.Count - 1,
+            _ => -1
+        };
+        if (target >= 0) await SelectStepAsync(VisibleSteps[target]);
+    }
+
+    private async Task LoadDefaultsAsync()
+    {
+        if (!HasPermission(PermissionList.SystemSettingsPermissions.View)
+            || !Guid.TryParse(authState?.User.FindFirst("company_id")?.Value, out var companyId))
+        {
+            return;
+        }
+
+        isLoadingDefaults = true;
+        var result = await CompanySettingService.GetAsync(companyId);
+        if (result.IsSuccess && result.Data is not null)
+        {
+            companySetting = result.Data;
+        }
+        isLoadingDefaults = false;
+    }
+
+    private async Task SaveDefaultsAsync()
+    {
+        if (!CanEditSystemSettings || !Guid.TryParse(authState?.User.FindFirst("company_id")?.Value, out var companyId))
+        {
+            return;
+        }
+
+        isSavingDefaults = true;
+        companySetting.CompanyId = companyId;
+        var result = await CompanySettingService.UpdateAsync(companyId, companySetting);
+        if (result.IsSuccess)
+        {
+            ToastService.ShowSuccess(Text("Operational defaults saved.", "تم حفظ الإعدادات التشغيلية."));
+            await LoadAsync();
+        }
+        else
+        {
+            ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save defaults.", "تعذر حفظ الإعدادات."));
+        }
+        isSavingDefaults = false;
+    }
+
+    private async Task SelectStepAsync(SetupStepDto step)
+    {
+        activeStepKey = step.Key;
+        if (CanManageSetup)
+        {
+            await SaveProgressAsync();
+        }
+    }
+
+    private async Task PreviousStepAsync()
+    {
+        if (ActiveStepIndex > 0) await SelectStepAsync(VisibleSteps[ActiveStepIndex - 1]);
+    }
+
+    private async Task NextStepAsync()
+    {
+        if (ActiveStepIndex >= 0 && ActiveStepIndex < VisibleSteps.Count - 1) await SelectStepAsync(VisibleSteps[ActiveStepIndex + 1]);
+    }
+
+    private async Task ToggleSkipAsync(SetupStepDto step)
+    {
+        step.IsSkipped = !step.IsSkipped;
+        if (step.IsSkipped) summary!.SkippedStepKeys.Add(step.Key);
+        else summary!.SkippedStepKeys.RemoveAll(x => string.Equals(x, step.Key, StringComparison.OrdinalIgnoreCase));
+        await SaveProgressAsync();
+    }
+
+    private async Task ToggleReminderAsync()
+    {
+        summary!.RemindersDismissed = !summary.RemindersDismissed;
+        await SaveProgressAsync();
+    }
+
+    private async Task ToggleTrackAsync(SetupTrackDto track)
+    {
+        if (!CanManageSetup || summary is null || isSaving || IsRequiredBySelectedTrack(track.Key)) return;
+        if (track.IsSelected)
+        {
+            summary.SelectedTrackKeys.RemoveAll(x => string.Equals(x, track.Key, StringComparison.OrdinalIgnoreCase));
+        }
+        else
+        {
+            if (!summary.SelectedTrackKeys.Contains(track.Key, StringComparer.OrdinalIgnoreCase)) summary.SelectedTrackKeys.Add(track.Key);
+            foreach (var dependency in track.DependencyTrackKeys)
+            {
+                if (!summary.SelectedTrackKeys.Contains(dependency, StringComparer.OrdinalIgnoreCase)) summary.SelectedTrackKeys.Add(dependency);
+            }
+        }
+        await SaveProgressAsync();
+        activeStepKey = VisibleSteps.FirstOrDefault()?.Key ?? "company-profile";
+    }
+
+    private bool IsRequiredBySelectedTrack(string trackKey)
+        => summary?.Tracks.Any(x => x.IsSelected && !string.Equals(x.Key, trackKey, StringComparison.OrdinalIgnoreCase)
+            && x.DependencyTrackKeys.Contains(trackKey, StringComparer.OrdinalIgnoreCase)) == true;
+
+    private async Task RestartReviewAsync()
+    {
+        activeStepKey = "company-profile";
+        summary!.RemindersDismissed = false;
+        await SaveProgressAsync();
+    }
+
+    private async Task SaveProgressAsync()
+    {
+        if (!CanManageSetup || summary is null || isSaving) return;
+        isSaving = true;
+        var result = await SystemSetupService.UpdateProgressAsync(new UpdateSetupProgressDto
+        {
+            CurrentStepKey = activeStepKey,
+            RemindersDismissed = summary.RemindersDismissed,
+            SelectedTrackKeys = summary.SelectedTrackKeys,
+            SkippedStepKeys = summary.SkippedStepKeys
+        });
+        if (result.IsSuccess && result.Data is not null) summary = result.Data;
+        else ToastService.ShowError(result.Error?.GetDisplayMessage(SharedDataService.Language) ?? Text("Unable to save setup progress.", "تعذر حفظ تقدم الإعداد."));
+        isSaving = false;
+    }
+
+    private async Task OpenRouteAsync(string route)
+    {
+        if (CanManageSetup) await SaveProgressAsync();
+        NavigationManager.NavigateTo(route);
+    }
+
+    private Task OpenCurrenciesAsync() => OpenRouteAsync("/GeneralSettings/Currencies");
+
+    private bool HasPermission(string permission) => authState?.User.Claims.Any(x => x.Value == permission) == true;
+    private string Text(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private string StepDetail(SetupStepDto step) => Text(step.DetailEn ?? string.Empty, step.DetailAr ?? string.Empty);
+    private string StatusLabel(SetupStepDto step) => step.Status switch
+    {
+        SetupStepStatus.Complete => Text("Complete", "مكتملة"),
+        SetupStepStatus.AttentionRequired => Text("Attention required", "تحتاج إلى مراجعة"),
+        SetupStepStatus.Unavailable => Text("Requires permission", "تتطلب صلاحية"),
+        SetupStepStatus.NotApplicable => Text("Not applicable", "غير منطبقة"),
+        SetupStepStatus.Optional when step.IsSkipped => Text("Skipped", "تم التخطي"),
+        SetupStepStatus.Optional => Text("Optional", "اختيارية"),
+        _ => Text("Incomplete", "غير مكتملة")
+    };
+    private static string StatusTone(SetupStepDto step) => step.Status switch
+    {
+        SetupStepStatus.Complete => "success",
+        SetupStepStatus.AttentionRequired => "warning",
+        SetupStepStatus.Unavailable => "muted",
+        SetupStepStatus.NotApplicable => "muted",
+        SetupStepStatus.Optional => "info",
+        _ => "warning"
+    };
+    private static string StepIcon(SetupStepDto step) => step.Status switch
+    {
+        SetupStepStatus.Complete => "bi-check-circle-fill",
+        SetupStepStatus.AttentionRequired => "bi-exclamation-triangle-fill",
+        SetupStepStatus.Unavailable => "bi-lock-fill",
+        SetupStepStatus.NotApplicable => "bi-slash-circle",
+        SetupStepStatus.Optional => "bi-dash-circle",
+        _ => "bi-circle"
+    };
+
+    private static bool IsConfigurationItem(MenuItem item)
+    {
+        if (NavigationMenuResolver.ResolveNavigationGroupKey(item) == NavigationMenuResolver.NavigationGroupSetup) return true;
+        var value = string.Join(' ', item.TextEn, item.KeywordsEn, item.Url).ToLowerInvariant();
+        string[] terms = ["setting", "setup", "default", "template", "policy", "control", "currency", "branch", "department", "role", "permission", "fiscal", "tax code", "warehouse", "unit", "category", "brand", "shift", "holiday"];
+        return terms.Any(value.Contains);
+    }
+
+    private string WorkspaceLabel(string key)
+    {
+        var workspace = NavigationMenuResolver.MobileWorkspaces.FirstOrDefault(x => x.Key == key);
+        return workspace is null ? key : Text(workspace.TextEn, workspace.TextAr);
+    }
+
+    private async Task HandleLanguageChangeAsync() => await InvokeAsync(StateHasChanged);
+
+    public void Dispose() => SharedDataService.OnChange1 -= HandleLanguageChangeAsync;
+}

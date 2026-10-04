@@ -1,9 +1,11 @@
 ﻿@using AlAfkarERP.Shared.Pages.Reuable2
 @using AlAfkarERP.Shared.Utilities
 @using AlAfkarERP.Shared.Pages.Features.Company.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
 @using AlAfkarERP.Shared.Pages.Features.TaskManagement.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.JSInterop
+@using SharedWithUI.Permissions
 @inherits LayoutComponentBase
 @implements IDisposable
 
@@ -13,6 +15,7 @@
 @inject IJSRuntime JSRuntime
 @inject ITaskManagementService TaskManagementService
 @inject ICompanyService CompanyService
+@inject ISystemSetupService SystemSetupService
 
 @* @Body *@
 @* <div class="d-flex vh-100"> *@
@@ -33,7 +36,10 @@
                    ActiveWorkspaceChanged="SetActiveWorkspaceAsync"
                    IsMoreOpen="@isMoreHubOpen"
                    ShellAuthState="@AuthState"
-                   LicensedBusinessLineKeys="@licensedBusinessLineKeys" />
+                   LicensedBusinessLineKeys="@licensedBusinessLineKeys"
+                   ShowSetupProgress="@showSetupProgress"
+                   SetupPercent="@setupPercent"
+                   SetupComplete="@setupComplete" />
         
         <!-- Page Content -->
         @* <main class="flex-grow-1 p-3 overflow-auto bg-light" dir="@SharedDataService.PageDirection"> *@
@@ -91,6 +97,9 @@
     private string? commandPaletteInitialSearchText;
     private DotNetObjectReference<AdminLayout>? shortcutReference;
     private IReadOnlySet<string>? licensedBusinessLineKeys;
+    private bool showSetupProgress;
+    private int setupPercent;
+    private bool setupComplete;
 
     protected override async Task OnInitializedAsync()
     {
@@ -108,6 +117,7 @@
             else
             {
                 await LoadLicensedBusinessLinesAsync();
+                await LoadSetupProgressAsync();
                 await RunTaskDailyCheckSilentlyAsync();
             }
             activeWorkspace = await LoadActiveWorkspaceAsync();
@@ -160,6 +170,26 @@
         licensedBusinessLineKeys = result.IsSuccess && result.Data is not null
             ? result.Data.BusinessLines.Select(line => line.Key).ToHashSet(StringComparer.OrdinalIgnoreCase)
             : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private async Task LoadSetupProgressAsync()
+    {
+        if (AuthState?.User.Claims.Any(x => x.Value == PermissionList.SystemSetupPermissions.View) != true)
+        {
+            showSetupProgress = false;
+            return;
+        }
+
+        var result = await SystemSetupService.GetCurrentAsync();
+        if (!result.IsSuccess || result.Data is null)
+        {
+            showSetupProgress = false;
+            return;
+        }
+
+        setupPercent = result.Data.CompletionPercent;
+        setupComplete = result.Data.IsComplete;
+        showSetupProgress = !result.Data.RemindersDismissed || setupComplete;
     }
 
     private async Task SetActiveWorkspaceAsync(string workspaceKey)

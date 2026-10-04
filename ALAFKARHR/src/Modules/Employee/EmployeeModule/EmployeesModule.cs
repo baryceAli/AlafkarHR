@@ -1,6 +1,8 @@
 ﻿
 using EmployeeModule.Data.Seed;
 using Shared.Data.Seed;
+using EmployeeModule.Employees.Features.SystemSetup;
+using Shared.Setup;
 
 namespace EmployeeModule;
 
@@ -30,6 +32,7 @@ public static class EmployeesModule
         });
 
         services.AddScoped<IDataSeeder<EmployeeDbContext>, EmployeeDataSeeder>();
+        services.AddScoped<ISetupReadinessContributor, EmployeeReadinessContributor>();
 
 
         return services;

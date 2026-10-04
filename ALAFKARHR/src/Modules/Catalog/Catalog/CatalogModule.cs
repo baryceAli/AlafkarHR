@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using Catalog.Products.Features.SystemSetup;
+using Shared.Setup;
 
 namespace Catalog;
 
@@ -29,6 +31,7 @@ public static class CatalogModule
         });
 
         services.AddScoped<IDataSeeder<CatalogDbContext>, CatalogDataSeeder>();
+        services.AddScoped<ISetupReadinessContributor, CatalogReadinessContributor>();
 
 
         return services;

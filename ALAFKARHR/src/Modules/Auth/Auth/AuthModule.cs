@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.Extensions.Hosting;
 using Shared.Contracts.Messaging;
+using Auth.Users.Features.SystemSetup;
+using Shared.Setup;
 
 namespace Auth;
 
@@ -63,6 +65,7 @@ public static class AuthModule
 
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IDataSeeder<AuthDbContext>, AuthDataSeeder>();
+        services.AddScoped<ISetupReadinessContributor, AuthReadinessContributor>();
 
         var jwtOptions = configuration.GetSection("JwtOptions").Get<JwtOptions>()
             ?? throw new InvalidOperationException("JwtOptions section is missing.");
