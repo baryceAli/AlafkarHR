@@ -1,0 +1,25 @@
+@inherits SiteComponentBase
+<section class="af-hero">
+    <div class="af-hero-copy"><span class="af-eyebrow">@T("Innovation · Growth · Impact", "ابتكار · نمو · أثر")</span><h1>@T(SiteContent.Headline)</h1><p>@T(SiteContent.Intro)</p>
+        <div class="af-actions"><a class="af-button" href="/contact?type=Consultation">@T("Request a consultation", "طلب استشارة")</a><a class="af-button af-button-outline" href="/projects">@T("Explore our work", "استكشف أعمالنا")</a></div>
+    </div>
+    <div class="af-hero-art">
+        @if (SiteContent.HeroImage is not null) { <img src="@SiteContent.HeroImage" alt="@T(SiteContent.Brand)" fetchpriority="high" width="960" height="800" /> }
+        else { <div class="af-idea" aria-hidden="true"><span class="af-eyebrow">@T("From ambition to execution", "من الطموح إلى التنفيذ")</span><i class="bi bi-lightbulb"></i><strong>@T("An idea. A solution. An impact.", "فكرة. حل. أثر.")</strong><div class="af-idea-steps"><span>@T("Discover", "نكتشف")</span><span>@T("Develop", "نطوّر")</span><span>@T("Deliver", "ننجز")</span></div></div> }
+        @if (SiteContent.HeroVideo is not null) { <video controls preload="none" poster="@SiteContent.HeroImage" aria-label="@T("About Successful Ideas", "عن الأفكار الناجحة")"><source src="@SiteContent.HeroVideo" /></video> }
+    </div>
+</section>
+@if (SiteContent.Statistics.Any(x => x.Approved))
+{
+    <section class="af-statistics" aria-label="@T("Our impact", "أثرنا")">@foreach (var stat in SiteContent.Statistics.Where(x => x.Approved)) { <div><strong>@stat.Value.ToString("N0")</strong><span>@T(stat.Label)</span></div> }</section>
+}
+<section class="af-section af-split"><div><span class="af-eyebrow">@T("Who we are", "من نحن")</span><h2>@T("An idea is only the beginning.", "الفكرة بداية الرحلة")</h2></div><div><p>@T(SiteContent.Intro)</p><a class="af-text-action" href="/about">@T("Get to know us", "تعرف علينا") <span aria-hidden="true">↗</span></a></div></section>
+<section class="af-section"><div class="af-section-title"><div><span class="af-eyebrow">@T("Our expertise", "مجالات عملنا")</span><h2>@T("Expertise that moves you forward", "خبرات تدفعك إلى الأمام")</h2></div><a class="af-text-action" href="/services">@T("All services", "كل الخدمات")</a></div><SiteServices /></section>
+@if (SiteContent.Projects.Any(x => x.Approved))
+{
+    <section class="af-section"><div class="af-section-title"><h2>@T("Selected projects", "مشاريع مختارة")</h2><a class="af-text-action" href="/projects">@T("All projects", "كل المشاريع")</a></div><div class="af-grid">@foreach (var p in SiteContent.Projects.Where(x => x.Approved).Take(3)) { <SiteCard Title="@T(p.Title)" Description="@T(p.Summary)" Image="@p.Media.FirstOrDefault(x => !x.Video)" ImageAlt="@T(p.Media.FirstOrDefault(x => !x.Video)?.Alt ?? p.Title)" Href="@($"/projects/{p.Slug}")" Action="@T("Project details", "تفاصيل المشروع")"><p class="af-outcome">@T(p.Impact)</p></SiteCard> }</div></section>
+}
+@if (SiteContent.Partners.Any(x => x.Approved)) { <section class="af-section"><div class="af-section-title"><h2>@T("Partners in success", "شركاء النجاح")</h2><a class="af-text-action" href="/partners">@T("Our partners", "شركاؤنا")</a></div><SitePartners /></section> }
+@if (SiteContent.News.Any(x => x.Approved)) { <section class="af-section"><div class="af-section-title"><h2>@T("Latest stories", "أحدث الأخبار")</h2><a class="af-text-action" href="/media">@T("Media center", "المركز الإعلامي")</a></div><SiteNewsList Limit="3" /></section> }
+@if (SiteContent.Packages.Count > 0) { <section class="af-section"><div class="af-section-title"><div><span class="af-eyebrow">@T("Solutions for your needs", "حلول لاحتياجك")</span><h2>@T("Packages & solutions", "الباقات والحلول")</h2></div><a class="af-text-action" href="/store">@T("All packages & products", "كل الباقات والمنتجات")</a></div><SitePackages /></section> }
+<section class="af-cta"><span class="af-eyebrow">@T("Your next step", "خطوتك القادمة")</span><h2>@T("Let's build your next idea together.", "لنبني فكرتك القادمة معًا")</h2><a class="af-button" href="/contact">@T("Start a conversation", "تواصل معنا")</a></section>

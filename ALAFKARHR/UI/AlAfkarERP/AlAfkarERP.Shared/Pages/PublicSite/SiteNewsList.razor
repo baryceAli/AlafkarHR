@@ -1,0 +1,10 @@
+@inherits SiteComponentBase
+<div class="af-grid">
+    @foreach (var article in SiteContent.News.Where(x => x.Approved).OrderByDescending(x => x.Date).Take(Limit))
+    {
+        <SiteCard Title="@T(article.Title)" Description="@T(article.Summary)" Image="@article.Media.FirstOrDefault(x => !x.Video)" ImageAlt="@T(article.Media.FirstOrDefault(x => !x.Video)?.Alt ?? article.Title)" Href="@($"/media/{article.Slug}")" Action="@T("Read story", "قراءة الخبر")">
+            <time datetime="@article.Date.ToString("yyyy-MM-dd")">@article.Date.ToString("yyyy-MM-dd")</time>
+        </SiteCard>
+    }
+</div>
+@code { [Parameter] public int Limit { get; set; } = int.MaxValue; }

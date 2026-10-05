@@ -1,0 +1,67 @@
+@page "/contact"
+@layout CorporateLayout
+@inherits SiteComponentBase
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using SharedWithUI.GeneralSettings.Dtos
+@inject IWebsiteInquiryService Inquiries
+
+<SiteMetadata Title="@T("Contact us", "تواصل معنا")" Description="@T("Talk to our team about your next project.", "تواصل مع فريقنا حول مشروعك القادم.")" Brand="@T(SiteContent.Brand)" />
+<section class="af-section"><SiteHeading Title="@T("Let's bring your idea to life.", "لنحوّل فكرتك إلى واقع")" Description="@T("Tell us what you need. Our team will follow up on your request.", "شاركنا احتياجك ليتمكن فريقنا من متابعة طلبك.")" />
+    <div class="af-contact-grid"><div class="af-contact-form">
+        @if (success) { <div class="af-notice" role="status">@T("Your request has been saved. Thank you for reaching out.", "تم حفظ طلبك بنجاح. شكراً لتواصلك معنا.")</div><button class="af-button af-button-outline" @onclick="Reset">@T("Send another request", "إرسال طلب آخر")</button> }
+        else
+        {
+            <EditForm Model="model" OnValidSubmit="Submit" @key="model"><DataAnnotationsValidator />
+                <p class="af-context"><strong>@RequestLabel</strong>@if (ContextLabel is not null) { <span> · @ContextLabel</span> }</p>
+                <fieldset disabled="@busy"><legend class="visually-hidden">@T("Your contact details", "بيانات التواصل")</legend>
+                    <div class="af-form-grid"><label>@T("Name", "الاسم")<InputText @bind-Value="model.Name" autocomplete="name" maxlength="150" required /><SiteValidationMessage For="@(() => model.Name)" English="Enter a name of 2–150 characters." Arabic="أدخل اسمًا من حرفين إلى 150 حرفًا." /></label><label>@T("Email", "البريد الإلكتروني")<InputText type="email" dir="ltr" @bind-Value="model.Email" autocomplete="email" maxlength="254" required /><SiteValidationMessage For="@(() => model.Email)" English="Enter a valid email address (up to 254 characters)." Arabic="أدخل بريدًا إلكترونيًا صحيحًا لا يتجاوز 254 حرفًا." /></label></div>
+                    <label>@T("Mobile", "رقم الجوال")<InputText type="tel" dir="ltr" @bind-Value="model.Mobile" autocomplete="tel" maxlength="30" required /><SiteValidationMessage For="@(() => model.Mobile)" English="Enter a valid phone number of 7–30 characters." Arabic="أدخل رقم جوال صحيحًا من 7 إلى 30 حرفًا." /></label>
+                    <label>@T("Message", "نص الرسالة")<InputTextArea @bind-Value="model.Message" rows="6" maxlength="4000" required /><SiteValidationMessage For="@(() => model.Message)" English="Enter a message of 10–4000 characters." Arabic="أدخل رسالة من 10 إلى 4000 حرف." /></label>
+                    <div class="af-honeypot" aria-hidden="true"><label>Website<InputText @bind-Value="model.Website" tabindex="-1" autocomplete="off" /></label></div>
+                </fieldset>
+                <p class="af-form-note">@T("Your contact details will be used to follow up on this request.", "ستُستخدم بيانات التواصل لمتابعة هذا الطلب.")</p>
+                @if (error) { <p role="alert" class="af-error">@T("Unable to save your request. Please check your details and try again.", "تعذر حفظ الطلب. يرجى مراجعة بياناتك والمحاولة مرة أخرى.")</p> }
+                <button class="af-button" type="submit" disabled="@busy">@(busy ? T("Sending…", "جارٍ الإرسال…") : T("Send request", "إرسال الطلب"))</button>
+            </EditForm>
+        }
+    </div><aside class="af-contact-aside"><span class="af-eyebrow">@T("A conversation is the beginning", "التواصل بداية الرحلة")</span><h2>@T(SiteContent.Brand)</h2><p>@T(SiteContent.Intro)</p>
+        @if (SiteContent.Email is not null) { <a dir="ltr" href="mailto:@SiteContent.Email">@SiteContent.Email</a> }
+        @if (SiteContent.Phone is not null) { <a dir="ltr" href="tel:@SiteContent.Phone">@SiteContent.Phone</a> }
+        @if (SiteContent.Address is not null) { <p>@T(SiteContent.Address)</p> }
+        @if (SiteContent.MapUrl is not null) { <iframe src="@SiteContent.MapUrl" title="@T("Our location", "موقعنا")" loading="lazy" referrerpolicy="no-referrer"></iframe> }
+        @foreach (var link in SiteContent.SocialLinks) { <a href="@link.Url" rel="noopener noreferrer">@T(link.Label)</a> }
+    </aside></div>
+</section>
+@code {
+    [SupplyParameterFromQuery(Name = "type")] public string? Type { get; set; }
+    [SupplyParameterFromQuery(Name = "context")] public string? Context { get; set; }
+    [SupplyParameterFromQuery(Name = "product")] public Guid? Product { get; set; }
+    [SupplyParameterFromQuery(Name = "source")] public string? Source { get; set; }
+    [SupplyParameterFromQuery(Name = "labelAr")] public string? ProductLabelAr { get; set; }
+    [SupplyParameterFromQuery(Name = "labelEn")] public string? ProductLabelEn { get; set; }
+    private CreateWebsiteInquiryDto model = new();
+    private bool busy, success, error;
+    private string? currentContext;
+    private string RequestLabel => model.RequestType switch { "Consultation" => T("Consultation request", "طلب استشارة"), "Package" => T("Package quotation", "عرض سعر باقة"), "Product" => T("Product quotation", "عرض سعر منتج"), _ => T("Contact request", "طلب تواصل") };
+    // Display labels only; persistence and authorization use the validated SKU ID.
+    private string? ContextLabel => SiteContent.Services.FirstOrDefault(x => x.Key == model.ContextKey) is { } service ? T(service.Title) : model.ProductSkuId is not null ? T(ProductLabelEn ?? ProductLabelAr ?? "Selected catalog product", ProductLabelAr ?? ProductLabelEn ?? "المنتج المختار من الكتالوج") : null;
+    protected override void OnParametersSet() { var key = $"{Type}|{Context}|{Product}|{Source}"; if (key == currentContext) return; currentContext = key; Reset(); }
+    private void Reset()
+    {
+        success = error = false;
+        var context = WebsiteInquiryOptions.Contexts.Contains(Context ?? "") ? Context : null;
+        var type = WebsiteInquiryOptions.Types.Contains(Type ?? "") ? Type! : "Contact";
+        if (type == "Product" && (Product is null || Product == Guid.Empty)) type = "Contact";
+        if (type == "Package" && context is null) type = "Contact";
+        model = new() { RequestType = type, ContextKey = context, ProductSkuId = type == "Product" ? Product : null, SourcePage = WebsiteInquiryOptions.Sources.Contains(Source ?? "") ? Source! : "/contact" };
+    }
+    private async Task Submit()
+    {
+        if (busy) return;
+        busy = true; error = false;
+        var submitted = model;
+        try { var result = await Inquiries.CreateAsync(submitted); if (ReferenceEquals(model, submitted)) { success = result.IsSuccess && result.Data != Guid.Empty; error = !success; } }
+        catch { if (ReferenceEquals(model, submitted)) error = true; }
+        finally { busy = false; }
+    }
+}

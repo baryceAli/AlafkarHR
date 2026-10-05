@@ -1,0 +1,12 @@
+@inherits SiteComponentBase
+<div class="af-gallery">
+    @foreach (var item in Items)
+    {
+        <figure>
+            @if (item.Video) { <video controls preload="none" poster="@item.Poster" aria-label="@T(item.Alt)"><source src="@item.Url" /><a href="@item.Url">@T("Open video", "فتح الفيديو")</a></video> }
+            else { <img src="@item.Url" alt="@T(item.Alt)" loading="lazy" decoding="async" width="960" height="600" /> }
+            <figcaption>@T(item.Alt)</figcaption>
+        </figure>
+    }
+</div>
+@code { [Parameter] public IReadOnlyList<SiteMedia> Items { get; set; } = []; }

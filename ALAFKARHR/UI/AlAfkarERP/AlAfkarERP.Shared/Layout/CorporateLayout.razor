@@ -1,0 +1,31 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@using AlAfkarERP.Shared.Pages.PublicSite
+@inject SharedDataService Language
+@inject NavigationManager Nav
+
+<div class="af-site" dir="@Language.PageDirection" lang="@(Language.Language == "Ar" ? "ar" : "en")">
+    <a class="af-skip" href="#af-main">@T("Skip to content", "انتقل إلى المحتوى")</a>
+    <header class="af-header" @onkeydown="HandleKeyDown">
+        <a class="af-brand" href="/"><img src="_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" alt="" width="44" height="44" /><span>@T(SiteContent.Brand.En, SiteContent.Brand.Ar)<small>@T("Innovation · Growth · Impact", "ابتكار · نمو · أثر")</small></span></a>
+        <button class="af-menu-toggle" type="button" @onclick="ToggleMenu" aria-controls="af-navigation" aria-expanded="@menuOpen.ToString().ToLowerInvariant()" aria-label="@T("Toggle navigation", "فتح وإغلاق القائمة")"><i class="bi @(menuOpen ? "bi-x-lg" : "bi-list")" aria-hidden="true"></i></button>
+        <nav id="af-navigation" class="af-navigation @(menuOpen ? "is-open" : "")" aria-label="@T("Main navigation", "التنقل الرئيسي")">
+            @foreach (var link in Links) { <NavLink href="@link.Url" Match="@(link.Url == "/" ? NavLinkMatch.All : NavLinkMatch.Prefix)" @onclick="CloseMenu">@T(link.Label.En, link.Label.Ar)</NavLink> }
+        </nav>
+        <div class="af-header-actions"><button class="af-language" type="button" @onclick="Language.UpdateLanguageAsync" aria-label="@T("Switch to Arabic", "التبديل إلى الإنجليزية")">@T("العربية", "English")</button><a class="af-button" href="/contact?type=Consultation">@T("Request a consultation", "طلب استشارة")</a></div>
+    </header>
+    <main id="af-main" tabindex="-1">@Body</main>
+    <footer class="af-footer"><div class="af-footer-grid"><div><a class="af-brand" href="/">@T(SiteContent.Brand.En, SiteContent.Brand.Ar)</a><p>@T(SiteContent.Intro.En, SiteContent.Intro.Ar)</p></div><nav aria-label="@T("Footer navigation", "روابط الموقع")">@foreach (var link in Links) { <a href="@link.Url">@T(link.Label.En, link.Label.Ar)</a> }</nav><div><h2>@T("Let's connect", "لنتواصل")</h2><a href="/contact">@T("Contact us", "تواصل معنا")</a>@if (SiteContent.Email is not null) { <a href="mailto:@SiteContent.Email" dir="ltr">@SiteContent.Email</a> }@if (SiteContent.Phone is not null) { <a href="tel:@SiteContent.Phone" dir="ltr">@SiteContent.Phone</a> }@foreach (var social in SiteContent.SocialLinks) { <a href="@social.Url" rel="noopener noreferrer">@T(social.Label.En, social.Label.Ar)</a> }</div></div><div class="af-footer-bottom"><span>© @DateTime.UtcNow.Year @T(SiteContent.Brand.En, SiteContent.Brand.Ar)</span><a href="/login">@T("ERP login", "دخول النظام")</a></div></footer>
+</div>
+@code {
+    private bool menuOpen;
+    private static readonly (string Url, SiteText Label)[] Links = [("/", new("Home", "الرئيسية")), ("/about", new("About", "من نحن")), ("/services", new("Services", "خدماتنا")), ("/projects", new("Projects", "مشاريعنا")), ("/partners", new("Partners", "شركاؤنا")), ("/media", new("Media", "المركز الإعلامي")), ("/store", new("Packages", "الباقات والمنتجات")), ("/contact", new("Contact", "تواصل معنا"))];
+    private string T(string en, string ar) => Language.SelectViewLang(en, ar);
+    private void ToggleMenu() => menuOpen = !menuOpen;
+    private void CloseMenu() => menuOpen = false;
+    private void HandleKeyDown(KeyboardEventArgs e) { if (e.Key == "Escape") CloseMenu(); }
+    protected override void OnInitialized() { Language.OnChange1 += Changed; Nav.LocationChanged += LocationChanged; }
+    private Task Changed() => InvokeAsync(StateHasChanged);
+    private void LocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e) { menuOpen = false; _ = InvokeAsync(StateHasChanged); }
+    public void Dispose() { Language.OnChange1 -= Changed; Nav.LocationChanged -= LocationChanged; }
+}

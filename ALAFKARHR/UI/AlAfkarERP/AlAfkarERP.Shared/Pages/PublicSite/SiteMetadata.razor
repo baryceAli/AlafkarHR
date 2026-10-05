@@ -1,0 +1,17 @@
+@inject AlAfkarERP.Shared.Dtos.ApiConfig Config
+@inject NavigationManager Nav
+<PageTitle>@Title · @Brand</PageTitle>
+<HeadContent>
+    <meta name="description" content="@Description" />
+    <meta property="og:title" content="@Title" />
+    <meta property="og:description" content="@Description" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="@Canonical" />
+    <link rel="canonical" href="@Canonical" />
+</HeadContent>
+@code {
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Description { get; set; } = "";
+    [Parameter] public string Brand { get; set; } = "الأفكار الناجحة";
+    private string Canonical => new Uri(new Uri(string.IsNullOrWhiteSpace(Config.WebSiteURL) ? Nav.BaseUri : Config.WebSiteURL), Nav.ToBaseRelativePath(Nav.Uri).Split('?')[0]).ToString();
+}
