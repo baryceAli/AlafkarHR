@@ -14,7 +14,6 @@ public class GeneralSettingsDbContext:DbContext
     }
 
     public DbSet<Currency> Currencies => Set<Currency>();
-    public DbSet<WebsiteInquiry> WebsiteInquiries => Set<WebsiteInquiry>();
     public DbSet<CompanySetting> CompanySettings => Set<CompanySetting>();
     public DbSet<CompanySetupProfile> CompanySetupProfiles => Set<CompanySetupProfile>();
     public DbSet<HomePageTemplateSelection> HomePageTemplateSelections => Set<HomePageTemplateSelection>();
@@ -32,19 +31,6 @@ public class GeneralSettingsDbContext:DbContext
         // 🔥 Apply all IEntityTypeConfiguration<>
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
         ConfigureHomePageTemplates(modelBuilder);
-        modelBuilder.Entity<WebsiteInquiry>(builder =>
-        {
-            builder.ToTable("WebsiteInquiries");
-            builder.HasKey(x => x.Id);
-            builder.HasIndex(x => new { x.CompanyId, x.CreatedAt });
-            builder.Property(x => x.Name).HasMaxLength(150).IsRequired();
-            builder.Property(x => x.Email).HasMaxLength(254).IsRequired();
-            builder.Property(x => x.Mobile).HasMaxLength(30).IsRequired();
-            builder.Property(x => x.Message).HasMaxLength(4000).IsRequired();
-            builder.Property(x => x.RequestType).HasMaxLength(20).IsRequired();
-            builder.Property(x => x.ContextKey).HasMaxLength(80);
-            builder.Property(x => x.SourcePage).HasMaxLength(100).IsRequired();
-        });
         modelBuilder.Entity<CompanySetupProfile>(builder =>
         {
             builder.ToTable("CompanySetupProfiles");
