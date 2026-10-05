@@ -1,0 +1,14 @@
+@inherits SiteComponentBase
+<div class="af-service-list">
+    @foreach (var service in SiteContent.Services)
+    {
+        <article class="af-service">
+            <span class="af-icon" aria-hidden="true"><i class="bi @service.Icon"></i></span>
+            <div><h3>@T(service.Title)</h3><p>@T(service.Description)</p>
+                @if (ShowOutcomes) { <p class="af-outcome"><strong>@T("What we deliver", "ما نقدمه")</strong> — @T(service.Outcome)</p> }
+            </div>
+            <a class="af-text-action" href="/contact?type=Consultation&context=@service.Key&source=/services">@T("Request a consultation", "طلب استشارة") <span aria-hidden="true">↗</span><span class="visually-hidden">: @T(service.Title)</span></a>
+        </article>
+    }
+</div>
+@code { [Parameter] public bool ShowOutcomes { get; set; } }

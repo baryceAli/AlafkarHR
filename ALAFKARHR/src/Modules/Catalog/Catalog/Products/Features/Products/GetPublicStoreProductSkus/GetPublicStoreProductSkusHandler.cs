@@ -13,7 +13,7 @@ public record GetPublicStoreProductSkuFiltersQuery()
 
 public record GetPublicStoreProductSkuFiltersResult(PublicStoreProductSkuFilterMetadataDto Metadata);
 
-public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISender sender)
+public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISender sender, IConfiguration configuration)
     : IQueryHandler<GetPublicStoreProductSkusQuery, GetPublicStoreProductSkusResult>,
       IQueryHandler<GetPublicStoreProductSkuFiltersQuery, GetPublicStoreProductSkuFiltersResult>
 {
@@ -92,6 +92,7 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
             join skuPackage in dbContext.ProductSkuPackages.AsNoTracking()
                 on sku.Id equals skuPackage.ProductSkuId
             where sku.ShowOnStore && sku.IsSellable
+                  && (WebsiteCompanyId == null || (sku.CompanyId == WebsiteCompanyId && product.CompanyId == WebsiteCompanyId))
                   && !sku.IsDeleted
                   && !product.IsDeleted
                   && !category.IsDeleted
@@ -133,6 +134,8 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
             });
     }
 
+    private Guid? WebsiteCompanyId => Guid.TryParse(configuration["PublicWebsite:CompanyId"], out var id) && id != Guid.Empty ? id : null;
+
     private IQueryable<ProductSkuDto> GetVisibleStoreSkuQuery()
     {
         return
@@ -146,6 +149,7 @@ public class GetPublicStoreProductSkusHandler(CatalogDbContext dbContext, ISende
             join unit in dbContext.Units.AsNoTracking()
                 on sku.UnitId equals unit.Id
             where sku.ShowOnStore && sku.IsSellable
+                  && (WebsiteCompanyId == null || (sku.CompanyId == WebsiteCompanyId && product.CompanyId == WebsiteCompanyId))
                   && !sku.IsDeleted
                   && !product.IsDeleted
                   && !category.IsDeleted
