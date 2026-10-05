@@ -1,36 +1,197 @@
-@layout CorporateLayout
-@page "/store"
+@layout BlankLayout
+@page "/"
 @implements IDisposable
 @using AlAfkarERP.Shared.Dtos
 @using AlAfkarERP.Shared.Pages.Features.Catalog.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.HomeTemplates
 @using AlAfkarERP.Shared.Utilities
 @using Microsoft.AspNetCore.Components.Authorization
 @using SharedWithUI.Catalog.Dtos
+@using SharedWithUI.GeneralSettings.Dtos
 @inject IProductService ProductService
+@inject IHomePageTemplateService HomePageTemplateService
 @inject ApiConfig ApiConfig
 @inject SharedDataService SharedDataService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
-@using AlAfkarERP.Shared.Pages.PublicSite
-<SiteMetadata Title="@Text("Store & packages", "الباقات والمنتجات")" Description="@Text("Explore our solutions and products and request a tailored quote.", "استعرض حلولنا ومنتجاتنا واطلب عرض سعر مناسبًا لاحتياجك.")" Brand="@Text(SiteContent.Brand.En, SiteContent.Brand.Ar)" />
-<div class="home-page home-page-current" dir="@SharedDataService.PageDirection">
-    <section class="af-section">
-        <SiteHeading Title="@Text("Packages & products", "الباقات والمنتجات")" Description="@Text("Practical solutions shaped around your needs. Tell us what you need for a tailored quote.", "حلول عملية تناسب احتياجك. شاركنا متطلباتك للحصول على عرض سعر مناسب.")" />
-        <SitePackages />
+<PageTitle>ALAFKAR Store</PageTitle>
+
+<main class="home-page @(IsCurrentStorefront ? "home-page-current" : "home-page-template-only")" dir="@SharedDataService.PageDirection">
+    <HomePageTemplateRenderer HomePage="homePage" />
+
+    <section class="home-hero">
+        <div class="container">
+            <div class="home-hero-grid">
+                <div class="home-hero-content home-hero-content-v2">
+                    <span class="home-eyebrow">
+                        <i class="bi bi-stars"></i>
+                        @Text("Alafkar Catering Store", "متجر الأفكار للإعاشة")
+                    </span>
+                    <h1>@Text("Ready meals for organized field operations.", "وجبات جاهزة لعمليات ميدانية منظمة.")</h1>
+                    <p>
+                        @Text(
+                            "Browse hot and dry meal options from the product catalog, compare prices, and start with the items that fit seasonal and charitable projects.",
+                            "استعرض خيارات الوجبات الساخنة والجافة من كتالوج المنتجات، وقارن الأسعار، وابدأ بالأصناف المناسبة للمشاريع الموسمية والخيرية.")
+                    </p>
+                    <div class="home-hero-actions">
+                        <a class="btn home-primary-action" href="#products">
+                            <i class="bi bi-bag-check"></i>
+                            @Text("Browse products", "استعراض المنتجات")
+                        </a>
+                        <a class="btn home-secondary-action" href="/login">
+                            <i class="bi bi-box-arrow-in-left"></i>
+                            @Text("Login to ERP", "دخول النظام")
+                        </a>
+                    </div>
+                </div>
+
+                <div class="home-hero-visual home-hero-visual-v2" aria-label="@Text("Featured ready meal", "وجبة جاهزة مميزة")">
+                    <div class="home-product-tray">
+                        <div class="home-product-media">
+                            <span class="home-product-badge">
+                                <i class="bi bi-check2-circle"></i>
+                                @Text("Ready to order", "جاهزة للطلب")
+                            </span>
+                            <img alt="@Text("Alafkar meal", "وجبة الأفكار")" src="_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png" />
+                        </div>
+                        <div class="home-product-content">
+                            <span class="home-product-kicker">
+                                <i class="bi bi-cup-hot"></i>
+                                @Text("Hot and dry meals", "وجبات ساخنة وجافة")
+                            </span>
+                            <strong>@Text("Fast preparation from request to delivery.", "تجهيز سريع من الطلب إلى التسليم.")</strong>
+                            <p>
+                                @Text(
+                                    "Clear product data, visible pricing, and catalog filters help teams choose meals without back-and-forth.",
+                                    "بيانات منتج واضحة، وأسعار ظاهرة، وفلاتر كتالوج تساعد الفرق على اختيار الوجبات بدون متابعة متكررة.")
+                            </p>
+                            <div class="home-product-delivery">
+                                <i class="bi bi-truck"></i>
+                                <span>@Text("Kitchen pickup with delivery availability.", "الاستلام من المطبخ مع إمكانية التوصيل.")</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="home-hero-content">
+                    <span class="home-eyebrow">الأفكار الناجحة</span>
+                    <h1>خدمات الإعاشة والسقيا المتكاملة</h1>
+                    <p>
+                        وجبات ساخنة وجافة للمشاريع الموسمية والخيرية، بتجهيز منظم وجودة واضحة من الطلب إلى التسليم.
+                    </p>
+                    <div class="home-hero-actions">
+                        <a class="btn home-primary-action" href="#products">
+                            <i class="bi bi-bag-check"></i>
+                            استعرض المنتجات
+                        </a>
+                        <a class="btn home-secondary-action" href="/login">
+                            <i class="bi bi-box-arrow-in-left"></i>
+                            دخول النظام
+                        </a>
+                    </div>
+                </div>
+
+                <div class="home-hero-visual" aria-label="وجبة جاهزة من الأفكار">
+                    <div class="home-product-tray">
+                        <div class="home-product-media">
+                            <span class="home-product-badge">
+                                <i class="bi bi-check2-circle"></i>
+                                جاهزة للطلب
+                            </span>
+                            <img alt="وجبة الأفكار" src="_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png" />
+                        </div>
+                        <div class="home-product-content">
+                            <span class="home-product-kicker">
+                                <i class="bi bi-cup-hot"></i>
+                                وجبات جاهزة
+                            </span>
+                            <strong>تنظيم سريع للطلبات الموسمية</strong>
+                            <p>خيارات ساخنة وجافة، مع تجهيز واضح من الطلب إلى التسليم.</p>
+                            <div class="home-product-delivery">
+                                <i class="bi bi-truck"></i>
+                                <span>الاستلام من المطبخ ويمكن توصيلها مجانا</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
+
+    <section class="home-service-strip" aria-label="مزايا الخدمة">
+        <div class="container">
+            <div class="home-service-grid home-service-grid-v2">
+                <div class="home-service-item">
+                    <i class="bi bi-calendar2-check"></i>
+                    <div>
+                        <strong>@Text("Season-ready", "مناسبة للمواسم")</strong>
+                        <span>@Text("Prepared for seasonal, campaign, and charitable meal programs.", "تجهيز مناسب للمواسم والحملات وبرامج الوجبات الخيرية.")</span>
+                    </div>
+                </div>
+                <div class="home-service-item">
+                    <i class="bi bi-filter-circle"></i>
+                    <div>
+                        <strong>@Text("Catalog filters", "فلاتر الكتالوج")</strong>
+                        <span>@Text("Search by product, category, brand, package, price, and newest items.", "ابحث حسب المنتج أو الصنف أو العلامة أو التغليف أو السعر أو الأحدث.")</span>
+                    </div>
+                </div>
+                <div class="home-service-item">
+                    <i class="bi bi-shield-check"></i>
+                    <div>
+                        <strong>@Text("Clear product data", "بيانات منتج واضحة")</strong>
+                        <span>@Text("Names, images, package details, and prices come from catalog records.", "الأسماء والصور والتغليف والأسعار تظهر من سجلات الكتالوج.")</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="home-service-grid">
+                <div class="home-service-item">
+                    <i class="bi bi-calendar2-check"></i>
+                    <div>
+                        <strong>مناسبة للمواسم</strong>
+                        <span>تجهيز منظم للمشاريع الموسمية والخيرية.</span>
+                    </div>
+                </div>
+                <div class="home-service-item">
+                    <i class="bi bi-cup-hot"></i>
+                    <div>
+                        <strong>خيارات ساخنة وجافة</strong>
+                        <span>منتجات واضحة من كتالوج المنتجات المخزنية.</span>
+                    </div>
+                </div>
+                <div class="home-service-item">
+                    <i class="bi bi-shield-check"></i>
+                    <div>
+                        <strong>جودة من الطلب للتسليم</strong>
+                        <span>عرض الاسم والسعر والصورة من بيانات المنتج.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section id="products" class="store-section">
         <div class="container">
             <div class="store-heading">
                 <div class="store-heading-copy">
                     <span class="store-kicker">
                         <i class="bi bi-grid-3x3-gap"></i>
-                        @Text("Product catalog", "كتالوج المنتجات")
+                        @TemplateText("Products", "Kicker", Text("Product menu", "قائمة المنتجات"))
                     </span>
-                    <h2>@Text("Explore our products", "استعرض منتجاتنا")</h2>
+                    <h2>@TemplateText("Products", "Title", Text("Choose the right meal package.", "اختر باقة الوجبات المناسبة."))</h2>
                     <p>
-                        @Text("Browse available products and request a quote tailored to your requirements.", "استعرض المنتجات المتاحة واطلب عرض سعر يناسب متطلباتك.")
+                        @TemplateText("Products", "Subtitle", Text(
+                            "Filter available catalog products and review price, brand, package, and category details before moving into the ERP workflow.",
+                            "صف المنتجات المتاحة في الكتالوج وراجع السعر والعلامة والتغليف والصنف قبل الانتقال إلى سير عمل النظام."))
                     </p>
                 </div>
+
+                <div>
+                    <span class="store-kicker">قائمة المنتجات</span>
+                    <h2>اختر الوجبة المناسبة</h2>
+                </div>
+                <p>منتجات مباشرة من كتالوج المنتجات المخزنية، مع عرض الاسم والسعر والصورة من بيانات المنتج المخزني.</p>
             </div>
 
             <div class="store-toolbar" aria-label="@SharedDataService.SelectViewLang("Product filters", "تصفية المنتجات")">
@@ -172,22 +333,15 @@
                     }
                 </div>
                 <div class="product-state">
-                    <div class="spinner-border" role="status" aria-label="@Text("Loading products", "جاري تحميل المنتجات")"></div>
-                    <span>@Text("Loading products…", "جاري تحميل المنتجات…")</span>
-                </div>
-            }
-            else if (productsError)
-            {
-                <div class="product-state" role="alert">
-                    <span>@Text("Unable to load the catalog. Please try again.", "تعذر تحميل الكتالوج. يرجى المحاولة مرة أخرى.")</span>
-                    <button class="btn home-secondary-action" type="button" @onclick="RetryCatalogAsync">@Text("Try again", "إعادة المحاولة")</button>
+                    <div class="spinner-border" role="status" aria-label="جاري تحميل المنتجات"></div>
+                    <span>جاري تحميل المنتجات...</span>
                 </div>
             }
             else if (!productSkus.Any())
             {
                 <div class="product-state">
                     <i class="bi bi-box-seam"></i>
-                    <span>@Text("No products are currently available.", "لا توجد منتجات متاحة للعرض حاليًا.")</span>
+                    <span>لا توجد منتجات متاحة للعرض حاليا.</span>
                 </div>
             }
             else
@@ -197,17 +351,10 @@
                     {
                         <article class="product-card">
                             <div class="product-media">
-                                @if (!string.IsNullOrWhiteSpace(sku.ImageUrl))
-                                {
-                                    <img alt="@GetSkuName(sku)" src="@GetProductImage(sku)" loading="lazy" decoding="async" />
-                                }
-                                else
-                                {
-                                    <div class="af-product-placeholder" role="img" aria-label="@Text("Product image not available", "صورة المنتج غير متوفرة")"><i class="bi bi-box-seam" aria-hidden="true"></i></div>
-                                }
+                                <img alt="@GetSkuName(sku)" src="@GetProductImage(sku)" />
                                 @if (sku.ShowOnStore)
                                 {
-                                    <span class="product-badge">@Text("Available", "متاح")</span>
+                                    <span class="product-badge">متاح</span>
                                 }
                                 @if (!string.IsNullOrWhiteSpace(GetCategoryName(sku)))
                                 {
@@ -234,7 +381,7 @@
                                         <small>@SharedDataService.SelectViewLang("Price", "السعر")</small>
                                         <strong>@sku.Price.ToString("0.##") &#xFDFC;</strong>
                                     </div>
-                                    <a class="btn home-primary-action product-buy-action" href="@ProductInquiryUrl(sku)">@Text("Request a quote", "طلب عرض سعر")</a>
+                                    <button class="btn home-primary-action product-buy-action" type="button">شراء</button>
                                 </div>
                             </div>
                         </article>
@@ -269,13 +416,12 @@
             }
         </div>
     </section>
-</div>
+</main>
 
 @code {
     private readonly List<ProductSkuDto> productSkus = [];
     private PublicStoreProductSkuFilterMetadataDto filterMetadata = new();
     private bool isLoadingProducts = true;
-    private bool productsError;
     private string searchTerm = "";
     private string selectedCategoryId = "";
     private string selectedBrandId = "";
@@ -287,6 +433,10 @@
     private const int PageSize = 6;
     private long totalProductCount;
     private Guid? authenticatedCustomerId;
+    private HomePageTemplateDto? homePage;
+    private bool IsCurrentStorefront => homePage?.ActiveTemplateKey is null
+        || homePage.ActiveTemplateKey == HomePageTemplateKeys.CurrentStorefront
+        || !HomePageTemplateKeys.IsValid(homePage.ActiveTemplateKey);
 
     private int TotalPages => totalProductCount <= 0
         ? 1
@@ -325,10 +475,29 @@
 
     protected override async Task OnInitializedAsync()
     {
-
+        await LoadHomePageTemplateAsync();
         await ResolveAuthenticatedCustomerAsync();
-        await LoadFilterMetadataAsync();
-        await LoadProductSkusAsync();
+        if (IsCurrentStorefront)
+        {
+            await LoadFilterMetadataAsync();
+            await LoadProductSkusAsync();
+        }
+        else
+        {
+            isLoadingProducts = false;
+        }
+    }
+
+    private async Task LoadHomePageTemplateAsync()
+    {
+        if (ApiConfig.CompanyId == Guid.Empty)
+            return;
+
+        var response = await HomePageTemplateService.GetPublicAsync(ApiConfig.CompanyId);
+        if (response.IsSuccess && response.Data is not null)
+        {
+            homePage = response.Data;
+        }
     }
 
     private async Task ResolveAuthenticatedCustomerAsync()
@@ -357,16 +526,9 @@
         }
     }
 
-    private async Task RetryCatalogAsync()
-    {
-        await LoadFilterMetadataAsync();
-        await LoadProductSkusAsync();
-    }
-
     private async Task LoadProductSkusAsync()
     {
         isLoadingProducts = true;
-        productsError = false;
 
         try
         {
@@ -377,11 +539,6 @@
                 productSkus.AddRange(response.Data.Data);
                 totalProductCount = response.Data.Count;
             }
-            else { productsError = true; }
-        }
-        catch
-        {
-            productsError = true;
         }
         finally
         {
@@ -547,7 +704,7 @@
 
         return !string.IsNullOrWhiteSpace(brand)
             ? brand
-            : Text("Request a quote tailored to your needs.", "اطلب عرض سعر يناسب احتياجك.");
+            : "الاستلام من المطبخ ويمكن توصيلها مجانا";
     }
 
     private string GetCategoryName(ProductSkuDto sku)
@@ -610,6 +767,11 @@
 
     private string GetProductImage(ProductSkuDto sku)
     {
+        if (string.IsNullOrWhiteSpace(sku.ImageUrl))
+        {
+            return "_content/AlAfkarERP.Shared/images/Meals/alkaramSingleMeal.png";
+        }
+
         if (Uri.TryCreate(sku.ImageUrl, UriKind.Absolute, out _))
         {
             return sku.ImageUrl;
@@ -618,15 +780,22 @@
         return $"{ApiConfig.BaseURL}/Images/Products/{sku.ImageUrl}";
     }
 
-    private string ProductInquiryUrl(ProductSkuDto sku)
-    {
-        var ar = !string.IsNullOrWhiteSpace(sku.Name) ? sku.Name : sku.ProductName ?? sku.NameEng ?? "";
-        var en = !string.IsNullOrWhiteSpace(sku.NameEng) ? sku.NameEng : sku.ProductNameEng ?? ar;
-        return $"/contact?type=Product&product={sku.Id}&source=/store&labelAr={Uri.EscapeDataString(ar)}&labelEn={Uri.EscapeDataString(en)}";
-    }
-
     private string Text(string? en, string? ar)
         => SharedDataService.SelectViewLang(en ?? "", ar ?? "");
+
+    private string TemplateText(string sectionKey, string fieldKey, string fallback)
+    {
+        var item = homePage?.ContentItems.FirstOrDefault(x =>
+            x.TemplateKey == homePage.ActiveTemplateKey &&
+            string.Equals(x.SectionKey, sectionKey, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(x.FieldKey, fieldKey, StringComparison.OrdinalIgnoreCase));
+
+        if (item is null || !item.IsVisible)
+            return fallback;
+
+        var text = SharedDataService.SelectViewLang(item.TextEn ?? "", item.TextAr ?? "");
+        return string.IsNullOrWhiteSpace(text) ? fallback : text;
+    }
 
     public void Dispose()
     {

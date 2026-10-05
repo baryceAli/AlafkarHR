@@ -1,9 +1,0 @@
-@inherits SiteComponentBase
-<div class="af-grid">
-    @foreach (var package in SiteContent.Packages)
-    {
-        <SiteCard Title="@T(package.Title)" Description="@T(package.Description)" Href="@($"/contact?type=Package&context={package.Key}&source=/store")" Action="@T("Request a quote", "طلب عرض سعر")">
-            @if (package.Price is not null) { <p class="af-outcome">@package.Price.Value.ToString("0.##") @T("SAR", "ر.س")</p> }
-        </SiteCard>
-    }
-</div>

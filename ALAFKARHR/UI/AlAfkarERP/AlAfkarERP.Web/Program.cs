@@ -313,10 +313,6 @@ builder.Services.AddHttpClient<ISystemSetupService, SystemSetupService>(client =
 });
 
 builder.Services.AddScoped<IHomePageTemplateService, HomePageTemplateService>();
-builder.Services.AddHttpClient<IWebsiteInquiryService, WebsiteInquiryService>(client =>
-{
-    client.BaseAddress = new Uri(apiConfig.BaseURL);
-});
 builder.Services.AddHttpClient<IHomePageTemplateService, HomePageTemplateService>(client =>
 {
     client.BaseAddress = new Uri($"{apiConfig.BaseURL}");

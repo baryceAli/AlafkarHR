@@ -1,7 +1,0 @@
-@inherits SiteComponentBase
-<div class="af-partners">
-    @foreach (var partner in SiteContent.Partners.Where(x => x.Approved))
-    {
-        <figure><img src="@partner.LogoUrl" alt="@partner.Name" loading="lazy" width="180" height="100" /><figcaption>@partner.Name</figcaption></figure>
-    }
-</div>
