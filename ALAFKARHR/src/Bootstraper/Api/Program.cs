@@ -218,6 +218,14 @@ var app = builder.Build();
 //}
 //app.UseAntiforgery();
 app.UseExceptionHandler(options => { });
+app.Use(async (context, next) =>
+{
+    // Raise the request limit only for website media; preserve all other API limits.
+    if (HttpMethods.IsPost(context.Request.Method) && context.Request.Path == "/api/v1/publicwebsite/media"
+        && context.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>() is { IsReadOnly: false } size)
+        size.MaxRequestBodySize = 105 * 1024 * 1024;
+    await next(context);
+});
 app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();

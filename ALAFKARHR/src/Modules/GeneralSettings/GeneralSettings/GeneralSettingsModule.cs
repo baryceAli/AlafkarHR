@@ -30,6 +30,8 @@ public static class GeneralSettingsModule
         //services.AddScoped<ISaveChangesInterceptor, DispatchDomainEventsInterceptor>();
 
         var connectionString = configuration.GetConnectionString("Database");
+        services.Configure<GeneralSettings.Features.PublicWebsite.PublicWebsiteOptions>(configuration.GetSection("PublicWebsite"));
+        services.AddHttpContextAccessor();
         services.AddDbContext<GeneralSettingsDbContext>((sp, options) =>
         {
             //options.AddInterceptors(sp.GetServices<ISaveChangesInterceptor>());

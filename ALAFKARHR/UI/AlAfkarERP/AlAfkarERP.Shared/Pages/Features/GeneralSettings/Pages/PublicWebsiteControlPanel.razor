@@ -1,0 +1,313 @@
+@page "/PublicWebsite/ControlPanel"
+@layout AdminLayout
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Utilities
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.JSInterop
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Permissions
+@implements IAsyncDisposable
+@inject PublicWebsiteService Service
+@inject AuthenticationStateProvider Authentication
+@inject SharedDataService SharedDataService
+@inject IWebsitePreviewSessions Sessions
+@inject IJSRuntime JS
+
+<div class="erp-page website-control-panel" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Alafkar Public Website", "موقع الأفكار العام")" Subtitle="@T("Edit the website, save privately, then publish both languages.", "عدل الموقع، واحفظ المسودة بشكل خاص، ثم انشر اللغتين.")" Icon="bi-window" />
+    @if (!string.IsNullOrEmpty(message)) { <div class="alert @(error ? "alert-danger" : "alert-success")" role="status">@message</div> }
+    @if (loading) { <div class="erp-loading">@T("Loading website…", "جاري تحميل الموقع…")</div> }
+    else if (!Can(PermissionList.PublicWebsitePermissions.View))
+    {
+        <div class="alert alert-warning">@T("Sign in with an authorized website editor account.", "يرجى تسجيل الدخول بحساب مخول لإدارة الموقع.") <a href="/login">@T("Sign in", "تسجيل الدخول")</a></div>
+    }
+    else if (draft != null)
+    {
+        <NavigationLock OnBeforeInternalNavigation="BeforeNavigation" />
+        <div class="erp-table-toolbar website-editor-toolbar">
+            <label>@T("Page", "الصفحة") <select class="form-select" value="@selectedPage" @onchange="ChangePage">@foreach (var path in WebsiteContentCatalog.Manifest.Pages.Keys) { <option value="@path">@PageLabel(path)</option> }</select></label>
+            <label>@T("Content language", "لغة المحتوى") <select class="form-select" value="@language" @onchange="ChangeLanguage"><option value="ar">العربية</option><option value="en">English</option></select></label>
+            <label>@T("Preview size", "حجم المعاينة") <select class="form-select" @bind="mobile"><option value="false">@T("Desktop", "حاسوب")</option><option value="true">@T("Mobile", "جوال")</option></select></label>
+            <button class="btn btn-primary" disabled="@(!CanEdit || busy || !dirty)" @onclick="Save">@T("Save draft", "حفظ المسودة")</button>
+            <button class="btn btn-outline-primary" disabled="@busy" @onclick="TogglePreview">@(editMode ? T("Preview", "معاينة") : T("Edit in place", "تعديل مباشر"))</button>
+            <button class="btn btn-success" disabled="@(!Can(PermissionList.PublicWebsitePermissions.Publish) || busy)" @onclick="Publish">@T("Publish both languages", "نشر اللغتين")</button>
+            <button class="btn btn-outline-secondary" disabled="@busy" @onclick="History">@T("Version history", "سجل الإصدارات")</button>
+            <button class="btn btn-outline-secondary" disabled="@(busy || !dirty)" @onclick="Discard">@T("Discard unsaved edits", "إلغاء التعديلات غير المحفوظة")</button>
+            <button class="btn btn-outline-secondary" disabled="@(busy || dirty)" @onclick="Load">@T("Reload", "تحديث")</button>
+            <span class="erp-status-chip">@(dirty ? T("Unsaved changes", "تغييرات غير محفوظة") : T("Draft saved", "المسودة محفوظة"))</span>
+        </div>
+        @if (navigationPending)
+        {
+            <div class="alert alert-warning">@T("Save or discard your unsaved changes before leaving.", "احفظ أو ألغ التغييرات غير المحفوظة قبل المغادرة.")</div>
+        }
+        @if (revisions != null)
+        {
+            <AppCard>
+                <h2 class="h6">@T("Published versions", "الإصدارات المنشورة")</h2>
+                @if (revisions.Count == 0) { <p>@T("No versions published yet.", "لم يتم نشر أي إصدار بعد.")</p> }
+                @foreach (var version in revisions)
+                {
+                    <div class="d-flex align-items-center gap-3 py-2"><span>@version.PublishedAt.AddHours(3).ToString("yyyy-MM-dd HH:mm") (UTC+03:00) · @version.PublishedBy</span><button class="btn btn-sm btn-outline-secondary" disabled="@(busy || dirty || !Can(PermissionList.PublicWebsitePermissions.Publish))" @onclick="() => Restore(version.Id)">@T("Restore into draft", "استعادة كمسودة")</button></div>
+                }
+            </AppCard>
+        }
+        <div class="website-editor-grid">
+            <aside class="website-editor-inspector">
+                <AppCard>
+                    <h2 class="h6">@T("Page sections", "أقسام الصفحة")</h2>
+                    @foreach (var section in draft.Content.Pages[selectedPage])
+                    {
+                        <div class="website-editor-section-row" @key="section.Key">
+                            <input type="checkbox" aria-label="@T("Show section", "إظهار القسم")" checked="@section.Visible" disabled="@(!CanEdit || busy)" @onchange="e => SetVisibility(section, e)" />
+                            <button class="btn btn-sm btn-outline-secondary flex-grow-1" @onclick="() => SelectSection(section.Key)">@SectionLabel(section.Key)</button>
+                            <button class="btn btn-sm btn-outline-secondary" aria-label="@T("Move up", "تحريك لأعلى")" disabled="@(!CanEdit || busy || draft.Content.Pages[selectedPage].IndexOf(section) == 0)" @onclick="() => MoveSection(section, -1)">↑</button>
+                            <button class="btn btn-sm btn-outline-secondary" aria-label="@T("Move down", "تحريك لأسفل")" disabled="@(!CanEdit || busy || draft.Content.Pages[selectedPage].IndexOf(section) == draft.Content.Pages[selectedPage].Count - 1)" @onclick="() => MoveSection(section, 1)">↓</button>
+                        </div>
+                    }
+                    <button class="btn btn-sm btn-outline-secondary mt-2" @onclick='() => SelectSection("WebsiteHeader")'>@T("Header and logo", "الترويسة والشعار")</button>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" @onclick='() => SelectSection("WebsiteFooter")'>@T("Footer", "التذييل")</button>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" @onclick="SelectSeo">@T("Page SEO", "بيانات محركات البحث")</button>
+                </AppCard>
+                <AppCard>
+                    <h2 class="h6">@T("Selected content", "المحتوى المحدد")</h2>
+                    <p class="text-muted">@T("Click text or media in the preview, or choose a section above.", "انقر على النص أو الوسائط في المعاينة، أو اختر قسماً أعلاه.")</p>
+                    @if (selectedKeys.Count > 0)
+                    {
+                        <select class="form-select mb-3" value="@fieldKey" @onchange="SelectField">@foreach (var key in selectedKeys) { <option value="@key">@FieldLabel(key)</option> }</select>
+                    }
+                    @if (Definition is { } definition && CurrentValue is { } value)
+                    {
+                        <label class="form-label">@FieldLabel(fieldKey)</label>
+                        @if (IsMedia(definition.Kind))
+                        {
+                            <div class="mb-2">@(value.MediaId.HasValue ? T("Uploaded replacement selected", "تم اختيار ملف بديل") : T("Original media / no replacement", "الوسائط الأصلية / لا يوجد بديل"))</div>
+                            <InputFile OnChange="Upload" accept="@Accept(definition.Kind)" disabled="@(!CanEdit || !Can(PermissionList.PublicWebsitePermissions.Upload) || busy)" class="form-control" />
+                            @if (uploadProgress > 0) { <progress class="w-100" max="100" value="@uploadProgress"></progress><span>@uploadProgress%</span> }
+                            <button class="btn btn-sm btn-outline-secondary mt-2" disabled="@(!CanEdit || busy || !value.MediaId.HasValue)" @onclick="ClearMedia">@T("Use original / remove upload", "استخدام الأصل / إزالة الملف")</button>
+                        }
+                        else
+                        {
+                            <textarea class="form-control" rows="5" value="@(language == "en" ? value.En : value.Ar)" @oninput="EditText" disabled="@(!CanEdit || busy)"></textarea>
+                            <label class="form-label mt-2">@T("Other language", "اللغة الأخرى")</label>
+                            <textarea class="form-control" rows="4" value="@(language == "en" ? value.Ar : value.En)" @oninput="EditOtherText" disabled="@(!CanEdit || busy)"></textarea>
+                        }
+                    }
+                </AppCard>
+                @foreach (var collection in VisibleCollections())
+                {
+                    <AppCard>
+                        <h2 class="h6">@CollectionLabel(collection)</h2>
+                        @foreach (var item in draft.Content.Collections[collection])
+                        {
+                            <div class="website-editor-section-row" @key="item.Id">
+                                <button class="btn btn-sm btn-outline-secondary flex-grow-1" @onclick="() => SelectItem(item)">@ItemLabel(item)</button>
+                                <button class="btn btn-sm btn-outline-secondary" aria-label="@T("Move up", "تحريك لأعلى")" disabled="@(!CanEdit || busy || draft.Content.Collections[collection].IndexOf(item) == 0)" @onclick="() => MoveItem(collection, item, -1)">↑</button>
+                                <button class="btn btn-sm btn-outline-secondary" aria-label="@T("Move down", "تحريك لأسفل")" disabled="@(!CanEdit || busy || draft.Content.Collections[collection].IndexOf(item) == draft.Content.Collections[collection].Count - 1)" @onclick="() => MoveItem(collection, item, 1)">↓</button>
+                                <button class="btn btn-sm btn-outline-danger" aria-label="@T("Remove item", "حذف العنصر")" disabled="@(!CanEdit || busy)" @onclick="() => RemoveItem(collection, item)">×</button>
+                            </div>
+                        }
+                        <button class="btn btn-sm btn-outline-primary mt-2" disabled="@(!CanEdit || busy || draft.Content.Collections[collection].Count >= 100)" @onclick="() => AddItem(collection)">@T("Add item", "إضافة عنصر")</button>
+                    </AppCard>
+                }
+            </aside>
+            <div class="website-editor-canvas @(mobile ? "website-editor-mobile" : "")">
+                <iframe id="@frameId" src="@PreviewUrl" title="@T("Website editing preview", "معاينة تعديل الموقع")" referrerpolicy="no-referrer"></iframe>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private WebsiteDraftDto? draft;
+    private WebsiteSnapshot? saved;
+    private System.Security.Claims.ClaimsPrincipal? user;
+    private List<WebsiteRevisionDto>? revisions;
+    private string selectedPage = "/", language = "ar", message = "", fieldKey = "", activeSection = "LandingHero";
+    private bool loading = true, busy, dirty, error, mobile, navigationPending, attached, editMode = true;
+    private string previewFragment = "";
+    private int uploadProgress;
+    private readonly string session = Guid.NewGuid().ToString("N");
+    private readonly string frameId = "public-website-preview-" + Guid.NewGuid().ToString("N");
+    private IJSObjectReference? module;
+    private DotNetObjectReference<PublicWebsiteControlPanel>? reference;
+    private List<string> selectedKeys = [];
+    private Guid? selectedItemId;
+    private string T(string en, string ar) => SharedDataService.SelectViewLang(en, ar);
+    private bool Can(string permission) => user?.Claims.Any(x => x.Type == "Permission" && x.Value == permission) == true;
+    private bool CanEdit => Can(PermissionList.PublicWebsitePermissions.Edit);
+    private string PreviewUrl => (language == "en" ? (selectedPage == "/" ? "/en" : "/en" + selectedPage) : selectedPage) + "?websiteEditor=" + session + previewFragment;
+    private WebsiteFieldDefinition? Definition => WebsiteContentCatalog.Manifest.Fields.FirstOrDefault(x => x.Key == fieldKey);
+    private WebsiteCollectionItem? SelectedItem => selectedItemId is Guid id ? draft?.Content.Collections.Values.SelectMany(x => x).FirstOrDefault(x => x.Id == id) : null;
+    private WebsiteValue? CurrentValue
+    {
+        get
+        {
+            if (draft == null || !draft.Content.Fields.TryGetValue(fieldKey, out var value)) return null;
+            if (SelectedItem is not { } item || !fieldKey.StartsWith(item.TemplateKey + ".", StringComparison.Ordinal)) return value;
+            if (!item.Fields.TryGetValue(fieldKey, out var own)) item.Fields[fieldKey] = own = new() { Ar = value.Ar, En = value.En, MediaId = value.MediaId };
+            return own;
+        }
+    }
+    protected override void OnInitialized() => SharedDataService.OnChange1 += LanguageChanged;
+    private Task LanguageChanged() => InvokeAsync(StateHasChanged);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender) { user = (await Authentication.GetAuthenticationStateAsync()).User; await Load(); return; }
+        if (draft != null && !attached)
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", "/_content/AlAfkarERP.Shared/lib/MyJs/PublicWebsiteEditor.js");
+            reference = DotNetObjectReference.Create(this);
+            await module.InvokeVoidAsync("attach", frameId, session, reference); attached = true;
+            await SendPreview();
+        }
+    }
+    private async Task Load()
+    {
+        if (!Can(PermissionList.PublicWebsitePermissions.View)) { loading = false; StateHasChanged(); return; }
+        busy = true;
+        try
+        {
+            var result = await Service.DraftAsync();
+            if (result.IsSuccess && result.Data != null) { draft = result.Data; saved = draft.Content.Clone(); dirty = false; error = false; message = ""; selectedKeys = []; selectedItemId = null; await RegisterMedia(); await SendPreview(); }
+            else Fail(result.Error);
+        }
+        finally { loading = false; busy = false; StateHasChanged(); }
+    }
+    private void Fail(ErrorResponseDto? detail) { error = true; message = detail?.GetDisplayMessage(SharedDataService.PageDirection == "rtl" ? "Ar" : "En") ?? T("The operation failed. Your edits are still here.", "فشلت العملية. تعديلاتك لا تزال محفوظة هنا."); }
+    private async Task<bool> SaveCore()
+    {
+        if (draft == null) return false;
+        var result = await Service.SaveAsync(draft);
+        if (!result.IsSuccess || result.Data == null) { Fail(result.Error); return false; }
+        draft = result.Data; saved = draft.Content.Clone(); dirty = false; error = false; navigationPending = false;
+        message = T("Draft saved. Public visitors still see the published version.", "تم حفظ المسودة. الزوار يشاهدون النسخة المنشورة فقط."); await SendPreview(); return true;
+    }
+    private async Task Save() { busy = true; try { await SaveCore(); } finally { busy = false; } }
+    private async Task Publish()
+    {
+        if (draft == null) return; busy = true;
+        try
+        {
+            if (dirty && !await SaveCore()) return;
+            var result = await Service.PublishAsync(draft.Token);
+            if (result.IsSuccess && result.Data != null) { draft = result.Data; saved = draft.Content.Clone(); dirty = false; error = false; message = T("Both languages are now published.", "تم نشر اللغتين الآن."); await SendPreview(); }
+            else Fail(result.Error);
+        }
+        finally { busy = false; }
+    }
+    private async Task History() { var result = await Service.RevisionsAsync(); if (result.IsSuccess) revisions = result.Data; else Fail(result.Error); }
+    private async Task Restore(Guid id)
+    {
+        if (draft == null) return; busy = true;
+        try
+        {
+            var result = await Service.RestoreAsync(id, draft.Token);
+            if (result.IsSuccess && result.Data != null) { draft = result.Data; saved = draft.Content.Clone(); dirty = false; selectedKeys = []; selectedItemId = null; error = false; message = T("Version restored into draft. Review and publish when ready.", "تمت استعادة الإصدار كمسودة. راجع ثم انشر عند الجاهزية."); await SendPreview(); }
+            else Fail(result.Error);
+        }
+        finally { busy = false; }
+    }
+    private async Task Discard() { if (draft != null && saved != null) { draft = draft with { Content = saved.Clone() }; dirty = false; navigationPending = false; selectedKeys = []; selectedItemId = null; await SendPreview(); } }
+    private Task BeforeNavigation(LocationChangingContext context) { if (dirty) { context.PreventNavigation(); navigationPending = true; StateHasChanged(); } return Task.CompletedTask; }
+    private async Task Changed() { dirty = true; await SendPreview(); }
+    private async Task EditText(ChangeEventArgs e) { if (CurrentValue is not { } value) return; if (language == "en") value.En = e.Value?.ToString() ?? ""; else value.Ar = e.Value?.ToString() ?? ""; await Changed(); }
+    private async Task EditOtherText(ChangeEventArgs e) { if (CurrentValue is not { } value) return; if (language == "en") value.Ar = e.Value?.ToString() ?? ""; else value.En = e.Value?.ToString() ?? ""; await Changed(); }
+    private async Task ClearMedia() { if (CurrentValue is { } value) { value.MediaId = null; await Changed(); } }
+    private async Task Upload(InputFileChangeEventArgs e)
+    {
+        var target = CurrentValue; if (target == null || Definition == null) return; busy = true; uploadProgress = 1; StateHasChanged();
+        try
+        {
+            var file = e.File;
+            await using var stream = file.OpenReadStream(100 * 1024 * 1024);
+            var progress = new Progress<int>(percent => { uploadProgress = percent; _ = InvokeAsync(StateHasChanged); });
+            var result = await Service.UploadAsync(stream, file.Name, file.ContentType, progress);
+            if (result.IsSuccess && result.Data != null) { target.MediaId = result.Data.Id; await RegisterMedia(); await Changed(); error = false; message = T("Upload complete. Save the draft to keep this replacement.", "اكتمل الرفع. احفظ المسودة للاحتفاظ بالملف البديل."); }
+            else Fail(result.Error);
+        }
+        catch (Exception ex) { error = true; message = ex.Message; }
+        finally { busy = false; uploadProgress = 0; }
+    }
+    private async Task RegisterMedia()
+    {
+        if (draft == null) return;
+        var token = await Service.PreviewTokenAsync();
+        if (token != null) Sessions.Register(session, token, draft.Content.Fields.Values.Concat(draft.Content.Collections.Values.SelectMany(x => x).SelectMany(x => x.Fields.Values)).Where(x => x.MediaId.HasValue).Select(x => x.MediaId!.Value));
+        else Sessions.Remove(session);
+    }
+    [JSInvokable] public async Task PreviewReady() { await SendPreview(); }
+    [JSInvokable] public Task PreviewNavigate(string target)
+    {
+        if (Uri.TryCreate(target, UriKind.Absolute, out var uri))
+        {
+            var path = uri.AbsolutePath;
+            language = path == "/en" || path.StartsWith("/en/") ? "en" : "ar";
+            path = path == "/en" ? "/" : path.StartsWith("/en/") ? path[3..] : path;
+            if (draft?.Content.Pages.ContainsKey(path) == true) { selectedPage = path; previewFragment = uri.Fragment; SelectSection(draft.Content.Pages[path][0].Key); }
+        }
+        return InvokeAsync(StateHasChanged);
+    }
+    [JSInvokable] public Task PreviewError() { error = true; message = T("The preview could not refresh. Your edits are still available; reload the preview or reduce the content size.", "تعذر تحديث المعاينة. تعديلاتك لا تزال متاحة؛ أعد تحميل المعاينة أو قلل حجم المحتوى."); return InvokeAsync(StateHasChanged); }
+    [JSInvokable] public Task SelectPreviewField(string[] fields, string? itemId)
+    {
+        selectedItemId = Guid.TryParse(itemId, out var id) ? id : null;
+        selectedKeys = fields.Where(k => WebsiteContentCatalog.Manifest.Fields.Any(d => d.Key == k) && (selectedItemId == null || !k.Contains(".collection", StringComparison.Ordinal) || SelectedItem?.TemplateKey is { } template && k.StartsWith(template + ".", StringComparison.Ordinal))).Distinct().ToList();
+        fieldKey = selectedKeys.FirstOrDefault(k => IsMedia(WebsiteContentCatalog.Manifest.Fields.First(d => d.Key == k).Kind)) ?? selectedKeys.FirstOrDefault() ?? "";
+        activeSection = Definition?.Section ?? activeSection; return InvokeAsync(StateHasChanged);
+    }
+    private Task SelectField(ChangeEventArgs e) { fieldKey = e.Value?.ToString() ?? ""; return Task.CompletedTask; }
+    private HashSet<string> SectionTree(string section)
+    {
+        var sections = new HashSet<string>();
+        void Add(string key) { key = key.Replace("Body", ""); if (!sections.Add(key)) return; foreach (var child in WebsiteContentCatalog.Manifest.SectionChildren.GetValueOrDefault(key) ?? []) Add(child); }
+        Add(section); return sections;
+    }
+    private bool CollectionField(string key) => WebsiteContentCatalog.Manifest.Collections.Values.SelectMany(x => x).Any(t => key.StartsWith(t + ".", StringComparison.Ordinal));
+    private void SelectSection(string section) { activeSection = section.Replace("Body", ""); selectedItemId = null; var sections = SectionTree(activeSection); selectedKeys = WebsiteContentCatalog.Manifest.Fields.Where(x => sections.Contains(x.Section) && !CollectionField(x.Key)).Select(x => x.Key).ToList(); fieldKey = selectedKeys.FirstOrDefault() ?? ""; }
+    private void SelectSeo() { selectedItemId = null; selectedKeys = WebsiteContentCatalog.Manifest.Fields.Where(x => x.Kind == "seo" && x.Section == PageComponent(selectedPage)).Select(x => x.Key).ToList(); fieldKey = selectedKeys.FirstOrDefault() ?? ""; }
+    private void SelectItem(WebsiteCollectionItem item) { selectedItemId = item.Id; selectedKeys = WebsiteContentCatalog.Manifest.Fields.Where(x => x.Key.StartsWith(item.TemplateKey + ".")).Select(x => x.Key).ToList(); fieldKey = selectedKeys.FirstOrDefault() ?? ""; }
+    private IEnumerable<string> VisibleCollections() => draft?.Content.Collections.Keys.Where(k => SectionTree(activeSection).Contains(k.Split('.')[0])) ?? [];
+    private async Task SetVisibility(WebsiteSection section, ChangeEventArgs e) { section.Visible = e.Value is true; await Changed(); }
+    private async Task MoveSection(WebsiteSection section, int offset) { var list = draft!.Content.Pages[selectedPage]; var at = list.IndexOf(section); if (at + offset < 0 || at + offset >= list.Count) return; list.RemoveAt(at); list.Insert(at + offset, section); await Changed(); }
+    private async Task MoveItem(string collection, WebsiteCollectionItem item, int offset) { var list = draft!.Content.Collections[collection]; var at = list.IndexOf(item); if (at + offset < 0 || at + offset >= list.Count) return; list.RemoveAt(at); list.Insert(at + offset, item); await Changed(); }
+    private async Task RemoveItem(string collection, WebsiteCollectionItem item) { draft!.Content.Collections[collection].Remove(item); if (selectedItemId == item.Id) { selectedItemId = null; selectedKeys = []; fieldKey = ""; } await Changed(); }
+    private async Task AddItem(string collection)
+    {
+        var list = draft!.Content.Collections[collection]; var template = list.LastOrDefault()?.TemplateKey ?? WebsiteContentCatalog.Manifest.Collections[collection][0];
+        var item = new WebsiteCollectionItem { Id = Guid.NewGuid(), TemplateKey = template };
+        foreach (var definition in WebsiteContentCatalog.Manifest.Fields.Where(x => x.Key.StartsWith(template + "."))) item.Fields[definition.Key] = new() { Ar = definition.Ar, En = definition.En };
+        list.Add(item); SelectItem(item); await Changed();
+    }
+    private async Task ChangePage(ChangeEventArgs e) { selectedPage = e.Value?.ToString() ?? "/"; previewFragment = ""; SelectSection(draft!.Content.Pages[selectedPage][0].Key); await SendPreview(); }
+    private async Task ChangeLanguage(ChangeEventArgs e) { language = e.Value?.ToString() ?? "ar"; await SendPreview(); }
+    private async Task TogglePreview() { editMode = !editMode; await SendPreview(); }
+    private async Task SendPreview() { if (module != null && draft != null) { await RegisterMedia(); await module.InvokeVoidAsync("send", frameId, draft.Content, dirty, editMode); } }
+    private string FieldLabel(string key)
+    {
+        var d = WebsiteContentCatalog.Manifest.Fields.First(x => x.Key == key);
+        if (key == "WebsiteHeader.logo") return T("Company logo", "شعار الشركة");
+        if (key == "MediaCenter.profile") return T("Company profile PDF", "الملف التعريفي PDF");
+        if (key == "MediaCenter.press") return T("Press release PDF", "البيان الصحفي PDF");
+        if (key == "MediaCenter.report") return T("Video report", "التقرير المرئي");
+        if (key == "MediaCenter.kit") return T("Media kit ZIP", "الحقيبة الإعلامية ZIP");
+        if (key == "MediaCenter.audio") return T("Audio recording", "التسجيل الصوتي");
+        if (IsMedia(d.Kind)) return KindLabel(d.Kind) + " · " + SectionLabel(d.Section);
+        var label = T(d.En, d.Ar); return label.Length > 65 ? label[..65] + "…" : string.IsNullOrEmpty(label) ? KindLabel(d.Kind) : label;
+    }
+    private string KindLabel(string kind) => kind switch { "image" => T("Image", "صورة"), "pdf" => "PDF", "video" => T("Video", "فيديو"), "audio" => T("Audio", "صوت"), "download" => T("Download file", "ملف تحميل"), "link" => T("Link destination", "وجهة الرابط"), _ => T("Content", "محتوى") };
+    private string SectionLabel(string section) { var d = WebsiteContentCatalog.Manifest.Fields.FirstOrDefault(x => x.Section == section.Replace("Body", "") && x.Kind == "text"); var label = d == null ? T("Page content", "محتوى الصفحة") : T(d.En, d.Ar); return label.Length > 36 ? label[..36] + "…" : label; }
+    private string CollectionLabel(string collection) => T("Repeated items", "العناصر المتكررة") + " · " + SectionLabel(collection.Split('.')[0]);
+    private string ItemLabel(WebsiteCollectionItem item) { var d = WebsiteContentCatalog.Manifest.Fields.FirstOrDefault(x => x.Key.StartsWith(item.TemplateKey + ".") && x.Kind == "text"); if (d == null) return T("Item", "عنصر"); var value = item.Fields.GetValueOrDefault(d.Key) ?? draft!.Content.Fields[d.Key]; var text = language == "en" ? value.En : value.Ar; return text.Length > 30 ? text[..30] + "…" : text; }
+    private static bool IsMedia(string kind) => kind is "image" or "pdf" or "video" or "audio" or "download";
+    private static string Accept(string kind) => kind switch { "image" => "image/jpeg,image/png,image/webp,image/gif", "pdf" => "application/pdf", "video" => "video/mp4,video/webm", "audio" => "audio/mpeg", _ => "application/zip" };
+    private static string PageComponent(string path) => path switch { "/" => "Landing", "/privacy-policy" => "Privacy", "/terms-and-conditions" => "Terms", "/request-proposal" => "RequestProposal", "/website-not-found" => "WebsiteNotFound", _ => char.ToUpperInvariant(path[1]) + path[2..] };
+    private string PageLabel(string path) => path switch { "/" => T("Home", "الرئيسية"), "/about" => T("About", "من نحن"), "/services" => T("Services", "الخدمات"), "/packages" => T("Packages", "الباقات"), "/projects" => T("Projects", "المشاريع"), "/infrastructure" => T("Infrastructure", "البنية التحتية"), "/contact" => T("Contact", "التواصل"), "/request-proposal" => T("Request proposal", "طلب عرض سعر"), "/privacy-policy" => T("Privacy", "الخصوصية"), "/website-not-found" => T("Page not found (404)", "صفحة غير موجودة (404)"), _ => T("Terms", "الشروط والأحكام") };
+    public async ValueTask DisposeAsync()
+    {
+        SharedDataService.OnChange1 -= LanguageChanged; Sessions.Remove(session);
+        if (module != null) { try { await module.InvokeVoidAsync("detach", frameId); await module.DisposeAsync(); } catch (JSDisconnectedException) { } }
+        reference?.Dispose();
+    }
+}

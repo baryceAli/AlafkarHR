@@ -9,54 +9,68 @@
 <div class="flex flex-wrap items-center justify-between gap-space-md">
 <div class="flex items-center gap-space-xs bg-surface-container px-space-md py-space-xs rounded-full">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base" style="font-variation-settings: 'FILL' 1;">verified</span>
-<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider">السجل المؤسسي المعتمد 1445 - 1446هـ</span>
+<span class="font-label-sm text-label-sm text-primary uppercase tracking-wider" data-pw-fields="ProjectsOverview.f001">@Content.Text("ProjectsOverview.f001")</span>
 </div>
 <div class="flex items-center gap-space-sm bg-surface-container-low px-space-md py-space-xs rounded-lg">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-sm">schedule</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">تحديث حي: توثيق فوري لكافة المسارات اللوجستية</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="ProjectsOverview.f002">@Content.Text("ProjectsOverview.f002")</span>
 </div>
 </div>
 <div class="flex flex-col gap-space-sm max-w-4xl">
-<h1 class="font-headline-xl text-headline-xl md:text-display-hero text-on-surface font-bold tracking-tight">
-          سجل المشاريع المنجزة <span class="text-primary">والمركز الإعلامي</span>
+<h1 class="font-headline-xl text-headline-xl md:text-display-hero text-on-surface font-bold tracking-tight" data-pw-fields="ProjectsOverview.f003">
+          @Content.Text("ProjectsOverview.f003") <span class="text-primary" data-pw-fields="ProjectsOverview.f004">@Content.Text("ProjectsOverview.f004")</span>
 </h1>
-<p class="font-body-xl text-body-xl text-on-surface-variant leading-relaxed">
-          توثيق ميداني لأبرز المشاريع الخيرية ومشاريع خدمة ضيوف الرحمن التي نفذتها الشركة بدقة وسرعة، مع التزام معايير سلاسل الإمداد الآمنة والرقابة الصحية المعتمدة.
+<p class="font-body-xl text-body-xl text-on-surface-variant leading-relaxed" data-pw-fields="ProjectsOverview.f005">
+          @Content.Text("ProjectsOverview.f005")
         </p>
 </div>
 <div class="grid grid-cols-2 md:grid-cols-4 gap-space-md pt-space-md">
+@foreach (var item in Content.Items("ProjectsOverview.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "ProjectsOverview.collection1.item1":
 <div class="p-space-lg bg-surface-container rounded-xl flex flex-col gap-space-xs shadow-md">
-<span class="font-label-sm text-label-sm text-on-surface-variant">إجمالي الوجبات الموزعة</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="ProjectsOverview.collection1.item1.f006" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item1.f006", item)</span>
 <div class="flex items-baseline gap-space-xs">
-<span class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-counter="4850000">4,850,000+</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">وجبة</span>
+<span class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-counter="4850000" data-pw-fields="ProjectsOverview.collection1.item1.f007" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item1.f007", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="ProjectsOverview.collection1.item1.f008" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item1.f008", item)</span>
 </div>
-<span class="font-body-sm text-body-sm text-secondary">بالمشاعر المقدسة والحرم المكي</span>
+<span class="font-body-sm text-body-sm text-secondary" data-pw-fields="ProjectsOverview.collection1.item1.f009" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item1.f009", item)</span>
 </div>
+break;
+@case "ProjectsOverview.collection1.item2":
 <div class="p-space-lg bg-surface-container rounded-xl flex flex-col gap-space-xs shadow-md">
-<span class="font-label-sm text-label-sm text-on-surface-variant">عبوات السقيا المبردة</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="ProjectsOverview.collection1.item2.f010" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item2.f010", item)</span>
 <div class="flex items-baseline gap-space-xs">
-<span class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-counter="12400000">12.4M+</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">عبوة</span>
+<span class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-counter="12400000" data-pw-fields="ProjectsOverview.collection1.item2.f011" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item2.f011", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="ProjectsOverview.collection1.item2.f012" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item2.f012", item)</span>
 </div>
-<span class="font-body-sm text-body-sm text-secondary">محطات النقل، الجمرات والمساجد</span>
+<span class="font-body-sm text-body-sm text-secondary" data-pw-fields="ProjectsOverview.collection1.item2.f013" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item2.f013", item)</span>
 </div>
+break;
+@case "ProjectsOverview.collection1.item3":
 <div class="p-space-lg bg-surface-container rounded-xl flex flex-col gap-space-xs shadow-md">
-<span class="font-label-sm text-label-sm text-on-surface-variant">الحقائب والسلال المنفذة</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="ProjectsOverview.collection1.item3.f014" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item3.f014", item)</span>
 <div class="flex items-baseline gap-space-xs">
-<span class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-counter="320000">320,000+</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">سلة/حقيبة</span>
+<span class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-counter="320000" data-pw-fields="ProjectsOverview.collection1.item3.f015" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item3.f015", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="ProjectsOverview.collection1.item3.f016" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item3.f016", item)</span>
 </div>
-<span class="font-body-sm text-body-sm text-secondary">شراكات مع 64+ جمعية ومؤسسة مانحة</span>
+<span class="font-body-sm text-body-sm text-secondary" data-pw-fields="ProjectsOverview.collection1.item3.f017" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item3.f017", item)</span>
 </div>
+break;
+@case "ProjectsOverview.collection1.item4":
 <div class="p-space-lg bg-surface-container rounded-xl flex flex-col gap-space-xs shadow-md">
-<span class="font-label-sm text-label-sm text-on-surface-variant">الأصول والمرافق المشغّلة</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="ProjectsOverview.collection1.item4.f018" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item4.f018", item)</span>
 <div class="flex items-baseline gap-space-xs">
-<span class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">4</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">عمائر فندقية</span>
+<span class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-pw-fields="ProjectsOverview.collection1.item4.f019" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item4.f019", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="ProjectsOverview.collection1.item4.f020" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item4.f020", item)</span>
 </div>
-<span class="font-body-sm text-body-sm text-secondary">طاقة استيعابية 2,800 نزيل بمكة</span>
+<span class="font-body-sm text-body-sm text-secondary" data-pw-fields="ProjectsOverview.collection1.item4.f021" data-pw-item="@item.Id">@Content.Text("ProjectsOverview.collection1.item4.f021", item)</span>
 </div>
+break;
+}
+}
 </div>
 </div>
 </section>

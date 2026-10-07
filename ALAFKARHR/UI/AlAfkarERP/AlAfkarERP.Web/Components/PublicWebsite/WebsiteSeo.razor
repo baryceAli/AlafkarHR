@@ -1,21 +1,24 @@
 @inject IConfiguration Configuration
-<PageTitle>@Title | شركة الأفكار الناجحة</PageTitle>
+<PageTitle>@Title | @Brand</PageTitle>
 <HeadContent>
  <meta name="description" content="@Description" />
  <link rel="canonical" href="@Canonical" />
+ <link rel="alternate" hreflang="ar" href="@(Origin + Path)" />
+ <link rel="alternate" hreflang="en" href="@(Origin + Content.LocalizeEnglish(Path))" />
+ <link rel="alternate" hreflang="x-default" href="@(Origin + Path)" />
  <meta property="og:type" content="website" />
- <meta property="og:locale" content="ar_SA" />
- <meta property="og:site_name" content="شركة الأفكار الناجحة" />
+ <meta property="og:locale" content="@(Content.English ? "en_US" : "ar_SA")" />
+ <meta property="og:site_name" content="@Brand" />
  <meta property="og:title" content="@FullTitle" />
  <meta property="og:description" content="@Description" />
  <meta property="og:url" content="@Canonical" />
  <meta property="og:image" content="@Preview" />
- <meta property="og:image:alt" content="صورة الإعاشة من التصميم المعتمد" />
+ <meta property="og:image:alt" content="@Content.Text("LandingHero.f019")" />
  <meta name="twitter:card" content="summary_large_image" />
  <meta name="twitter:title" content="@FullTitle" />
  <meta name="twitter:description" content="@Description" />
  <meta name="twitter:image" content="@Preview" />
- @if (Path is "/privacy-policy" or "/terms-and-conditions" or "/website-not-found") { <meta name="robots" content="noindex,follow" /> }
+ @if (Content.PreviewSession != null || Path is "/privacy-policy" or "/terms-and-conditions" or "/website-not-found") { <meta name="robots" content="noindex,follow" /> }
  <script type="application/ld+json">@((MarkupString)Schema)</script>
 </HeadContent>
 @code {
@@ -23,11 +26,12 @@
  [Parameter] public string Description { get; set; } = "";
  [Parameter] public string Path { get; set; } = "/";
  private string Origin => WebsiteRoutes.Origin(Configuration);
- private string Canonical => Origin + Path;
- private string FullTitle => Title + " | شركة الأفكار الناجحة";
- private string Preview => Origin + "/website/image-129661eed588.webp";
+ private string Canonical => Origin + (Content.English ? Content.LocalizeEnglish(Path) : Path);
+ private string Brand => Content.Text("WebsiteHeader.f004");
+ private string FullTitle => Title + " | " + Brand;
+ private string Preview { get { var image = Content.Media("LandingHero.f020"); return image.StartsWith("/") ? Origin + image : image; } }
  private string Schema => System.Text.Json.JsonSerializer.Serialize(new Dictionary<string,object> {
   ["@context"] = "https://schema.org", ["@type"] = "WebPage", ["name"] = FullTitle,
-  ["description"] = Description, ["url"] = Canonical, ["inLanguage"] = "ar"
+  ["description"] = Description, ["url"] = Canonical, ["inLanguage"] = Content.Language
  });
 }

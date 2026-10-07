@@ -1,76 +1,83 @@
 <section class="w-full bg-background py-space-xl">
-<div class="max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin flex flex-col gap-space-xl"><p class="website-demo-note">عرض توضيحي ثابت — الأرقام والمؤشرات من التصميم، وليست بيانات مباشرة.</p>
+<div class="max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin flex flex-col gap-space-xl"><p class="website-demo-note" data-pw-fields="PartnerDemonstration.f001">@Content.Text("PartnerDemonstration.f001")</p>
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
 <div class="flex flex-col gap-space-xs max-w-2xl">
 <div class="flex items-center gap-space-xs text-primary font-label-md text-label-md">
 <span aria-hidden="true" class="material-symbols-outlined text-sm">visibility</span>
-<span>ميثاق الثقة والأمانة الميدانية</span>
+<span data-pw-fields="PartnerDemonstration.f002">@Content.Text("PartnerDemonstration.f002")</span>
 </div>
-<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold">
-            التتبع الحي والتقارير الرقمية للجهات المانحة
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold" data-pw-fields="PartnerDemonstration.f003">
+            @Content.Text("PartnerDemonstration.f003")
           </h2>
-<p class="font-body-md text-body-md text-on-surface-variant">
-            نلتزم أمام شركائنا من الجمعيات الخيرية ورجال الأعمال المانحين بأعلى درجات الشفافية من خلال لوحة المتابعة الحية ومحاضر التسليم الموثقة بالصور والإحداثيات اللحظية.
+<p class="font-body-md text-body-md text-on-surface-variant" data-pw-fields="PartnerDemonstration.f004">
+            @Content.Text("PartnerDemonstration.f004")
           </p>
 </div>
 <div class="p-space-sm bg-surface-container rounded-lg flex items-center gap-space-sm">
 <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
-<span class="font-label-md text-label-md text-on-surface">غرفة المراقبة والتحكم اللوجستي: نشطة</span>
+<span class="font-label-md text-label-md text-on-surface" data-pw-fields="PartnerDemonstration.f005">@Content.Text("PartnerDemonstration.f005")</span>
 </div>
 </div>
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-space-lg">
+@foreach (var item in Content.Items("PartnerDemonstration.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "PartnerDemonstration.collection1.item1":
 <div class="bg-surface-container rounded-xl p-space-lg flex flex-col gap-space-md shadow-lg">
 <div class="flex items-center justify-between">
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold">بوابة المستفيدين والشركاء</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold" data-pw-fields="PartnerDemonstration.collection1.item1.f006" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item1.f006", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary">lock</span>
 </div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-            تسجيل الدخول للاطلاع على أرشيف التقارير المصورة، محاضر الاستلام الموقعة، وشهادات إتمام المشاريع الخاصة بجمعيتكم.
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="PartnerDemonstration.collection1.item1.f007" data-pw-item="@item.Id">
+            @Content.Text("PartnerDemonstration.collection1.item1.f007", item)
           </p>
 <PartnerReportForm />
 <div class="p-space-sm bg-surface-container-low rounded-lg flex items-center gap-space-xs text-secondary font-label-sm text-label-sm">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">security</span>
-<span>تشفير 256-bit مطابق لضوابط الهيئة الوطنية للأمن السيبراني</span>
+<span data-pw-fields="PartnerDemonstration.collection1.item1.f008" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item1.f008", item)</span>
 </div>
 </div>
+break;
+@case "PartnerDemonstration.collection1.item2":
 <div class="lg:col-span-2 bg-surface-container rounded-xl p-space-lg flex flex-col gap-space-md shadow-lg">
 <div class="flex flex-wrap items-center justify-between gap-space-sm pb-space-xs">
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">satellite_alt</span>
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold">بث مباشر للمؤشرات التشغيلية الحالية</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold" data-pw-fields="PartnerDemonstration.collection1.item2.f009" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f009", item)</span>
 </div>
-<span class="font-label-sm text-label-sm text-on-surface-variant">البيانات متصلة بأسطول النقل الميداني بمكة</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="PartnerDemonstration.collection1.item2.f010" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f010", item)</span>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm">
 <div class="bg-surface-container-low p-space-md rounded-lg flex flex-col gap-space-xs">
 <div class="flex items-center justify-between">
-<span class="font-label-sm text-label-sm text-secondary">حفظ التبريد المركزي</span>
-<span class="px-space-xs py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-label-sm text-label-sm">مثالي</span>
+<span class="font-label-sm text-label-sm text-secondary" data-pw-fields="PartnerDemonstration.collection1.item2.f011" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f011", item)</span>
+<span class="px-space-xs py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-label-sm text-label-sm" data-pw-fields="PartnerDemonstration.collection1.item2.f012" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f012", item)</span>
 </div>
-<span class="font-headline-md text-headline-md text-primary font-mono" dir="ltr">-18.4°C</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">مستودعات الشميسي المركزية</span>
-</div>
-<div class="bg-surface-container-low p-space-md rounded-lg flex flex-col gap-space-xs">
-<div class="flex items-center justify-between">
-<span class="font-label-sm text-label-sm text-secondary">شاحنات النقل النشطة</span>
-<span class="px-space-xs py-0.5 rounded bg-primary/20 text-primary font-label-sm text-label-sm">في الحركة</span>
-</div>
-<span class="font-headline-md text-headline-md text-on-surface font-mono">28 / 32</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">مسارات المشاعر والحرم</span>
+<span class="font-headline-md text-headline-md text-primary font-mono" dir="ltr" data-pw-fields="PartnerDemonstration.collection1.item2.f013" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f013", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="PartnerDemonstration.collection1.item2.f014" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f014", item)</span>
 </div>
 <div class="bg-surface-container-low p-space-md rounded-lg flex flex-col gap-space-xs">
 <div class="flex items-center justify-between">
-<span class="font-label-sm text-label-sm text-secondary">اكتمال التسليمات</span>
-<span class="px-space-xs py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-label-sm text-label-sm">اليوم</span>
+<span class="font-label-sm text-label-sm text-secondary" data-pw-fields="PartnerDemonstration.collection1.item2.f015" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f015", item)</span>
+<span class="px-space-xs py-0.5 rounded bg-primary/20 text-primary font-label-sm text-label-sm" data-pw-fields="PartnerDemonstration.collection1.item2.f016" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f016", item)</span>
 </div>
-<span class="font-headline-md text-headline-md text-primary font-mono">99.2%</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">تأكيد إلكتروني فوري</span>
+<span class="font-headline-md text-headline-md text-on-surface font-mono" data-pw-fields="PartnerDemonstration.collection1.item2.f017" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f017", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="PartnerDemonstration.collection1.item2.f018" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f018", item)</span>
+</div>
+<div class="bg-surface-container-low p-space-md rounded-lg flex flex-col gap-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-secondary" data-pw-fields="PartnerDemonstration.collection1.item2.f019" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f019", item)</span>
+<span class="px-space-xs py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-label-sm text-label-sm" data-pw-fields="PartnerDemonstration.collection1.item2.f020" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f020", item)</span>
+</div>
+<span class="font-headline-md text-headline-md text-primary font-mono" data-pw-fields="PartnerDemonstration.collection1.item2.f021" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f021", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="PartnerDemonstration.collection1.item2.f022" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f022", item)</span>
 </div>
 </div>
 <div class="flex flex-col gap-space-xs pt-space-xs">
 <div class="flex items-center justify-between font-label-sm text-label-sm text-secondary">
-<span>تقدم إنجاز مستهدفات التوزيع الربيعي الحالي</span>
-<span>88% من إجمالي المستهدف</span>
+<span data-pw-fields="PartnerDemonstration.collection1.item2.f023" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f023", item)</span>
+<span data-pw-fields="PartnerDemonstration.collection1.item2.f024" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f024", item)</span>
 </div>
 <div class="w-full bg-surface-container-lowest h-3 rounded-full overflow-hidden">
 <div class="bg-gradient-to-l from-primary to-primary-container h-full rounded-full transition-all duration-1000" style="width: 88%"></div>
@@ -80,15 +87,18 @@
 <div class="flex items-center gap-space-sm">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-2xl">verified</span>
 <div class="flex flex-col">
-<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">ضمانة التوثيق الثلاثي</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">صورة للمستفيد + إحداثية الـ GPS + ختم المشرف المعتمد</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold" data-pw-fields="PartnerDemonstration.collection1.item2.f025" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f025", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="PartnerDemonstration.collection1.item2.f026" data-pw-item="@item.Id">@Content.Text("PartnerDemonstration.collection1.item2.f026", item)</span>
 </div>
 </div>
-<a class="px-space-md py-space-xs rounded-lg bg-surface-container text-on-surface hover:text-primary font-label-md text-label-md transition-all shrink-0" href="/request-proposal">
-              طلب عينة تقرير
+<a class="px-space-md py-space-xs rounded-lg bg-surface-container text-on-surface hover:text-primary font-label-md text-label-md transition-all shrink-0" href="@Content.Link("PartnerDemonstration.collection1.item2.f027", item)" data-pw-fields="PartnerDemonstration.collection1.item2.f027,PartnerDemonstration.collection1.item2.f028" data-pw-item="@item.Id">
+              @Content.Text("PartnerDemonstration.collection1.item2.f028", item)
             </a>
 </div>
 </div>
+break;
+}
+}
 </div>
 </div>
 </section>

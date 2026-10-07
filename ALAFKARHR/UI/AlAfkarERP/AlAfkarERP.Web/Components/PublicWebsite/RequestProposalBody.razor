@@ -1,0 +1,6 @@
+<WebsitePageHeading Title="@Content.Text("RequestProposal.f003")" Description="@Content.Text("RequestProposal.f004")" />
+<ProposalHub Package="@Package" Service="@Service" />
+@code {
+ [SupplyParameterFromQuery(Name = "package")] public string? Package { get; set; }
+ [SupplyParameterFromQuery(Name = "service")] public string? Service { get; set; }
+}

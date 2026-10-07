@@ -4,165 +4,175 @@
 
 <div class="flex flex-col md:flex-row md:items-end justify-between mb-space-xl gap-space-md">
 <div>
-<span class="font-label-md text-label-md text-primary font-bold">القوة التشغيلية الصلبة</span>
-<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold mt-space-xs">
-            البنية التحتية اللوجستية الجبارة
+<span class="font-label-md text-label-md text-primary font-bold" data-pw-fields="InfrastructureShowcase.f001">@Content.Text("InfrastructureShowcase.f001")</span>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold mt-space-xs" data-pw-fields="InfrastructureShowcase.f002">
+            @Content.Text("InfrastructureShowcase.f002")
           </h2>
-<p class="font-body-lg text-body-lg text-on-surface-variant mt-space-xs">
-            أصول متطورة تدير العمليات التموينية الحساسة في أكثر المواسم كثافة بشرية على مستوى العالم.
+<p class="font-body-lg text-body-lg text-on-surface-variant mt-space-xs" data-pw-fields="InfrastructureShowcase.f003">
+            @Content.Text("InfrastructureShowcase.f003")
           </p>
 </div>
 
 <div class="flex items-center gap-space-sm bg-surface-container p-space-sm rounded-xl">
 <div class="flex items-center gap-space-xs px-space-sm py-space-xs rounded bg-surface-container-high text-primary font-label-sm text-label-sm">
 <span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
-<span>غرفة العمليات المركزية: تعمل 24/7</span>
+<span data-pw-fields="InfrastructureShowcase.f004">@Content.Text("InfrastructureShowcase.f004")</span>
 </div>
-<span class="text-on-surface-variant font-label-sm text-label-sm font-mono">MAKKAH HUB</span>
+<span class="text-on-surface-variant font-label-sm text-label-sm font-mono" data-pw-fields="InfrastructureShowcase.f005">@Content.Text("InfrastructureShowcase.f005")</span>
 </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-space-lg">
-
+@foreach (var item in Content.Items("InfrastructureShowcase.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "InfrastructureShowcase.collection1.item1":
 <div class="bg-surface-container rounded-2xl p-space-lg shadow-xl flex flex-col justify-between group">
 <div>
 <div class="flex items-center justify-between mb-space-md">
 <div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-2xl">rv_hookup</span>
 </div>
-<span class="px-space-sm py-space-xs bg-surface-container-high text-primary rounded-full font-label-sm text-label-sm font-bold">تتبع حراري حي</span>
+<span class="px-space-sm py-space-xs bg-surface-container-high text-primary rounded-full font-label-sm text-label-sm font-bold" data-pw-fields="InfrastructureShowcase.collection1.item1.f006" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item1.f006", item)</span>
 </div>
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold mb-space-xs">
-              أسطول البرادات وسيارات الخدمات المتخصصة
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold mb-space-xs" data-pw-fields="InfrastructureShowcase.collection1.item1.f007" data-pw-item="@item.Id">
+              @Content.Text("InfrastructureShowcase.collection1.item1.f007", item)
             </h3>
-<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-              أسطول حديث من الشاحنات مختلفة الأحجام مجهز بوحدات تبريد فائقة الكفاءة وأجهزة رصد مستمر متصلة مباشرة بمنصة التحكم لمتابعة درجات الحرارة ومسار التحرك ثانية بثانية داخل المنطقة المركزية.
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed" data-pw-fields="InfrastructureShowcase.collection1.item1.f008" data-pw-item="@item.Id">
+              @Content.Text("InfrastructureShowcase.collection1.item1.f008", item)
             </p>
 <div class="grid grid-cols-3 gap-space-xs my-space-md text-center">
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono">48+</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">شاحنة مبردة</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item1.f009" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item1.f009", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item1.f010" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item1.f010", item)</span>
 </div>
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold block font-mono">100%</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">تغطية GPS</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item1.f011" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item1.f011", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item1.f012" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item1.f012", item)</span>
 </div>
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono">Euro 5/6</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">معايير الانبعاثات</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item1.f013" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item1.f013", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item1.f014" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item1.f014", item)</span>
 </div>
 </div>
 </div>
 <div class="pt-space-sm flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
-<span>تصاريح النقل والمنافذ:</span>
-<span class="text-on-surface font-medium">سارية طوال موسم الحج والعمرة</span>
+<span data-pw-fields="InfrastructureShowcase.collection1.item1.f015" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item1.f015", item)</span>
+<span class="text-on-surface font-medium" data-pw-fields="InfrastructureShowcase.collection1.item1.f016" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item1.f016", item)</span>
 </div>
 </div>
-
+break;
+@case "InfrastructureShowcase.collection1.item2":
 <div class="bg-surface-container rounded-2xl p-space-lg shadow-xl flex flex-col justify-between group">
 <div>
 <div class="flex items-center justify-between mb-space-md">
 <div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-2xl">store_mall_directory</span>
 </div>
-<span class="px-space-sm py-space-xs bg-surface-container-high text-primary rounded-full font-label-sm text-label-sm font-bold">HACCP &amp; GHP</span>
+<span class="px-space-sm py-space-xs bg-surface-container-high text-primary rounded-full font-label-sm text-label-sm font-bold" data-pw-fields="InfrastructureShowcase.collection1.item2.f017" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item2.f017", item)</span>
 </div>
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold mb-space-xs">
-              المستودعات اللوجستية المركزية الضخمة
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold mb-space-xs" data-pw-fields="InfrastructureShowcase.collection1.item2.f018" data-pw-item="@item.Id">
+              @Content.Text("InfrastructureShowcase.collection1.item2.f018", item)
             </h3>
-<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-              مجمعات مستودعات نموذجية في مواقع استراتيجية بمكة المكرمة تسهل عمليات التخزين والتعبئة والتفريغ وفق ممارسات التصنيع والتخزين الجيد، مزودة بأنظمة رافعات متطورة ومسارات شحن فائقة السرعة.
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed" data-pw-fields="InfrastructureShowcase.collection1.item2.f019" data-pw-item="@item.Id">
+              @Content.Text("InfrastructureShowcase.collection1.item2.f019", item)
             </p>
 <div class="grid grid-cols-3 gap-space-xs my-space-md text-center">
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono">8,500</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">متر مربع مساحة</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item2.f020" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item2.f020", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item2.f021" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item2.f021", item)</span>
 </div>
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold block font-mono">12 منصة</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">تحميل وتنزيل آني</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item2.f022" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item2.f022", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item2.f023" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item2.f023", item)</span>
 </div>
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono">24/7</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">حراسة ورقابة كاميرات</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item2.f024" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item2.f024", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item2.f025" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item2.f025", item)</span>
 </div>
 </div>
 </div>
 <div class="pt-space-sm flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
-<span>أنظمة السلامة والحرائق:</span>
-<span class="text-on-surface font-medium">معتمدة من الدفاع المدني السعودي</span>
+<span data-pw-fields="InfrastructureShowcase.collection1.item2.f026" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item2.f026", item)</span>
+<span class="text-on-surface font-medium" data-pw-fields="InfrastructureShowcase.collection1.item2.f027" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item2.f027", item)</span>
 </div>
 </div>
-
+break;
+@case "InfrastructureShowcase.collection1.item3":
 <div class="bg-surface-container rounded-2xl p-space-lg shadow-xl flex flex-col justify-between group">
 <div>
 <div class="flex items-center justify-between mb-space-md">
 <div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-2xl">ac_unit</span>
 </div>
-<span class="px-space-sm py-space-xs bg-surface-container-high text-primary rounded-full font-label-sm text-label-sm font-bold">طاقة تجميد قصوى</span>
+<span class="px-space-sm py-space-xs bg-surface-container-high text-primary rounded-full font-label-sm text-label-sm font-bold" data-pw-fields="InfrastructureShowcase.collection1.item3.f028" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item3.f028", item)</span>
 </div>
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold mb-space-xs">
-              غرف التبريد والتجميد العملاقة
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold mb-space-xs" data-pw-fields="InfrastructureShowcase.collection1.item3.f029" data-pw-item="@item.Id">
+              @Content.Text("InfrastructureShowcase.collection1.item3.f029", item)
             </h3>
-<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-              مجمعات تبريد وتجميد صناعية تحتفظ بطاقات تخزينية ضخمة للمواد الغذائية الحساسة والوجبات المعقمة. تدعم مولدات طوارئ كهربائية تعمل آلياً لضمان عدم انقطاع التبريد تحت أي ظرف.
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed" data-pw-fields="InfrastructureShowcase.collection1.item3.f030" data-pw-item="@item.Id">
+              @Content.Text("InfrastructureShowcase.collection1.item3.f030", item)
             </p>
 <div class="grid grid-cols-3 gap-space-xs my-space-md text-center">
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono">-24°C</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">أدنى درجة تجميد</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item3.f031" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item3.f031", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item3.f032" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item3.f032", item)</span>
 </div>
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold block font-mono">1,800 طن</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">سعة حفظ استيعابية</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item3.f033" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item3.f033", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item3.f034" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item3.f034", item)</span>
 </div>
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono">Double</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">نظام طاقة احتياطي</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item3.f035" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item3.f035", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item3.f036" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item3.f036", item)</span>
 </div>
 </div>
 </div>
 <div class="pt-space-sm flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
-<span>التوثيق الحراري الرقمي:</span>
-<span class="text-on-surface font-medium">سجلات تدقيق آلية سحابية</span>
+<span data-pw-fields="InfrastructureShowcase.collection1.item3.f037" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item3.f037", item)</span>
+<span class="text-on-surface font-medium" data-pw-fields="InfrastructureShowcase.collection1.item3.f038" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item3.f038", item)</span>
 </div>
 </div>
-
+break;
+@case "InfrastructureShowcase.collection1.item4":
 <div class="bg-surface-container rounded-2xl p-space-lg shadow-xl flex flex-col justify-between group">
 <div>
 <div class="flex items-center justify-between mb-space-md">
 <div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-2xl">supervisor_account</span>
 </div>
-<span class="px-space-sm py-space-xs bg-surface-container-high text-primary rounded-full font-label-sm text-label-sm font-bold">إدارة حشود احترافية</span>
+<span class="px-space-sm py-space-xs bg-surface-container-high text-primary rounded-full font-label-sm text-label-sm font-bold" data-pw-fields="InfrastructureShowcase.collection1.item4.f039" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item4.f039", item)</span>
 </div>
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold mb-space-xs">
-              الكوادر والفرق الميدانية المتخصصة
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold mb-space-xs" data-pw-fields="InfrastructureShowcase.collection1.item4.f040" data-pw-item="@item.Id">
+              @Content.Text("InfrastructureShowcase.collection1.item4.f040", item)
             </h3>
-<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
-              طواقم عمل وطنية وإشرافية متمرسة ومدربة على هندسة التوزيع في أوقات الذروة بساحات الحرم المكي ومسارات المشاعر، تتميز بالانضباط وسرعة الاستجابة وامتلاك شهادات الهاسب وسلامة الأغذية.
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed" data-pw-fields="InfrastructureShowcase.collection1.item4.f041" data-pw-item="@item.Id">
+              @Content.Text("InfrastructureShowcase.collection1.item4.f041", item)
             </p>
 <div class="grid grid-cols-3 gap-space-xs my-space-md text-center">
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono">350+</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">مشرف وموزع ميداني</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item4.f042" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item4.f042", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item4.f043" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item4.f043", item)</span>
 </div>
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold block font-mono">100%</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">شهادات صحية فاحصة</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item4.f044" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item4.f044", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item4.f045" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item4.f045", item)</span>
 </div>
 <div class="p-space-sm rounded-lg bg-surface-container-low">
-<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono">لاسلكي</span>
-<span class="font-body-sm text-body-sm text-on-surface-variant">شبكة اتصال ميدانية</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold block font-mono" data-pw-fields="InfrastructureShowcase.collection1.item4.f046" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item4.f046", item)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="InfrastructureShowcase.collection1.item4.f047" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item4.f047", item)</span>
 </div>
 </div>
 </div>
 <div class="pt-space-sm flex items-center justify-between text-on-surface-variant font-body-sm text-body-sm">
-<span>التدريب والتأهيل:</span>
-<span class="text-on-surface font-medium">برامج مكثفة في خدمة ضيوف الرحمن</span>
+<span data-pw-fields="InfrastructureShowcase.collection1.item4.f048" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item4.f048", item)</span>
+<span class="text-on-surface font-medium" data-pw-fields="InfrastructureShowcase.collection1.item4.f049" data-pw-item="@item.Id">@Content.Text("InfrastructureShowcase.collection1.item4.f049", item)</span>
 </div>
 </div>
+break;
+}
+}
 </div>
 </div>
 </section>

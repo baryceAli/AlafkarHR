@@ -1,5 +1,7 @@
 @page "/about"
+@page "/en/about"
 @layout WebsiteLayout
-<WebsiteSeo Title="من نحن" Description="تعرف على شركة الأفكار الناجحة ومجالات عملها وقيمها كما وردت في التصميم المعتمد." Path="/about" />
-<WebsitePageHeading Title="من نحن" Description="تعرف على شركة الأفكار الناجحة ومجالات عملها وقيمها كما وردت في التصميم المعتمد." />
-<CompanyStory /><SuccessPartners />
+<WebsiteSeo Title="@Content.Text("About.f001")" Description="@Content.Text("About.f002")" Path="/about" />
+<WebsitePageHeading Title="@Content.Text("About.f003")" Description="@Content.Text("About.f004")" />
+<SuccessPartners />
+<WebsitePage Path="/about" />

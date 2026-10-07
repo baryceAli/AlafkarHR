@@ -7,4 +7,7 @@
     <DefaultItemExcludes>$(DefaultItemExcludes);artifacts\**</DefaultItemExcludes>
   </PropertyGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="GeneralSettings/Dtos/PublicWebsite.manifest.json" LogicalName="SharedWithUI.PublicWebsite.manifest.json" />
+  </ItemGroup>
 </Project>

@@ -1,62 +1,72 @@
 <section class="w-full bg-surface-container py-space-xl relative shadow-md">
 <div class="max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin">
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-space-lg">
-
+@foreach (var item in Content.Items("CompanyImpact.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "CompanyImpact.collection1.item1":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between gap-space-md shadow-sm transition-all duration-300 hover:bg-surface-container-high">
 <div class="flex items-center justify-between">
 <span class="p-space-sm rounded-lg bg-primary/10 text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-2xl">workspace_premium</span>
 </span>
-<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">سجل موثوق</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider" data-pw-fields="CompanyImpact.collection1.item1.f001" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item1.f001", item)</span>
 </div>
 <div>
-<div class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">10+ أعوام</div>
-<p class="font-body-md text-body-md text-on-surface font-semibold mt-1">من التميز والريادة الميدانية</p>
-<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">خبرات متراكمة في إدارة الحشود اللوجستية بمكة المكرمة.</p>
+<div class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-pw-fields="CompanyImpact.collection1.item1.f002" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item1.f002", item)</div>
+<p class="font-body-md text-body-md text-on-surface font-semibold mt-1" data-pw-fields="CompanyImpact.collection1.item1.f003" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item1.f003", item)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1" data-pw-fields="CompanyImpact.collection1.item1.f004" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item1.f004", item)</p>
 </div>
 </div>
-
+break;
+@case "CompanyImpact.collection1.item2":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between gap-space-md shadow-sm transition-all duration-300 hover:bg-surface-container-high">
 <div class="flex items-center justify-between">
 <span class="p-space-sm rounded-lg bg-primary/10 text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-2xl">task_alt</span>
 </span>
-<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">إنجاز تنفيذي</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider" data-pw-fields="CompanyImpact.collection1.item2.f005" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item2.f005", item)</span>
 </div>
 <div>
-<div class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">+500 مشروع</div>
-<p class="font-body-md text-body-md text-on-surface font-semibold mt-1">مشروع خيري ومؤسسي مُنجز</p>
-<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">تسليم بمعايير الحوكمة والتوثيق الميداني الصارم.</p>
+<div class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-pw-fields="CompanyImpact.collection1.item2.f006" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item2.f006", item)</div>
+<p class="font-body-md text-body-md text-on-surface font-semibold mt-1" data-pw-fields="CompanyImpact.collection1.item2.f007" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item2.f007", item)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1" data-pw-fields="CompanyImpact.collection1.item2.f008" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item2.f008", item)</p>
 </div>
 </div>
-
+break;
+@case "CompanyImpact.collection1.item3":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between gap-space-md shadow-sm transition-all duration-300 hover:bg-surface-container-high">
 <div class="flex items-center justify-between">
 <span class="p-space-sm rounded-lg bg-primary/10 text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-2xl">handshake</span>
 </span>
-<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">علاقات استراتيجية</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider" data-pw-fields="CompanyImpact.collection1.item3.f009" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item3.f009", item)</span>
 </div>
 <div>
-<div class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">+80 شريك</div>
-<p class="font-body-md text-body-md text-on-surface font-semibold mt-1">شريك نجاح ومؤسسة مانحة</p>
-<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">تحالفات كبرى مع الجمعيات الخيرية وشركات الطوافة.</p>
+<div class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-pw-fields="CompanyImpact.collection1.item3.f010" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item3.f010", item)</div>
+<p class="font-body-md text-body-md text-on-surface font-semibold mt-1" data-pw-fields="CompanyImpact.collection1.item3.f011" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item3.f011", item)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1" data-pw-fields="CompanyImpact.collection1.item3.f012" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item3.f012", item)</p>
 </div>
 </div>
-
+break;
+@case "CompanyImpact.collection1.item4":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col justify-between gap-space-md shadow-sm transition-all duration-300 hover:bg-surface-container-high">
 <div class="flex items-center justify-between">
 <span class="p-space-sm rounded-lg bg-primary/10 text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-2xl">groups_3</span>
 </span>
-<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">الأثر التراكمي</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider" data-pw-fields="CompanyImpact.collection1.item4.f013" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item4.f013", item)</span>
 </div>
 <div>
-<div class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight">+2.5M مستفيد</div>
-<p class="font-body-md text-body-md text-on-surface font-semibold mt-1">من ضيوف الرحمن والمجتمع</p>
-<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">تغطية تشمل الحرم، المواقيت، ومحطات الحجاج المركزية.</p>
+<div class="font-headline-xl text-headline-xl text-primary font-bold tracking-tight" data-pw-fields="CompanyImpact.collection1.item4.f014" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item4.f014", item)</div>
+<p class="font-body-md text-body-md text-on-surface font-semibold mt-1" data-pw-fields="CompanyImpact.collection1.item4.f015" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item4.f015", item)</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1" data-pw-fields="CompanyImpact.collection1.item4.f016" data-pw-item="@item.Id">@Content.Text("CompanyImpact.collection1.item4.f016", item)</p>
 </div>
 </div>
+break;
+}
+}
 </div>
 </div>
 </section>

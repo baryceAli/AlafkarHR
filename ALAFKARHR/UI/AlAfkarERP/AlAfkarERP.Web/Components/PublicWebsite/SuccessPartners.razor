@@ -1,46 +1,64 @@
 <section class="w-full bg-background py-space-xl">
 <div class="max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin">
 <div class="text-center max-w-2xl mx-auto mb-space-xl flex flex-col gap-space-xs">
-<span class="font-label-lg text-label-lg text-primary font-bold">شراكات استراتيجية موثوقة</span>
-<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold">
-          ثقة متبادلة مع كبرى الجهات والجمعيات الرائدة
+<span class="font-label-lg text-label-lg text-primary font-bold" data-pw-fields="SuccessPartners.f001">@Content.Text("SuccessPartners.f001")</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold" data-pw-fields="SuccessPartners.f002">
+          @Content.Text("SuccessPartners.f002")
         </h2>
-<p class="font-body-md text-body-md text-on-surface-variant">
-          نفتخر بكوننا الشريك الميداني التنفيذي المفضل لأعرق الجمعيات الخيرية، الأوقاف الأهلية، ومؤسسات خدمة حجاج البيت الحرام.
+<p class="font-body-md text-body-md text-on-surface-variant" data-pw-fields="SuccessPartners.f003">
+          @Content.Text("SuccessPartners.f003")
         </p>
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-space-md">
+@foreach (var item in Content.Items("SuccessPartners.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "SuccessPartners.collection1.item1":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-center gap-space-xs transition-all duration-300 hover:bg-surface-container">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-4xl">corporate_fare</span>
-<span class="font-label-md text-label-md text-on-surface font-bold">جمعيات البر الأهلية</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">المملكة العربية السعودية</span>
+<span class="font-label-md text-label-md text-on-surface font-bold" data-pw-fields="SuccessPartners.collection1.item1.f004" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item1.f004", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="SuccessPartners.collection1.item1.f005" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item1.f005", item)</span>
 </div>
+break;
+@case "SuccessPartners.collection1.item2":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-center gap-space-xs transition-all duration-300 hover:bg-surface-container">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-4xl">mosque</span>
-<span class="font-label-md text-label-md text-on-surface font-bold">شركات الطوافة الكبرى</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">حجاج الخارج والداخل</span>
+<span class="font-label-md text-label-md text-on-surface font-bold" data-pw-fields="SuccessPartners.collection1.item2.f006" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item2.f006", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="SuccessPartners.collection1.item2.f007" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item2.f007", item)</span>
 </div>
+break;
+@case "SuccessPartners.collection1.item3":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-center gap-space-xs transition-all duration-300 hover:bg-surface-container">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-4xl">volunteer_activism</span>
-<span class="font-label-md text-label-md text-on-surface font-bold">الصناديق الوقفية</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">مشاريع إطعام وسقيا</span>
+<span class="font-label-md text-label-md text-on-surface font-bold" data-pw-fields="SuccessPartners.collection1.item3.f008" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item3.f008", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="SuccessPartners.collection1.item3.f009" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item3.f009", item)</span>
 </div>
+break;
+@case "SuccessPartners.collection1.item4":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-center gap-space-xs transition-all duration-300 hover:bg-surface-container">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-4xl">inventory</span>
-<span class="font-label-md text-label-md text-on-surface font-bold">شركات الإعاشة المعتمدة</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">تحالفات الإمداد البارد</span>
+<span class="font-label-md text-label-md text-on-surface font-bold" data-pw-fields="SuccessPartners.collection1.item4.f010" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item4.f010", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="SuccessPartners.collection1.item4.f011" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item4.f011", item)</span>
 </div>
+break;
+@case "SuccessPartners.collection1.item5":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-center gap-space-xs transition-all duration-300 hover:bg-surface-container">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-4xl">diversity_1</span>
-<span class="font-label-md text-label-md text-on-surface font-bold">الجمعيات الإغاثية</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">توزيع السلال والمساعدات</span>
+<span class="font-label-md text-label-md text-on-surface font-bold" data-pw-fields="SuccessPartners.collection1.item5.f012" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item5.f012", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="SuccessPartners.collection1.item5.f013" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item5.f013", item)</span>
 </div>
+break;
+@case "SuccessPartners.collection1.item6":
 <div class="p-space-lg rounded-xl bg-surface-container-low flex flex-col items-center justify-center text-center gap-space-xs transition-all duration-300 hover:bg-surface-container">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-4xl">hotel</span>
-<span class="font-label-md text-label-md text-on-surface font-bold">فنادق مكة المركزية</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">تموين الضيافة والمجموعات</span>
+<span class="font-label-md text-label-md text-on-surface font-bold" data-pw-fields="SuccessPartners.collection1.item6.f014" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item6.f014", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="SuccessPartners.collection1.item6.f015" data-pw-item="@item.Id">@Content.Text("SuccessPartners.collection1.item6.f015", item)</span>
 </div>
+break;
+}
+}
 </div>
 </div>
 </section>

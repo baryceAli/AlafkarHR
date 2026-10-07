@@ -1,10 +1,15 @@
 @using AlAfkarERP.Web.Components.PublicWebsite
 <!DOCTYPE html>
-<html lang="@(IsWebsite ? "ar" : "en")" dir="@(IsWebsite ? "rtl" : "ltr")">
+<html lang="@(IsWebsite && !IsEnglishWebsite ? "ar" : "en")" dir="@(IsWebsite && !IsEnglishWebsite ? "rtl" : "ltr")">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @if (HttpContext?.Request.Query.ContainsKey("websiteEditor") == true)
+    {
+        <meta name="robots" content="noindex,nofollow" />
+        <meta name="referrer" content="no-referrer" />
+    }
     <base href="/" />
     <ResourcePreloader />
     @if (IsWebsite)
@@ -12,6 +17,7 @@
         <link rel="icon" href="/_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" />
         <link rel="stylesheet" href="/website/fonts.css" />
         <link rel="stylesheet" href="/website/website.css" />
+        <link rel="stylesheet" href="/website/content-editor.css" />
     }
     else
     {
@@ -64,4 +70,5 @@
 @code {
  [CascadingParameter] public HttpContext? HttpContext { get; set; }
  private bool IsWebsite => PublicWebsite.WebsiteRoutes.IsPublic(HttpContext?.Request.Path.Value);
+ private bool IsEnglishWebsite => HttpContext?.Request.Path.Value?.Equals("/en", StringComparison.OrdinalIgnoreCase) == true || HttpContext?.Request.Path.Value?.StartsWith("/en/", StringComparison.OrdinalIgnoreCase) == true;
 }

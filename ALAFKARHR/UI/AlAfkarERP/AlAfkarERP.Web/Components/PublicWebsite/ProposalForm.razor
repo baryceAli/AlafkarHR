@@ -1,47 +1,47 @@
 <form @onsubmit="Submit" @onsubmit:preventDefault="true" class="flex flex-col gap-space-md">
 
 <div class="flex flex-col gap-1">
-<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-0">
-              الاسم الكامل / اسم الجهة أو الجمعية الخيرية
+<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-0" data-pw-fields="ProposalForm.f001">
+              @Content.Text("ProposalForm.f001")
               <span class="text-error">*</span>
 </label>
 <div class="relative">
 <span aria-hidden="true" class="material-symbols-outlined absolute right-3 top-3 text-on-surface-variant text-xl pointer-events-none">corporate_fare</span>
-<input class="w-full h-11 bg-surface-container-lowest text-on-surface pr-10 pl-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors" id="proposalform-field-0" name="proposalform-field-0" placeholder="مثال: جمعية الإحسان لرعاية ضيوف الرحمن / مؤسسة إعاشة الحجاج" required="" type="text"/>
+<input class="w-full h-11 bg-surface-container-lowest text-on-surface pr-10 pl-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors" id="proposalform-field-0" name="proposalform-field-0" placeholder="@Content.Text("ProposalForm.f002")" required="" type="text" data-pw-fields="ProposalForm.f002"/>
 </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 
 <div class="flex flex-col gap-1">
-<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-1">
-                نوع الجهة
+<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-1" data-pw-fields="ProposalForm.f003">
+                @Content.Text("ProposalForm.f003")
                 <span class="text-error">*</span>
 </label>
 <select class="w-full h-11 bg-surface-container-lowest text-on-surface px-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors cursor-pointer" id="proposalform-field-1" name="proposalform-field-1" required="">
-<option disabled="" selected="" value="">اختر صفة الجهة التعاقدية</option>
-<option value="charity">جمعية خيرية / منظمة غير ربحية</option>
-<option value="catering">شركة إعاشة وتموين مؤسسي</option>
-<option value="donor">جهة مانحة / أوقاف استثمارية</option>
-<option value="hajj">شركة خدمة حجاج (طوافة / داخل)</option>
-<option value="individual">فاعل خير / قطاع أفراد</option>
+<option disabled="" selected="" value="" data-pw-fields="ProposalForm.f004">@Content.Text("ProposalForm.f004")</option>
+<option value="charity" data-pw-fields="ProposalForm.f005">@Content.Text("ProposalForm.f005")</option>
+<option value="catering" data-pw-fields="ProposalForm.f006">@Content.Text("ProposalForm.f006")</option>
+<option value="donor" data-pw-fields="ProposalForm.f007">@Content.Text("ProposalForm.f007")</option>
+<option value="hajj" data-pw-fields="ProposalForm.f008">@Content.Text("ProposalForm.f008")</option>
+<option value="individual" data-pw-fields="ProposalForm.f009">@Content.Text("ProposalForm.f009")</option>
 </select>
 </div>
 
 <div class="flex flex-col gap-1">
-<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-2">
-                نوع الخدمة أو الباقة المطلوبة
+<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-2" data-pw-fields="ProposalForm.f010">
+                @Content.Text("ProposalForm.f010")
                 <span class="text-error">*</span>
 </label>
 <select class="w-full h-11 bg-surface-container-lowest text-on-surface px-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors cursor-pointer" @bind="SelectedService" id="proposalform-field-2" name="proposalform-field-2" required="">
-<option disabled="" selected="" value="">حدد البرنامج اللوجستي</option>
-<option value="إعاشة حجاج">إعاشة حجاج المشاعر المقدسة</option>
-<option value="إفطار صائم">وجبات إفطار صائم بالحرم المكي</option>
-<option value="سقيا">برنامج السقيا المباركة والمياه</option>
-<option value="سلال غذائية">السلال والمواد الغذائية التموينية</option>
-<option value="توريد مباشر">توريد التمور والمواد الجافة</option>
-<option value="نقل وتخزين مبرد">نقل وتخزين مبرد ومجمد</option>
-<option value="غير ذلك">أخرى / حقائب مدرسية وكسوة</option>
+<option disabled="" selected="" value="" data-pw-fields="ProposalForm.f011">@Content.Text("ProposalForm.f011")</option>
+<option value="إعاشة حجاج" data-pw-fields="ProposalForm.f012">@Content.Text("ProposalForm.f012")</option>
+<option value="إفطار صائم" data-pw-fields="ProposalForm.f013">@Content.Text("ProposalForm.f013")</option>
+<option value="سقيا" data-pw-fields="ProposalForm.f014">@Content.Text("ProposalForm.f014")</option>
+<option value="سلال غذائية" data-pw-fields="ProposalForm.f015">@Content.Text("ProposalForm.f015")</option>
+<option value="توريد مباشر" data-pw-fields="ProposalForm.f016">@Content.Text("ProposalForm.f016")</option>
+<option value="نقل وتخزين مبرد" data-pw-fields="ProposalForm.f017">@Content.Text("ProposalForm.f017")</option>
+<option value="غير ذلك" data-pw-fields="ProposalForm.f018">@Content.Text("ProposalForm.f018")</option>
 </select>
 </div>
 </div>
@@ -49,66 +49,66 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 
 <div class="flex flex-col gap-1">
-<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-3">
-                عدد المستفيدين / حجم الكمية التقديري
+<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-3" data-pw-fields="ProposalForm.f019">
+                @Content.Text("ProposalForm.f019")
                 <span class="text-error">*</span>
 </label>
 <div class="relative">
 <span aria-hidden="true" class="material-symbols-outlined absolute right-3 top-3 text-on-surface-variant text-xl pointer-events-none">groups</span>
-<input class="w-full h-11 bg-surface-container-lowest text-on-surface pr-10 pl-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors" id="proposalform-field-3" name="proposalform-field-3" placeholder="مثال: 5,000 وجبة أو 500 سلة تموينية" required="" type="text"/>
+<input class="w-full h-11 bg-surface-container-lowest text-on-surface pr-10 pl-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors" id="proposalform-field-3" name="proposalform-field-3" placeholder="@Content.Text("ProposalForm.f020")" required="" type="text" data-pw-fields="ProposalForm.f020"/>
 </div>
 </div>
 
 <div class="flex flex-col gap-1">
-<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-4">
-                رقم الجوال المعتمد (السعودية)
+<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-4" data-pw-fields="ProposalForm.f021">
+                @Content.Text("ProposalForm.f021")
                 <span class="text-error">*</span>
 </label>
 <div class="relative" dir="ltr">
-<span class="absolute left-3 top-3 text-primary font-bold text-sm pointer-events-none">+966</span>
-<input autocomplete="tel" class="w-full h-11 bg-surface-container-lowest text-on-surface pl-16 pr-space-md text-left rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors" dir="ltr" id="proposalform-field-4" maxlength="20" minlength="9" name="proposalform-field-4" placeholder="5X XXX XXXX" required="" type="tel"/>
+<span class="absolute left-3 top-3 text-primary font-bold text-sm pointer-events-none" data-pw-fields="ProposalForm.f022">@Content.Text("ProposalForm.f022")</span>
+<input autocomplete="tel" class="w-full h-11 bg-surface-container-lowest text-on-surface pl-16 pr-space-md text-left rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors" dir="ltr" id="proposalform-field-4" maxlength="20" minlength="9" name="proposalform-field-4" placeholder="@Content.Text("ProposalForm.f023")" required="" type="tel" data-pw-fields="ProposalForm.f023"/>
 </div>
 </div>
 </div>
 
 <div class="flex flex-col gap-1">
-<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-5">
-              البريد الإلكتروني الرسمي
+<label class="font-label-lg text-label-lg text-on-surface font-semibold flex items-center gap-1" for="proposalform-field-5" data-pw-fields="ProposalForm.f024">
+              @Content.Text("ProposalForm.f024")
               <span class="text-error">*</span>
 </label>
 <div class="relative">
 <span aria-hidden="true" class="material-symbols-outlined absolute right-3 top-3 text-on-surface-variant text-xl pointer-events-none">alternate_email</span>
-<input autocomplete="email" class="w-full h-11 bg-surface-container-lowest text-on-surface pr-10 pl-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors" dir="ltr" id="proposalform-field-5" name="proposalform-field-5" placeholder="procurement@@organization.sa" required="" type="email"/>
+<input autocomplete="email" class="w-full h-11 bg-surface-container-lowest text-on-surface pr-10 pl-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors" dir="ltr" id="proposalform-field-5" name="proposalform-field-5" placeholder="@Content.Text("ProposalForm.f025")" required="" type="email" data-pw-fields="ProposalForm.f025"/>
 </div>
 </div>
 
 <div class="flex flex-col gap-1">
-<label class="font-label-lg text-label-lg text-on-surface font-semibold" for="proposalform-field-6">
-              المواصفات الفنية وملاحظات الجدول الزمني
+<label class="font-label-lg text-label-lg text-on-surface font-semibold" for="proposalform-field-6" data-pw-fields="ProposalForm.f026">
+              @Content.Text("ProposalForm.f026")
             </label>
-<textarea class="w-full bg-surface-container-lowest text-on-surface p-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors resize-none" id="proposalform-field-6" name="proposalform-field-6" placeholder="يرجى توضيح موقع التوزيع (منى، عرفات، الحرم، مستودعات خارجية)، فترات التوريد، أية اشتراطات خاصة بالتغليف أو الهوية..." rows="4">@Details</textarea>
+<textarea class="w-full bg-surface-container-lowest text-on-surface p-space-md rounded-lg font-body-md text-body-md focus:outline-none focus:bg-surface-container-high transition-colors resize-none" id="proposalform-field-6" name="proposalform-field-6" placeholder="@Content.Text("ProposalForm.f027")" rows="4" data-pw-fields="ProposalForm.f027">@Details</textarea>
 </div>
 
 <div class="flex items-center gap-space-sm pt-space-xs">
 <input class="w-4 h-4 accent-primary rounded bg-surface-container-lowest cursor-pointer" id="proposalform-field-7" name="proposalform-field-7" required="" type="checkbox"/>
-<label class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer select-none" for="proposalform-field-7">
-              أقر بأن هذا نموذج توضيحي لا يرسل طلباً أو ينشئ تعاقداً. <a href="/privacy-policy">مسودة سياسة الخصوصية</a>
+<label class="font-label-sm text-label-sm text-on-surface-variant cursor-pointer select-none" for="proposalform-field-7" data-pw-fields="ProposalForm.f028">
+              @Content.Text("ProposalForm.f028") <a href="@Content.Link("ProposalForm.f029")" data-pw-fields="ProposalForm.f029,ProposalForm.f030">@Content.Text("ProposalForm.f030")</a>
             </label>
 </div>
 
 <div class="pt-space-sm">
 <button class="w-full py-3.5 px-space-lg rounded-xl bg-primary text-on-primary font-label-lg text-label-lg font-bold shadow-xl hover:bg-primary-container transition-all flex items-center justify-center gap-space-sm group" id="submitBtn" type="submit" disabled="@(!Interactive)">
 <span aria-hidden="true" class="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">send</span>
-<span>إرسال طلب التعاقد / الاستشارة المباشرة</span>
+<span data-pw-fields="ProposalForm.f031">@Content.Text("ProposalForm.f031")</span>
 </button>
 </div>
 
 
 </form>
-<p class="website-demo-note">عرض توضيحي: لا يتم إرسال طلب أو إنشاء تعاقد في هذه النسخة.</p>
+<p class="website-demo-note" data-pw-fields="ProposalForm.f032">@Content.Text("ProposalForm.f032")</p>
 @if (Submitted)
 {
-<p class="website-demo-note" role="status">تم التحقق محلياً من النموذج التجريبي. لم يتم إرسال البيانات أو حفظها، ولم يُنشأ أي طلب.</p>
+<p class="website-demo-note" role="status" data-pw-fields="ProposalForm.f033">@Content.Text("ProposalForm.f033")</p>
 }
 
 @code {
@@ -123,5 +123,5 @@
  protected override void OnParametersSet() => SelectedService = Service ?? "";
  [Parameter] public string? Service { get; set; }
  [Parameter] public string? Package { get; set; }
- private string Details => string.IsNullOrEmpty(Package) ? "" : $"الطلب التجريبي للباقة: {Package}";
+ private string Details => string.IsNullOrEmpty(Package) ? "" : $"{Content.Text("ProposalForm.packagePrefix")}: {Package}";
 }

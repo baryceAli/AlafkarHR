@@ -3,276 +3,288 @@
 
 <div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
 <div>
-<span class="font-label-sm text-label-sm text-primary">جاهزية التعاقد الفوري المعتمد</span>
-<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold">باقات البرامج والحلول التموينية</h2>
-<p class="font-body-md text-body-md text-on-surface-variant">مجهزة وفق اشتراطات الهيئة العامة للغذاء والدواء ومتطلبات كراسات الشروط الحكومية والوقفية.</p>
+<span class="font-label-sm text-label-sm text-primary" data-pw-fields="PackagesCatalogue.f001">@Content.Text("PackagesCatalogue.f001")</span>
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold" data-pw-fields="PackagesCatalogue.f002">@Content.Text("PackagesCatalogue.f002")</h2>
+<p class="font-body-md text-body-md text-on-surface-variant" data-pw-fields="PackagesCatalogue.f003">@Content.Text("PackagesCatalogue.f003")</p>
 </div>
-<div class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md bg-surface-container px-space-md py-space-xs rounded-full">
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md bg-surface-container px-space-md py-space-xs rounded-full" data-pw-fields="PackagesCatalogue.f004">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">verified_user</span>
-          تتبع رقمي وتوثيق ميداني مع كل تسليم
+          @Content.Text("PackagesCatalogue.f004")
         </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg">
-
+@foreach (var item in Content.Items("PackagesCatalogue.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "PackagesCatalogue.collection1.item1":
 <article class="group flex flex-col bg-surface-container rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300" hidden="@(Category != 0 && Category != 2)">
 <div class="relative h-56 w-full overflow-hidden bg-surface-container-high">
-<img alt="Institutional premium dry Iftar boxes for Makkah Grand Mosque pilgrims arranged neatly with chilled Zamzam water bottles, vacuum-sealed Madinah dates, sealed pastries, royal golden seal on matte black box, atmospheric warm studio lighting, commercial product photography." class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="/website/image-09be2e3415f2.webp" width="512"/>
+<img alt="@Content.Text("PackagesCatalogue.collection1.item1.f005", item)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="@Content.Media("PackagesCatalogue.collection1.item1.f006", item)" width="512" data-pw-fields="PackagesCatalogue.collection1.item1.f005,PackagesCatalogue.collection1.item1.f006" data-pw-item="@item.Id"/>
 <div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-surface/40"></div>
-<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-primary font-label-sm text-label-sm flex items-center gap-1 shadow-md">
-<span aria-hidden="true" class="material-symbols-outlined text-xs">star</span> معتمد بالحرم المكي
+<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-primary font-label-sm text-label-sm flex items-center gap-1 shadow-md" data-pw-fields="PackagesCatalogue.collection1.item1.f007" data-pw-item="@item.Id">
+<span aria-hidden="true" class="material-symbols-outlined text-xs">star</span> @Content.Text("PackagesCatalogue.collection1.item1.f007", item)
             </span>
-<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded">
-              الرمز: IFT-MK-01
+<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded" data-pw-fields="PackagesCatalogue.collection1.item1.f008" data-pw-item="@item.Id">
+              @Content.Text("PackagesCatalogue.collection1.item1.f008", item)
             </span>
 </div>
 <div class="p-space-lg flex flex-col flex-1 justify-between gap-space-md">
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
-                باقة وجبات إفطار صائم بالحرم المكي
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="PackagesCatalogue.collection1.item1.f009" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item1.f009", item)
               </h3>
-<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3">
-                كرتون إفطار جاف معتمد ومطابق لاشتراطات شؤون الحرمين. يحتوي على ماء زمزم أصلي مبرد، تمر صقعي/عجوة مغلف مفرغ من الهواء، كعك مخبوز طازج، وعصير فاكهة طبيعي مع ملحقات صحية.
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3" data-pw-fields="PackagesCatalogue.collection1.item1.f010" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item1.f010", item)
               </p>
 </div>
 
 <div class="flex flex-col gap-space-xs bg-surface-container-low p-space-sm rounded-lg text-on-surface font-body-sm text-body-sm">
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>توزيع داخل أروقة وساحات الحرم بموجب تصاريح</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item1.f011" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item1.f011", item)</span>
 </div>
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>توثيق فيديو وجداول استلام للمتبرع والمانح</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item1.f012" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item1.f012", item)</span>
 </div>
 </div>
 <div class="flex items-center justify-between pt-space-xs">
 <div class="flex flex-col">
-<span class="font-label-sm text-label-sm text-on-surface-variant">الحد الأدنى للتعاقد</span>
-<span class="font-headline-sm text-headline-sm text-primary font-bold">1,000 وجبة</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="PackagesCatalogue.collection1.item1.f013" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item1.f013", item)</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold" data-pw-fields="PackagesCatalogue.collection1.item1.f014" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item1.f014", item)</span>
 </div>
-<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="/request-proposal?package=%D8%A8%D8%A7%D9%82%D8%A9%20%D9%88%D8%AC%D8%A8%D8%A7%D8%AA%20%D8%A5%D9%81%D8%B7%D8%A7%D8%B1%20%D8%B5%D8%A7%D8%A6%D9%85%20%D8%A8%D8%A7%D9%84%D8%AD%D8%B1%D9%85%20%D8%A7%D9%84%D9%85%D9%83%D9%8A&amp;service=%D8%A5%D9%81%D8%B7%D8%A7%D8%B1%20%D8%B5%D8%A7%D8%A6%D9%85">
-<span>طلب الباقة</span>
+<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="@Content.Link("PackagesCatalogue.collection1.item1.f015", item)" data-pw-fields="PackagesCatalogue.collection1.item1.f015" data-pw-item="@item.Id">
+<span data-pw-fields="PackagesCatalogue.collection1.item1.f016" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item1.f016", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-base">arrow_back</span>
 </a>
 </div>
 </div>
 </article>
-
+break;
+@case "PackagesCatalogue.collection1.item2":
 <article class="group flex flex-col bg-surface-container rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300" hidden="@(Category != 0 && Category != 1)">
 <div class="relative h-56 w-full overflow-hidden bg-surface-container-high">
-<img alt="Gourmet institutional thermal meal trays for Hajj pilgrims in Mina and Arafat camps, fresh hot lamb kabsa and seasoned vegetables, sealed hygienic packaging with gold temperature compliance badge, industrial stainless steel kitchen background, cinematic depth." class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="/website/image-91c068d98c04.webp" width="512"/>
+<img alt="@Content.Text("PackagesCatalogue.collection1.item2.f017", item)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="@Content.Media("PackagesCatalogue.collection1.item2.f018", item)" width="512" data-pw-fields="PackagesCatalogue.collection1.item2.f017,PackagesCatalogue.collection1.item2.f018" data-pw-item="@item.Id"/>
 <div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-surface/40"></div>
-<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-tertiary font-label-sm text-label-sm flex items-center gap-1 shadow-md">
-<span aria-hidden="true" class="material-symbols-outlined text-xs">ac_unit</span> نقل مبرد وحراري نشط
+<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-tertiary font-label-sm text-label-sm flex items-center gap-1 shadow-md" data-pw-fields="PackagesCatalogue.collection1.item2.f019" data-pw-item="@item.Id">
+<span aria-hidden="true" class="material-symbols-outlined text-xs">ac_unit</span> @Content.Text("PackagesCatalogue.collection1.item2.f019", item)
             </span>
-<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded">
-              الرمز: HAJ-SAN-02
+<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded" data-pw-fields="PackagesCatalogue.collection1.item2.f020" data-pw-item="@item.Id">
+              @Content.Text("PackagesCatalogue.collection1.item2.f020", item)
             </span>
 </div>
 <div class="p-space-lg flex flex-col flex-1 justify-between gap-space-md">
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
-                باقة إعاشة المشاعر المقدسة (منى وعرفات)
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="PackagesCatalogue.collection1.item2.f021" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item2.f021", item)
               </h3>
-<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3">
-                وجبات يومية ساخنة وطازجة مجهزة للمخيمات ومجموعات الخدمة الميدانية. نقل مخصص عبر شاحنات التبريد المتصلة بأجهزة التتبع الحراري لضمان درجة سلامة الغذاء حتى نقطة التسليم.
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3" data-pw-fields="PackagesCatalogue.collection1.item2.f022" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item2.f022", item)
               </p>
 </div>
 <div class="flex flex-col gap-space-xs bg-surface-container-low p-space-sm rounded-lg text-on-surface font-body-sm text-body-sm">
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>قوائم طعام متعددة الثقافات (عربي، آسيوي، أوروبي)</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item2.f023" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item2.f023", item)</span>
 </div>
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>فِرَق تشغيل ميداني وتجهيز بوفيهات ضيوف الرحمن</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item2.f024" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item2.f024", item)</span>
 </div>
 </div>
 <div class="flex items-center justify-between pt-space-xs">
 <div class="flex flex-col">
-<span class="font-label-sm text-label-sm text-on-surface-variant">الحد الأدنى للتعاقد</span>
-<span class="font-headline-sm text-headline-sm text-primary font-bold">500 حاج / يومياً</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="PackagesCatalogue.collection1.item2.f025" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item2.f025", item)</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold" data-pw-fields="PackagesCatalogue.collection1.item2.f026" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item2.f026", item)</span>
 </div>
-<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="/request-proposal?package=%D8%A8%D8%A7%D9%82%D8%A9%20%D8%A5%D8%B9%D8%A7%D8%B4%D8%A9%20%D8%A7%D9%84%D9%85%D8%B4%D8%A7%D8%B9%D8%B1%20%D8%A7%D9%84%D9%85%D9%82%D8%AF%D8%B3%D8%A9&amp;service=%D8%A5%D8%B9%D8%A7%D8%B4%D8%A9%20%D8%AD%D8%AC%D8%A7%D8%AC">
-<span>طلب الباقة</span>
+<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="@Content.Link("PackagesCatalogue.collection1.item2.f027", item)" data-pw-fields="PackagesCatalogue.collection1.item2.f027" data-pw-item="@item.Id">
+<span data-pw-fields="PackagesCatalogue.collection1.item2.f028" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item2.f028", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-base">arrow_back</span>
 </a>
 </div>
 </div>
 </article>
-
+break;
+@case "PackagesCatalogue.collection1.item3":
 <article class="group flex flex-col bg-surface-container rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300" hidden="@(Category != 0 && Category != 2)">
 <div class="relative h-56 w-full overflow-hidden bg-surface-container-high">
-<img alt="Organized pallets of chilled pure bottled water cartons being distributed to pilgrims in Makkah holy city plazas during high season, pristine branding with golden water drop emblem, logistics staff in clean uniform, bright sunlight with deep shadows." class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="/website/image-e524fff5c3f5.webp" width="512"/>
+<img alt="@Content.Text("PackagesCatalogue.collection1.item3.f029", item)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="@Content.Media("PackagesCatalogue.collection1.item3.f030", item)" width="512" data-pw-fields="PackagesCatalogue.collection1.item3.f029,PackagesCatalogue.collection1.item3.f030" data-pw-item="@item.Id"/>
 <div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-surface/40"></div>
-<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-primary font-label-sm text-label-sm flex items-center gap-1 shadow-md">
-<span aria-hidden="true" class="material-symbols-outlined text-xs">water_drop</span> سقيا مبردة مستمرة
+<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-primary font-label-sm text-label-sm flex items-center gap-1 shadow-md" data-pw-fields="PackagesCatalogue.collection1.item3.f031" data-pw-item="@item.Id">
+<span aria-hidden="true" class="material-symbols-outlined text-xs">water_drop</span> @Content.Text("PackagesCatalogue.collection1.item3.f031", item)
             </span>
-<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded">
-              الرمز: SUQ-MK-03
+<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded" data-pw-fields="PackagesCatalogue.collection1.item3.f032" data-pw-item="@item.Id">
+              @Content.Text("PackagesCatalogue.collection1.item3.f032", item)
             </span>
 </div>
 <div class="p-space-lg flex flex-col flex-1 justify-between gap-space-md">
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
-                باقة السقيا المباركة والمياه المبردة
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="PackagesCatalogue.collection1.item3.f033" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item3.f033", item)
               </h3>
-<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3">
-                توزيع كراتين مياه شرب نقية مبردة (200مل و330مل) في الجوامع الكبرى، مواقف حافلات المعتمرين، ومحطات النقل الترددي بالعاصمة المقدسة، مدعمة بتقرير مصور مباشر للواقف والمانح.
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3" data-pw-fields="PackagesCatalogue.collection1.item3.f034" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item3.f034", item)
               </p>
 </div>
 <div class="flex flex-col gap-space-xs bg-surface-container-low p-space-sm rounded-lg text-on-surface font-body-sm text-body-sm">
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>مستودعات مجهزة للحفظ تحت 18 درجة مئوية</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item3.f035" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item3.f035", item)</span>
 </div>
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>إمكانية طباعة اسم الوقف أو المؤسسة على العبوات</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item3.f036" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item3.f036", item)</span>
 </div>
 </div>
 <div class="flex items-center justify-between pt-space-xs">
 <div class="flex flex-col">
-<span class="font-label-sm text-label-sm text-on-surface-variant">الحد الأدنى للتعاقد</span>
-<span class="font-headline-sm text-headline-sm text-primary font-bold">200 كرتون</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="PackagesCatalogue.collection1.item3.f037" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item3.f037", item)</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold" data-pw-fields="PackagesCatalogue.collection1.item3.f038" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item3.f038", item)</span>
 </div>
-<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="/request-proposal?package=%D8%A8%D8%A7%D9%82%D8%A9%20%D8%A7%D9%84%D8%B3%D9%82%D9%8A%D8%A7%20%D8%A7%D9%84%D9%85%D8%A8%D8%A7%D8%B1%D9%83%D8%A9&amp;service=%D8%B3%D9%82%D9%8A%D8%A7">
-<span>طلب الباقة</span>
+<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="@Content.Link("PackagesCatalogue.collection1.item3.f039", item)" data-pw-fields="PackagesCatalogue.collection1.item3.f039" data-pw-item="@item.Id">
+<span data-pw-fields="PackagesCatalogue.collection1.item3.f040" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item3.f040", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-base">arrow_back</span>
 </a>
 </div>
 </div>
 </article>
-
+break;
+@case "PackagesCatalogue.collection1.item4":
 <article class="group flex flex-col bg-surface-container rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300" hidden="@(Category != 0 && Category != 3)">
 <div class="relative h-56 w-full overflow-hidden bg-surface-container-high">
-<img alt="Complete charity food basket luxury package with high grade staple foods, bags of basmati rice, pure sunflower cooking oil, flour, sugar, dates, canned legumes packed inside durable embossed corporate carton, modern institutional warehouse setting, dramatic gold lighting." class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="/website/image-8eb254cf8747.webp" width="512"/>
+<img alt="@Content.Text("PackagesCatalogue.collection1.item4.f041", item)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="@Content.Media("PackagesCatalogue.collection1.item4.f042", item)" width="512" data-pw-fields="PackagesCatalogue.collection1.item4.f041,PackagesCatalogue.collection1.item4.f042" data-pw-item="@item.Id"/>
 <div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-surface/40"></div>
-<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-secondary-fixed font-label-sm text-label-sm flex items-center gap-1 shadow-md">
-<span aria-hidden="true" class="material-symbols-outlined text-xs">savings</span> توريد مباشر من المصنع
+<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-secondary-fixed font-label-sm text-label-sm flex items-center gap-1 shadow-md" data-pw-fields="PackagesCatalogue.collection1.item4.f043" data-pw-item="@item.Id">
+<span aria-hidden="true" class="material-symbols-outlined text-xs">savings</span> @Content.Text("PackagesCatalogue.collection1.item4.f043", item)
             </span>
-<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded">
-              الرمز: BAS-CHR-04
+<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded" data-pw-fields="PackagesCatalogue.collection1.item4.f044" data-pw-item="@item.Id">
+              @Content.Text("PackagesCatalogue.collection1.item4.f044", item)
             </span>
 </div>
 <div class="p-space-lg flex flex-col flex-1 justify-between gap-space-md">
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
-                باقة السلة الغذائية المتكاملة للجمعيات
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="PackagesCatalogue.collection1.item4.f045" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item4.f045", item)
               </h3>
-<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3">
-                مواد تموينية استراتيجية (أرز بسمتي درجة أولى، زيت، سكر، دقيق، بقوليات، معجون طماطم، تمر فاخر). تعبئة متينة مخصصة للأسر المستفيدة مع شحن ونقل مجمع لكافة مناطق المملكة.
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3" data-pw-fields="PackagesCatalogue.collection1.item4.f046" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item4.f046", item)
               </p>
 </div>
 <div class="flex flex-col gap-space-xs bg-surface-container-low p-space-sm rounded-lg text-on-surface font-body-sm text-body-sm">
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>تخصيص مكونات السلة حسب ميزانية الجمعية والمانح</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item4.f047" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item4.f047", item)</span>
 </div>
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>صلاحيات منتجات تزيد عن 18 شهراً كحد أدنى</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item4.f048" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item4.f048", item)</span>
 </div>
 </div>
 <div class="flex items-center justify-between pt-space-xs">
 <div class="flex flex-col">
-<span class="font-label-sm text-label-sm text-on-surface-variant">الحد الأدنى للتعاقد</span>
-<span class="font-headline-sm text-headline-sm text-primary font-bold">250 سلة</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="PackagesCatalogue.collection1.item4.f049" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item4.f049", item)</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold" data-pw-fields="PackagesCatalogue.collection1.item4.f050" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item4.f050", item)</span>
 </div>
-<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="/request-proposal?package=%D8%A8%D8%A7%D9%82%D8%A9%20%D8%A7%D9%84%D8%B3%D9%84%D8%A9%20%D8%A7%D9%84%D8%BA%D8%B0%D8%A7%D8%A6%D9%8A%D8%A9%20%D8%A7%D9%84%D9%85%D8%AA%D9%83%D8%A7%D9%85%D9%84%D8%A9&amp;service=%D8%B3%D9%84%D8%A7%D9%84%20%D8%BA%D8%B0%D8%A7%D8%A6%D9%8A%D8%A9">
-<span>طلب الباقة</span>
+<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="@Content.Link("PackagesCatalogue.collection1.item4.f051", item)" data-pw-fields="PackagesCatalogue.collection1.item4.f051" data-pw-item="@item.Id">
+<span data-pw-fields="PackagesCatalogue.collection1.item4.f052" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item4.f052", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-base">arrow_back</span>
 </a>
 </div>
 </div>
 </article>
-
+break;
+@case "PackagesCatalogue.collection1.item5":
 <article class="group flex flex-col bg-surface-container rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300" hidden="@(Category != 0 && Category != 3)">
 <div class="relative h-56 w-full overflow-hidden bg-surface-container-high">
-<img alt="High quality institutional school backpacks and folded winter thermal fleece blankets organized for charity distribution, premium fabric textures, notebooks and pens arranged inside, clean dark modern corporate palette with subtle warm accents." class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="/website/image-9e6682b27f9b.webp" width="512"/>
+<img alt="@Content.Text("PackagesCatalogue.collection1.item5.f053", item)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="@Content.Media("PackagesCatalogue.collection1.item5.f054", item)" width="512" data-pw-fields="PackagesCatalogue.collection1.item5.f053,PackagesCatalogue.collection1.item5.f054" data-pw-item="@item.Id"/>
 <div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-surface/40"></div>
-<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-tertiary font-label-sm text-label-sm flex items-center gap-1 shadow-md">
-<span aria-hidden="true" class="material-symbols-outlined text-xs">backpack</span> برامج الكسوة التعليمية
+<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-tertiary font-label-sm text-label-sm flex items-center gap-1 shadow-md" data-pw-fields="PackagesCatalogue.collection1.item5.f055" data-pw-item="@item.Id">
+<span aria-hidden="true" class="material-symbols-outlined text-xs">backpack</span> @Content.Text("PackagesCatalogue.collection1.item5.f055", item)
             </span>
-<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded">
-              الرمز: SCH-WIN-05
+<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded" data-pw-fields="PackagesCatalogue.collection1.item5.f056" data-pw-item="@item.Id">
+              @Content.Text("PackagesCatalogue.collection1.item5.f056", item)
             </span>
 </div>
 <div class="p-space-lg flex flex-col flex-1 justify-between gap-space-md">
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
-                باقة الحقيبة المدرسية والكسوة الشتوية
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="PackagesCatalogue.collection1.item5.f057" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item5.f057", item)
               </h3>
-<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3">
-                تجهيز مؤسسي كامل بالأدوات والقرطاسية المعتمدة وفق المراحل الدراسية، وباقات الكسوة والبطانيات الحرارية الشتوية لصالح مشاريع المسؤولية الاجتماعية والأوقاف الإنسانية.
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3" data-pw-fields="PackagesCatalogue.collection1.item5.f058" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item5.f058", item)
               </p>
 </div>
 <div class="flex flex-col gap-space-xs bg-surface-container-low p-space-sm rounded-lg text-on-surface font-body-sm text-body-sm">
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>خامات متينة مقاومة للتمزق وتصاميم لائقة بالطلاب</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item5.f059" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item5.f059", item)</span>
 </div>
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>تغليف فردي محكم مع بطاقة إهداء مخصصة للجهة المانحة</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item5.f060" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item5.f060", item)</span>
 </div>
 </div>
 <div class="flex items-center justify-between pt-space-xs">
 <div class="flex flex-col">
-<span class="font-label-sm text-label-sm text-on-surface-variant">الحد الأدنى للتعاقد</span>
-<span class="font-headline-sm text-headline-sm text-primary font-bold">500 حقيبة/كسوة</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="PackagesCatalogue.collection1.item5.f061" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item5.f061", item)</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold" data-pw-fields="PackagesCatalogue.collection1.item5.f062" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item5.f062", item)</span>
 </div>
-<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="/request-proposal?package=%D8%A8%D8%A7%D9%82%D8%A9%20%D8%A7%D9%84%D8%AD%D9%82%D9%8A%D8%A8%D8%A9%20%D8%A7%D9%84%D9%85%D8%AF%D8%B1%D8%B3%D9%8A%D8%A9%20%D9%88%D8%A7%D9%84%D9%83%D8%B3%D9%88%D8%A9%20%D8%A7%D9%84%D8%B4%D8%AA%D9%88%D9%8A%D8%A9&amp;service=%D8%BA%D9%8A%D8%B1%20%D8%B0%D9%84%D9%83">
-<span>طلب الباقة</span>
+<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="@Content.Link("PackagesCatalogue.collection1.item5.f063", item)" data-pw-fields="PackagesCatalogue.collection1.item5.f063" data-pw-item="@item.Id">
+<span data-pw-fields="PackagesCatalogue.collection1.item5.f064" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item5.f064", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-base">arrow_back</span>
 </a>
 </div>
 </div>
 </article>
-
+break;
+@case "PackagesCatalogue.collection1.item6":
 <article class="group flex flex-col bg-surface-container rounded-xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-300" hidden="@(Category != 0 && Category != 3)">
 <div class="relative h-56 w-full overflow-hidden bg-surface-container-high">
-<img alt="Finest Saudi dates luxury presentation including premium Ajwa, Sukkari, and Sagai dates alongside golden dried apricots and jumbo raisins, presented in dark gold embossed executive gift boxes, gourmet culinary lighting, rich textures." class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="/website/image-e729f54d61dc.webp" width="512"/>
+<img alt="@Content.Text("PackagesCatalogue.collection1.item6.f065", item)" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" decoding="async" height="279" loading="lazy" src="@Content.Media("PackagesCatalogue.collection1.item6.f066", item)" width="512" data-pw-fields="PackagesCatalogue.collection1.item6.f065,PackagesCatalogue.collection1.item6.f066" data-pw-item="@item.Id"/>
 <div class="absolute inset-0 bg-gradient-to-t from-surface-container via-transparent to-surface/40"></div>
-<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-primary font-label-sm text-label-sm flex items-center gap-1 shadow-md">
-<span aria-hidden="true" class="material-symbols-outlined text-xs">nutrition</span> تمور المدينة والقصيم الفاخرة
+<span class="absolute top-space-md right-space-md bg-surface-container-lowest/90 backdrop-blur-md px-space-sm py-1 rounded-full text-primary font-label-sm text-label-sm flex items-center gap-1 shadow-md" data-pw-fields="PackagesCatalogue.collection1.item6.f067" data-pw-item="@item.Id">
+<span aria-hidden="true" class="material-symbols-outlined text-xs">nutrition</span> @Content.Text("PackagesCatalogue.collection1.item6.f067", item)
             </span>
-<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded">
-              الرمز: DAT-DRY-06
+<span class="absolute bottom-space-sm right-space-md font-label-sm text-label-sm text-on-surface bg-surface-container-highest/80 px-space-sm py-0.5 rounded" data-pw-fields="PackagesCatalogue.collection1.item6.f068" data-pw-item="@item.Id">
+              @Content.Text("PackagesCatalogue.collection1.item6.f068", item)
             </span>
 </div>
 <div class="p-space-lg flex flex-col flex-1 justify-between gap-space-md">
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
-                باقة توريد التمور والفواكه المجففة
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="PackagesCatalogue.collection1.item6.f069" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item6.f069", item)
               </h3>
-<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3">
-                توريد مباشر من المزارع النموذجية (سكري، عجوة المدينة، خلاص، صقعي) بالإضافة إلى مشمش مجفف وزبيب ممتاز، بتغليف تفريغ هوائي (Vacuum) يضمن النضارة الطويلة ونقاوة الطعم.
+<p class="font-body-md text-body-md text-on-surface-variant line-clamp-3" data-pw-fields="PackagesCatalogue.collection1.item6.f070" data-pw-item="@item.Id">
+                @Content.Text("PackagesCatalogue.collection1.item6.f070", item)
               </p>
 </div>
 <div class="flex flex-col gap-space-xs bg-surface-container-low p-space-sm rounded-lg text-on-surface font-body-sm text-body-sm">
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>فحص مخبري دوري وخلو تام من متبقيات المبيدات</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item6.f071" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item6.f071", item)</span>
 </div>
 <div class="flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">check_circle</span>
-<span>أوزان مخصصة (حبة مفردة، 250جم، 500جم، 1كجم)</span>
+<span data-pw-fields="PackagesCatalogue.collection1.item6.f072" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item6.f072", item)</span>
 </div>
 </div>
 <div class="flex items-center justify-between pt-space-xs">
 <div class="flex flex-col">
-<span class="font-label-sm text-label-sm text-on-surface-variant">الحد الأدنى للتعاقد</span>
-<span class="font-headline-sm text-headline-sm text-primary font-bold">1 طن متري</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="PackagesCatalogue.collection1.item6.f073" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item6.f073", item)</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold" data-pw-fields="PackagesCatalogue.collection1.item6.f074" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item6.f074", item)</span>
 </div>
-<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="/request-proposal?package=%D8%A8%D8%A7%D9%82%D8%A9%20%D8%AA%D9%88%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%AA%D9%85%D9%88%D8%B1%20%D9%88%D8%A7%D9%84%D9%81%D9%88%D8%A7%D9%83%D9%87%20%D8%A7%D9%84%D9%85%D8%AC%D9%81%D9%81%D8%A9&amp;service=%D8%AA%D9%88%D8%B1%D9%8A%D8%AF%20%D9%85%D8%A8%D8%A7%D8%B4%D8%B1">
-<span>طلب الباقة</span>
+<a class="px-space-md py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center gap-1 shadow-md" href="@Content.Link("PackagesCatalogue.collection1.item6.f075", item)" data-pw-fields="PackagesCatalogue.collection1.item6.f075" data-pw-item="@item.Id">
+<span data-pw-fields="PackagesCatalogue.collection1.item6.f076" data-pw-item="@item.Id">@Content.Text("PackagesCatalogue.collection1.item6.f076", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-base">arrow_back</span>
 </a>
 </div>
 </div>
 </article>
+break;
+}
+}
 </div>
 </div>
 </section>
