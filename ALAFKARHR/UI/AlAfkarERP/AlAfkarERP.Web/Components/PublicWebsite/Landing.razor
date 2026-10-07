@@ -1,10 +1,6 @@
 @page "/"
+@page "/en"
 @layout WebsiteLayout
-<WebsiteSeo Title="الرئيسية" Description="حلول الإعاشة والتموين والخدمات اللوجستية لشركة الأفكار الناجحة." Path="/" />
-<LandingHero />
-<CompanyImpact />
-<CompanyStory />
-<ServicesMatrix />
-<FeaturedProjects />
-<SuccessPartners />
-<QuickInquiry />
+<WebsiteSeo Title="@Content.Text("Landing.f001")" Description="@Content.Text("Landing.f002")" Path="/" />
+
+<WebsitePage Path="/" />

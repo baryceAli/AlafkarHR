@@ -1,27 +1,27 @@
 <form @onsubmit="Submit" @onsubmit:preventDefault="true" class="flex flex-col gap-space-sm">
 <div class="flex flex-col gap-space-xs">
-<label class="font-label-sm text-label-sm text-secondary" for="partnerreportform-field-0">رقم المشروع أو كود العقد</label>
+<label class="font-label-sm text-label-sm text-secondary" for="partnerreportform-field-0" data-pw-fields="PartnerReportForm.f001">@Content.Text("PartnerReportForm.f001")</label>
 <div class="bg-surface-container-lowest rounded-lg p-space-xs flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-lg">tag</span>
-<input class="bg-transparent border-0 outline-none text-on-surface font-body-sm text-body-sm w-full" id="partnerreportform-field-0" name="partnerreportform-field-0" placeholder="مثال: NJH-HAJJ-1446-90" type="text"/>
+<input class="bg-transparent border-0 outline-none text-on-surface font-body-sm text-body-sm w-full" id="partnerreportform-field-0" name="partnerreportform-field-0" placeholder="@Content.Text("PartnerReportForm.f002")" type="text" data-pw-fields="PartnerReportForm.f002"/>
 </div>
 </div>
 <div class="flex flex-col gap-space-xs">
-<label class="font-label-sm text-label-sm text-secondary" for="partnerreportform-field-1">رمز تجريبي (لا تدخل بيانات اعتماد حقيقية)</label>
+<label class="font-label-sm text-label-sm text-secondary" for="partnerreportform-field-1" data-pw-fields="PartnerReportForm.f003">@Content.Text("PartnerReportForm.f003")</label>
 <div class="bg-surface-container-lowest rounded-lg p-space-xs flex items-center gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-on-surface-variant text-lg">key</span>
-<input class="bg-transparent border-0 outline-none text-on-surface font-body-sm text-body-sm w-full" id="partnerreportform-field-1" name="partnerreportform-field-1" placeholder="••••••••" type="text" autocomplete="off"/>
+<input class="bg-transparent border-0 outline-none text-on-surface font-body-sm text-body-sm w-full" id="partnerreportform-field-1" name="partnerreportform-field-1" placeholder="@Content.Text("PartnerReportForm.f004")" type="text" autocomplete="off" data-pw-fields="PartnerReportForm.f004"/>
 </div>
 </div>
 <button class="mt-space-xs w-full py-space-sm rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold hover:bg-primary-container transition-all flex items-center justify-center gap-space-xs" type="submit" disabled="@(!Interactive)">
 <span aria-hidden="true" class="material-symbols-outlined text-base">login</span>
-<span>عرض التقرير الموثق الفوري</span>
+<span data-pw-fields="PartnerReportForm.f005">@Content.Text("PartnerReportForm.f005")</span>
 </button>
 </form>
-<p class="website-demo-note">عرض توضيحي: لا يتم إرسال طلب أو إنشاء تعاقد في هذه النسخة.</p>
+<p class="website-demo-note" data-pw-fields="PartnerReportForm.f006">@Content.Text("PartnerReportForm.f006")</p>
 @if (Submitted)
 {
-<p class="website-demo-note" role="status">تم التحقق محلياً من النموذج التجريبي. لم يتم إرسال البيانات أو حفظها، ولم يُنشأ أي طلب.</p>
+<p class="website-demo-note" role="status" data-pw-fields="PartnerReportForm.f007">@Content.Text("PartnerReportForm.f007")</p>
 }
 
 @code {

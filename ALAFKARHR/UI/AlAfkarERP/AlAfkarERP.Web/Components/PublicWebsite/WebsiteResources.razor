@@ -1,0 +1,35 @@
+<div class="website-resource-files">
+    @foreach (var resource in Resources)
+    {
+        @if (Content.Value(resource.Key).MediaId.HasValue)
+        {
+            <div data-pw-fields="@resource.Key">
+                @if (resource.Key == "MediaCenter.report")
+                {
+                    <video controls preload="metadata" src="@Content.Media(resource.Key)" aria-label="@Content.Text(resource.Label)"></video>
+                }
+                else if (resource.Key == "MediaCenter.audio")
+                {
+                    <audio controls preload="metadata" src="@Content.Media(resource.Key)" aria-label="@Content.Text(resource.Label)"></audio>
+                }
+                else
+                {
+                    <a href="@Content.Media(resource.Key)" download>@Content.Text(resource.Label)</a>
+                }
+            </div>
+        }
+        else if (Content.PreviewSession != null && Content.IsEditing)
+        {
+            <button type="button" class="website-resource-upload-slot" data-pw-fields="@resource.Key">@Content.Text(resource.Label) · @Content.Text("MediaCenter.uploadLabel")</button>
+        }
+        else
+        {
+            <span>@Content.Text(resource.Label) · @Content.Text("MediaCenter.unavailable")</span>
+        }
+    }
+</div>
+@code {
+    private static readonly (string Key, string Label)[] Resources =
+    [ ("MediaCenter.profile", "LandingHero.f012"), ("MediaCenter.press", "MediaCenter.f011"),
+      ("MediaCenter.report", "MediaCenter.f009"), ("MediaCenter.kit", "MediaCenter.f051"), ("MediaCenter.audio", "MediaCenter.audioLabel") ];
+}

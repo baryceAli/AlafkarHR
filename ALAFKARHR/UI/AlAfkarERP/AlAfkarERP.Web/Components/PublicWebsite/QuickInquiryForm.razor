@@ -2,57 +2,57 @@
 <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 
 <div class="flex flex-col gap-space-xs text-right">
-<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-0">الاسم الكريم / ممثل الجهة</label>
-<input class="w-full h-11 px-space-md rounded bg-surface text-on-surface font-body-md text-body-md placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary transition-all" id="quickinquiryform-field-0" name="quickinquiryform-field-0" placeholder="مثال: أ. عبد الله الغامدي" required="" type="text"/>
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-0" data-pw-fields="QuickInquiryForm.f001">@Content.Text("QuickInquiryForm.f001")</label>
+<input class="w-full h-11 px-space-md rounded bg-surface text-on-surface font-body-md text-body-md placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary transition-all" id="quickinquiryform-field-0" name="quickinquiryform-field-0" placeholder="@Content.Text("QuickInquiryForm.f002")" required="" type="text" data-pw-fields="QuickInquiryForm.f002"/>
 </div>
 
 <div class="flex flex-col gap-space-xs text-right">
-<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-1">رقم الجوال / واتساب</label>
-<input autocomplete="tel" class="w-full h-11 px-space-md rounded bg-surface text-on-surface font-body-md text-body-md placeholder:text-on-surface-variant/60 text-right focus:outline-none focus:ring-1 focus:ring-primary transition-all" dir="ltr" id="quickinquiryform-field-1" maxlength="20" minlength="9" name="quickinquiryform-field-1" placeholder="05XXXXXXXX" required="" type="tel"/>
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-1" data-pw-fields="QuickInquiryForm.f003">@Content.Text("QuickInquiryForm.f003")</label>
+<input autocomplete="tel" class="w-full h-11 px-space-md rounded bg-surface text-on-surface font-body-md text-body-md placeholder:text-on-surface-variant/60 text-right focus:outline-none focus:ring-1 focus:ring-primary transition-all" dir="ltr" id="quickinquiryform-field-1" maxlength="20" minlength="9" name="quickinquiryform-field-1" placeholder="@Content.Text("QuickInquiryForm.f004")" required="" type="tel" data-pw-fields="QuickInquiryForm.f004"/>
 </div>
 </div>
 <div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
 
 <div class="flex flex-col gap-space-xs text-right">
-<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-2">نوع الجهة</label>
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-2" data-pw-fields="QuickInquiryForm.f005">@Content.Text("QuickInquiryForm.f005")</label>
 <select class="w-full h-11 px-space-md rounded bg-surface text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer" id="quickinquiryform-field-2" name="quickinquiryform-field-2">
-<option value="charity">جمعية خيرية / وقف إنساني</option>
-<option value="tawafa">شركة طوافة / خدمة حجاج</option>
-<option value="government">جهة حكومية / تنظيمية</option>
-<option value="catering">شركة إعاشة وتغذية</option>
-<option value="private">قطاع خاص / مبادرة فردية</option>
+<option value="charity" data-pw-fields="QuickInquiryForm.f006">@Content.Text("QuickInquiryForm.f006")</option>
+<option value="tawafa" data-pw-fields="QuickInquiryForm.f007">@Content.Text("QuickInquiryForm.f007")</option>
+<option value="government" data-pw-fields="QuickInquiryForm.f008">@Content.Text("QuickInquiryForm.f008")</option>
+<option value="catering" data-pw-fields="QuickInquiryForm.f009">@Content.Text("QuickInquiryForm.f009")</option>
+<option value="private" data-pw-fields="QuickInquiryForm.f010">@Content.Text("QuickInquiryForm.f010")</option>
 </select>
 </div>
 
 <div class="flex flex-col gap-space-xs text-right">
-<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-3">الخدمة المطلوبة</label>
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-3" data-pw-fields="QuickInquiryForm.f011">@Content.Text("QuickInquiryForm.f011")</label>
 <select class="w-full h-11 px-space-md rounded bg-surface text-on-surface font-body-md text-body-md focus:outline-none focus:ring-1 focus:ring-primary transition-all cursor-pointer" id="quickinquiryform-field-3" name="quickinquiryform-field-3">
-<option value="hajj">إعاشة حجاج (المشاعر المقدسة / منى)</option>
-<option value="iftar">وجبات إفطار صائم بالمسجد الحرام</option>
-<option value="suqya">مشاريع سقيا الماء والتوزيع الميداني</option>
-<option value="food-baskets">توريد سلال غذائية ومواد تموينية</option>
-<option value="fleet">حلول النقل المبرد والتشغيل اللوجستي</option>
+<option value="hajj" data-pw-fields="QuickInquiryForm.f012">@Content.Text("QuickInquiryForm.f012")</option>
+<option value="iftar" data-pw-fields="QuickInquiryForm.f013">@Content.Text("QuickInquiryForm.f013")</option>
+<option value="suqya" data-pw-fields="QuickInquiryForm.f014">@Content.Text("QuickInquiryForm.f014")</option>
+<option value="food-baskets" data-pw-fields="QuickInquiryForm.f015">@Content.Text("QuickInquiryForm.f015")</option>
+<option value="fleet" data-pw-fields="QuickInquiryForm.f016">@Content.Text("QuickInquiryForm.f016")</option>
 </select>
 </div>
 </div>
 
 <div class="flex flex-col gap-space-xs text-right">
-<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-4">تفاصيل المشروع المقدرة (الكمية، التوقيت، الموقع)</label>
-<textarea class="w-full p-space-md rounded bg-surface text-on-surface font-body-md text-body-md placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary transition-all resize-none" id="quickinquiryform-field-4" name="quickinquiryform-field-4" placeholder="يرجى ذكر التقديرات الأولية لعدد الوجبات أو المستفيدين والموعد المستهدف للتنفيذ..." rows="3"></textarea>
+<label class="font-label-md text-label-md text-on-surface font-semibold" for="quickinquiryform-field-4" data-pw-fields="QuickInquiryForm.f017">@Content.Text("QuickInquiryForm.f017")</label>
+<textarea class="w-full p-space-md rounded bg-surface text-on-surface font-body-md text-body-md placeholder:text-on-surface-variant/60 focus:outline-none focus:ring-1 focus:ring-primary transition-all resize-none" id="quickinquiryform-field-4" name="quickinquiryform-field-4" placeholder="@Content.Text("QuickInquiryForm.f018")" rows="3" data-pw-fields="QuickInquiryForm.f018"></textarea>
 </div>
 
 <div class="pt-space-xs">
 <button class="w-full py-space-md rounded-lg bg-primary text-on-primary font-label-lg text-label-lg font-bold shadow-lg transition-all duration-300 hover:bg-tertiary flex items-center justify-center gap-space-sm" type="submit" disabled="@(!Interactive)">
 <span aria-hidden="true" class="material-symbols-outlined text-xl">send</span>
-<span>إرسال طلب الاستشارة وعرض السعر الآن</span>
+<span data-pw-fields="QuickInquiryForm.f019">@Content.Text("QuickInquiryForm.f019")</span>
 </button>
-<p class="font-label-sm text-label-sm text-on-surface-variant text-center mt-2">نموذج توضيحي فقط — لا تُرسل البيانات ولا تُحفظ.</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant text-center mt-2" data-pw-fields="QuickInquiryForm.f020">@Content.Text("QuickInquiryForm.f020")</p>
 </div>
 </form>
-<p class="website-demo-note">عرض توضيحي: لا يتم إرسال طلب أو إنشاء تعاقد في هذه النسخة.</p>
+<p class="website-demo-note" data-pw-fields="QuickInquiryForm.f021">@Content.Text("QuickInquiryForm.f021")</p>
 @if (Submitted)
 {
-<p class="website-demo-note" role="status">تم التحقق محلياً من النموذج التجريبي. لم يتم إرسال البيانات أو حفظها، ولم يُنشأ أي طلب.</p>
+<p class="website-demo-note" role="status" data-pw-fields="QuickInquiryForm.f022">@Content.Text("QuickInquiryForm.f022")</p>
 }
 
 @code {

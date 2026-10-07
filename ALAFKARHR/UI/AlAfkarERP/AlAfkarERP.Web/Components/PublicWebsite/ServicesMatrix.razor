@@ -5,98 +5,108 @@
 <div class="flex flex-col gap-space-xs">
 <div class="flex items-center gap-space-sm">
 <span class="h-0.5 w-10 bg-primary"></span>
-<span class="font-label-lg text-label-lg text-primary font-bold">حلول متكاملة تلامس الاحتياج</span>
+<span class="font-label-lg text-label-lg text-primary font-bold" data-pw-fields="ServicesMatrix.f001">@Content.Text("ServicesMatrix.f001")</span>
 </div>
-<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">
-            مجالات الاختصاص والتميز التشغيلي
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold" data-pw-fields="ServicesMatrix.f002">
+            @Content.Text("ServicesMatrix.f002")
           </h2>
 </div>
-<p class="font-body-md text-body-md text-on-surface-variant max-w-md">
-          نقدم باقات حلول متكاملة مصممة خصيصاً لمواءمة أعلى المعايير التنظيمية الصادرة من وزارة الحج والعمرة والجهات المشرفة.
+<p class="font-body-md text-body-md text-on-surface-variant max-w-md" data-pw-fields="ServicesMatrix.f003">
+          @Content.Text("ServicesMatrix.f003")
         </p>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-lg">
-
+@foreach (var item in Content.Items("ServicesMatrix.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "ServicesMatrix.collection1.item1":
 <div class="group rounded-xl p-space-lg bg-surface-container flex flex-col justify-between shadow-md transition-all duration-300 hover:bg-surface-container-high">
 <div class="flex flex-col gap-space-md">
 <div class="w-14 h-14 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
 <span aria-hidden="true" class="material-symbols-outlined text-3xl">local_shipping</span>
 </div>
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold group-hover:text-primary transition-colors">
-                الخدمات اللوجستية والتشغيل الميداني
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="ServicesMatrix.collection1.item1.f004" data-pw-item="@item.Id">
+                @Content.Text("ServicesMatrix.collection1.item1.f004", item)
               </h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                إدارة الحركة وتوزيع المواد التموينية بكفاءة متناهية في المواقع المزدحمة ونقاط التفويج الحرجة داخل المشاعر المقدسة ومداخل مكة المكرمة.
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed" data-pw-fields="ServicesMatrix.collection1.item1.f005" data-pw-item="@item.Id">
+                @Content.Text("ServicesMatrix.collection1.item1.f005", item)
               </p>
 </div>
 </div>
-<a class="pt-space-lg flex items-center justify-between" href="/services">
-<span class="font-label-sm text-label-sm text-primary font-semibold">إدارة سلاسل الإمداد</span>
+<a class="pt-space-lg flex items-center justify-between" href="@Content.Link("ServicesMatrix.collection1.item1.f006", item)" data-pw-fields="ServicesMatrix.collection1.item1.f006" data-pw-item="@item.Id">
+<span class="font-label-sm text-label-sm text-primary font-semibold" data-pw-fields="ServicesMatrix.collection1.item1.f007" data-pw-item="@item.Id">@Content.Text("ServicesMatrix.collection1.item1.f007", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-lg">arrow_forward</span>
 </a>
 </div>
-
+break;
+@case "ServicesMatrix.collection1.item2":
 <div class="group rounded-xl p-space-lg bg-surface-container flex flex-col justify-between shadow-md transition-all duration-300 hover:bg-surface-container-high">
 <div class="flex flex-col gap-space-md">
 <div class="w-14 h-14 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
 <span aria-hidden="true" class="material-symbols-outlined text-3xl">inventory_2</span>
 </div>
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold group-hover:text-primary transition-colors">
-                توريد المنتجات الغذائية والمصادر المباشرة
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="ServicesMatrix.collection1.item2.f008" data-pw-item="@item.Id">
+                @Content.Text("ServicesMatrix.collection1.item2.f008", item)
               </h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                توريد حصري لأفخر التمور السعودية، الزبيب، المشمش المجفف، والمياه المعبأة ومشروبات الضيافة بجودة عالية من المزارع والمصانع مباشرة.
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed" data-pw-fields="ServicesMatrix.collection1.item2.f009" data-pw-item="@item.Id">
+                @Content.Text("ServicesMatrix.collection1.item2.f009", item)
               </p>
 </div>
 </div>
-<a class="pt-space-lg flex items-center justify-between" href="/services">
-<span class="font-label-sm text-label-sm text-primary font-semibold">أعلى معايير الاصطفاء</span>
+<a class="pt-space-lg flex items-center justify-between" href="@Content.Link("ServicesMatrix.collection1.item2.f010", item)" data-pw-fields="ServicesMatrix.collection1.item2.f010" data-pw-item="@item.Id">
+<span class="font-label-sm text-label-sm text-primary font-semibold" data-pw-fields="ServicesMatrix.collection1.item2.f011" data-pw-item="@item.Id">@Content.Text("ServicesMatrix.collection1.item2.f011", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-lg">arrow_forward</span>
 </a>
 </div>
-
+break;
+@case "ServicesMatrix.collection1.item3":
 <div class="group rounded-xl p-space-lg bg-surface-container flex flex-col justify-between shadow-md transition-all duration-300 hover:bg-surface-container-high">
 <div class="flex flex-col gap-space-md">
 <div class="w-14 h-14 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
 <span aria-hidden="true" class="material-symbols-outlined text-3xl">restaurant</span>
 </div>
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold group-hover:text-primary transition-colors">
-                وجبات إفطار صائم بساحات الحرم
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="ServicesMatrix.collection1.item3.f012" data-pw-item="@item.Id">
+                @Content.Text("ServicesMatrix.collection1.item3.f012", item)
               </h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                تجهيز وتوزيع وجبات الإفطار الجافة والمطهية لساحات المسجد الحرام ومساجد مكة التاريخية وفق التراخيص الرسمية والبروتوكولات المعمول بها.
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed" data-pw-fields="ServicesMatrix.collection1.item3.f013" data-pw-item="@item.Id">
+                @Content.Text("ServicesMatrix.collection1.item3.f013", item)
               </p>
 </div>
 </div>
-<a class="pt-space-lg flex items-center justify-between" href="/services">
-<span class="font-label-sm text-label-sm text-primary font-semibold">توزيع معتمد ومرخص</span>
+<a class="pt-space-lg flex items-center justify-between" href="@Content.Link("ServicesMatrix.collection1.item3.f014", item)" data-pw-fields="ServicesMatrix.collection1.item3.f014" data-pw-item="@item.Id">
+<span class="font-label-sm text-label-sm text-primary font-semibold" data-pw-fields="ServicesMatrix.collection1.item3.f015" data-pw-item="@item.Id">@Content.Text("ServicesMatrix.collection1.item3.f015", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-lg">arrow_forward</span>
 </a>
 </div>
-
+break;
+@case "ServicesMatrix.collection1.item4":
 <div class="group rounded-xl p-space-lg bg-surface-container flex flex-col justify-between shadow-md transition-all duration-300 hover:bg-surface-container-high">
 <div class="flex flex-col gap-space-md">
 <div class="w-14 h-14 rounded-xl bg-surface-container-highest flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-on-primary transition-colors">
 <span aria-hidden="true" class="material-symbols-outlined text-3xl">water_drop</span>
 </div>
 <div class="flex flex-col gap-space-xs">
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold group-hover:text-primary transition-colors">
-                المبادرات والمشاريع النوعية المتخصصة
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold group-hover:text-primary transition-colors" data-pw-fields="ServicesMatrix.collection1.item4.f016" data-pw-item="@item.Id">
+                @Content.Text("ServicesMatrix.collection1.item4.f016", item)
               </h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
-                تشغيل مشاريع سقيا الماء، وتوزيع الحقائب الشتوية والمدرسية، وحقائب الحجاج الإرشادية، مع إدارة المرافق والمباني السكنية المؤقتة.
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed" data-pw-fields="ServicesMatrix.collection1.item4.f017" data-pw-item="@item.Id">
+                @Content.Text("ServicesMatrix.collection1.item4.f017", item)
               </p>
 </div>
 </div>
-<a class="pt-space-lg flex items-center justify-between" href="/services">
-<span class="font-label-sm text-label-sm text-primary font-semibold">حلول مجتمعية وإنسانية</span>
+<a class="pt-space-lg flex items-center justify-between" href="@Content.Link("ServicesMatrix.collection1.item4.f018", item)" data-pw-fields="ServicesMatrix.collection1.item4.f018" data-pw-item="@item.Id">
+<span class="font-label-sm text-label-sm text-primary font-semibold" data-pw-fields="ServicesMatrix.collection1.item4.f019" data-pw-item="@item.Id">@Content.Text("ServicesMatrix.collection1.item4.f019", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-lg">arrow_forward</span>
 </a>
 </div>
+break;
+}
+}
 </div>
 </div>
 </section>

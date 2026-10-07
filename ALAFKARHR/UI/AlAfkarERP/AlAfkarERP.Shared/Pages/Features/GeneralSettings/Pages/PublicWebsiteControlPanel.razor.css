@@ -1,0 +1,10 @@
+.website-editor-toolbar { display: flex; flex-wrap: wrap; gap: var(--erp-space-3, 12px); align-items: end; margin-block-end: var(--erp-space-4, 16px); }
+.website-editor-toolbar label { display: grid; gap: var(--erp-space-1, 4px); }
+.website-editor-grid { display: grid; grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); gap: var(--erp-space-4, 16px); }
+.website-editor-inspector { display: flex; flex-direction: column; gap: var(--erp-space-3, 12px); }
+.website-editor-section-row { display: flex; align-items: center; gap: var(--erp-space-1, 4px); margin-block-end: var(--erp-space-2, 8px); }
+.website-editor-section-row .flex-grow-1 { overflow: hidden; text-overflow: ellipsis; text-align: start; }
+.website-editor-canvas { min-width: 0; background: var(--erp-surface); border: 1px solid var(--erp-border); border-radius: var(--erp-radius-lg); overflow: hidden; }
+.website-editor-canvas iframe { display: block; width: 100%; min-height: 85vh; border: 0; background: var(--erp-surface); }
+.website-editor-mobile { width: min(100%, 390px); justify-self: center; }
+@media (max-width: 900px) { .website-editor-grid { grid-template-columns: 1fr; } .website-editor-canvas { grid-row: 1; } }

@@ -4,134 +4,154 @@
 <div class="flex flex-col gap-space-md mb-space-lg">
 <div class="flex items-center gap-space-sm">
 <span class="h-0.5 w-10 bg-primary"></span>
-<span class="font-label-lg text-label-lg text-primary font-bold">سجل الإنجاز والمسؤولية</span>
+<span class="font-label-lg text-label-lg text-primary font-bold" data-pw-fields="FeaturedProjects.f001">@Content.Text("FeaturedProjects.f001")</span>
 </div>
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md">
-<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">
-            مشاريع شرفنا بتنفيذها في أطهر البقاع
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold" data-pw-fields="FeaturedProjects.f002">
+            @Content.Text("FeaturedProjects.f002")
           </h2>
 
 <div class="flex flex-wrap items-center gap-space-xs">
-<button @onclick="() => Select(0)" aria-pressed='@(Filter == 0 ? "true" : "false")' class='px-space-md py-space-xs rounded-full font-label-md text-label-md font-bold shadow-sm @(Filter == 0 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant")'>
-              الكل
+<button @onclick="() => Select(0)" aria-pressed='@(Filter == 0 ? "true" : "false")' class='px-space-md py-space-xs rounded-full font-label-md text-label-md font-bold shadow-sm @(Filter == 0 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant")' data-pw-fields="FeaturedProjects.f030">
+              @Content.Text("FeaturedProjects.f030")
             </button>
-<button @onclick="() => Select(1)" aria-pressed='@(Filter == 1 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-colors @(Filter == 1 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant")'>
-              إعاشة المشاعر المقدسة
+<button @onclick="() => Select(1)" aria-pressed='@(Filter == 1 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-colors @(Filter == 1 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant")' data-pw-fields="FeaturedProjects.f031">
+              @Content.Text("FeaturedProjects.f031")
             </button>
-<button @onclick="() => Select(2)" aria-pressed='@(Filter == 2 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-colors @(Filter == 2 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant")'>
-              إفطار صائم الحرم
+<button @onclick="() => Select(2)" aria-pressed='@(Filter == 2 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-colors @(Filter == 2 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant")' data-pw-fields="FeaturedProjects.f032">
+              @Content.Text("FeaturedProjects.f032")
             </button>
-<button @onclick="() => Select(3)" aria-pressed='@(Filter == 3 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-colors @(Filter == 3 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant")'>
-              السلال والسقيا
+<button @onclick="() => Select(3)" aria-pressed='@(Filter == 3 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-colors @(Filter == 3 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface-variant")' data-pw-fields="FeaturedProjects.f033">
+              @Content.Text("FeaturedProjects.f033")
             </button>
 </div>
 </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-12 gap-space-lg">
-
+@foreach (var item in Content.Items("FeaturedProjects.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "FeaturedProjects.collection1.item1":
 <div class="lg:col-span-7 rounded-xl overflow-hidden bg-surface-container-lowest relative flex flex-col justify-end min-h-[440px] shadow-lg group" hidden="@(Filter != 0 && Filter != 1)">
-<img alt="Organized Hajj pilgrims camp in Mina during evening hours, illuminated by clean LED lanterns, with catering logistics staff delivering standardized hygienic meal boxes with golden seals." class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-60" decoding="async" height="279" loading="lazy" src="/website/image-2f0d950300f4.webp" width="512"/>
+<img alt="@Content.Text("FeaturedProjects.collection1.item1.f003", item)" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-60" decoding="async" height="279" loading="lazy" src="@Content.Media("FeaturedProjects.collection1.item1.f004", item)" width="512" data-pw-fields="FeaturedProjects.collection1.item1.f003,FeaturedProjects.collection1.item1.f004" data-pw-item="@item.Id"/>
 <div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest via-surface-container-lowest/70 to-transparent"></div>
 <div class="website-image-caption relative p-space-xl flex flex-col gap-space-sm z-10">
 <div class="flex items-center gap-space-sm">
-<span class="px-space-sm py-0.5 rounded bg-primary text-on-primary font-label-sm text-label-sm font-bold">مشعر منى وعرفات</span>
-<span class="font-label-sm text-label-sm text-on-surface-variant">موسم حج 1445هـ</span>
+<span class="px-space-sm py-0.5 rounded bg-primary text-on-primary font-label-sm text-label-sm font-bold" data-pw-fields="FeaturedProjects.collection1.item1.f005" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection1.item1.f005", item)</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="FeaturedProjects.collection1.item1.f006" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection1.item1.f006", item)</span>
 </div>
-<h3 class="font-headline-lg text-headline-lg text-on-surface font-bold">
-              مشروع إعاشة مخيمات الحجاج بالمشاعر المقدسة
+<h3 class="font-headline-lg text-headline-lg text-on-surface font-bold" data-pw-fields="FeaturedProjects.collection1.item1.f007" data-pw-item="@item.Id">
+              @Content.Text("FeaturedProjects.collection1.item1.f007", item)
             </h3>
-<p class="font-body-md text-body-md text-on-surface-variant max-w-xl">
-              توفير وتوزيع أكثر من 450,000 وجبة ساخنة ومطبوخة مسبقاً بنظام الحفظ الآمن، مجهزة بالكامل مع مشروبات الضيافة وفق الجداول الزمنية لمناسك الحج دون أي تأخير.
+<p class="font-body-md text-body-md text-on-surface-variant max-w-xl" data-pw-fields="FeaturedProjects.collection1.item1.f008" data-pw-item="@item.Id">
+              @Content.Text("FeaturedProjects.collection1.item1.f008", item)
             </p>
 <div class="flex items-center gap-space-lg pt-space-xs">
 <div class="flex items-center gap-space-xs text-primary font-label-md text-label-md">
 <span aria-hidden="true" class="material-symbols-outlined text-base">check_circle</span>
-<span>نسبة الرضا: 99.4%</span>
+<span data-pw-fields="FeaturedProjects.collection1.item1.f009" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection1.item1.f009", item)</span>
 </div>
 <div class="flex items-center gap-space-xs text-primary font-label-md text-label-md">
 <span aria-hidden="true" class="material-symbols-outlined text-base">local_shipping</span>
-<span>تغطية 14 مخيماً رئيسياً</span>
+<span data-pw-fields="FeaturedProjects.collection1.item1.f010" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection1.item1.f010", item)</span>
 </div>
 </div>
 </div>
 </div>
-
+break;
+@case "FeaturedProjects.collection1.item2":
 <div class="lg:col-span-5 flex flex-col gap-space-lg">
 
 <div class="rounded-xl overflow-hidden bg-surface-container-lowest relative p-space-lg flex flex-col justify-between shadow-md min-h-[200px] group" hidden="@(Filter != 0 && Filter != 2)">
-<img alt="Dignified Ramadan iftar setup outside the grand courtyards of the Grand Mosque in Makkah, neatly lined meal packages containing dates, water, and fresh bread on royal mats." class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-30" decoding="async" height="286" loading="lazy" src="/website/image-3929e6a1d553.webp" width="512"/>
+<img alt="@Content.Text("FeaturedProjects.collection1.item2.f011", item)" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-30" decoding="async" height="286" loading="lazy" src="@Content.Media("FeaturedProjects.collection1.item2.f012", item)" width="512" data-pw-fields="FeaturedProjects.collection1.item2.f011,FeaturedProjects.collection1.item2.f012" data-pw-item="@item.Id"/>
 <div class="absolute inset-0 bg-gradient-to-l from-surface-container-lowest/90 via-surface-container-lowest/70 to-transparent"></div>
 <div class="relative flex items-center justify-between z-10">
-<span class="px-space-sm py-0.5 rounded bg-surface-container-high text-primary font-label-sm text-label-sm font-bold">رمضان المبارك</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-high text-primary font-label-sm text-label-sm font-bold" data-pw-fields="FeaturedProjects.collection1.item2.f013" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection1.item2.f013", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">star</span>
 </div>
 <div class="website-image-caption rounded-lg p-space-md relative flex flex-col gap-space-xs z-10 pt-space-md">
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold">
-                مشروع إفطار صائم - ساحات الحرم المكي
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold" data-pw-fields="FeaturedProjects.collection1.item2.f014" data-pw-item="@item.Id">
+                @Content.Text("FeaturedProjects.collection1.item2.f014", item)
               </h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-                توزيع يومي لأكثر من 25,000 وجبة إفطار معتمدة للصائمين بالتعاون مع كبرى المؤسسات الوقفية.
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="FeaturedProjects.collection1.item2.f015" data-pw-item="@item.Id">
+                @Content.Text("FeaturedProjects.collection1.item2.f015", item)
               </p>
 </div>
 </div>
 
 <div class="rounded-xl overflow-hidden bg-surface-container-lowest relative p-space-lg flex flex-col justify-between shadow-md min-h-[200px] group" hidden="@(Filter != 0 && Filter != 3)">
-<img alt="Industrial distribution of chilled fresh drinking water bottles in cartons for pilgrims at transit centers in Makkah with gold modern branding banners." class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-30" decoding="async" height="279" loading="lazy" src="/website/image-2ad723f1ff63.webp" width="512"/>
+<img alt="@Content.Text("FeaturedProjects.collection1.item2.f016", item)" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-30" decoding="async" height="279" loading="lazy" src="@Content.Media("FeaturedProjects.collection1.item2.f017", item)" width="512" data-pw-fields="FeaturedProjects.collection1.item2.f016,FeaturedProjects.collection1.item2.f017" data-pw-item="@item.Id"/>
 <div class="absolute inset-0 bg-gradient-to-l from-surface-container-lowest/90 via-surface-container-lowest/70 to-transparent"></div>
 <div class="relative flex items-center justify-between z-10">
-<span class="px-space-sm py-0.5 rounded bg-surface-container-high text-primary font-label-sm text-label-sm font-bold">مبادرات السقيا</span>
+<span class="px-space-sm py-0.5 rounded bg-surface-container-high text-primary font-label-sm text-label-sm font-bold" data-pw-fields="FeaturedProjects.collection1.item2.f018" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection1.item2.f018", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">water_drop</span>
 </div>
 <div class="website-image-caption rounded-lg p-space-md relative flex flex-col gap-space-xs z-10 pt-space-md">
-<h3 class="font-headline-md text-headline-md text-on-surface font-bold">
-                سقيا الحجاج ومواقف حافلات كدي وجرانة
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold" data-pw-fields="FeaturedProjects.collection1.item2.f019" data-pw-item="@item.Id">
+                @Content.Text("FeaturedProjects.collection1.item2.f019", item)
               </h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-                إمداد مستمر لعبوات المياه الباردة في محطات النقل الترددي وخطوط المشاة المؤدية للكعبة المشرفة.
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="FeaturedProjects.collection1.item2.f020" data-pw-item="@item.Id">
+                @Content.Text("FeaturedProjects.collection1.item2.f020", item)
               </p>
 </div>
 </div>
 </div>
+break;
+}
+}
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-3 gap-space-lg mt-space-lg" hidden="@(Filter != 0 && Filter != 3)">
+@foreach (var item in Content.Items("FeaturedProjects.collection2"))
+{
+@switch (item.TemplateKey)
+{
+@case "FeaturedProjects.collection2.item1":
 <div class="p-space-lg rounded-xl bg-surface-container-lowest flex flex-col gap-space-sm shadow-sm">
 <div class="flex items-center justify-between">
 <span class="p-space-sm rounded-lg bg-surface-container text-primary">
 <span aria-hidden="true" class="material-symbols-outlined">shopping_bag</span>
 </span>
-<span class="font-label-sm text-label-sm text-on-surface-variant font-bold">مبادرة وطنية</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold" data-pw-fields="FeaturedProjects.collection2.item1.f021" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection2.item1.f021", item)</span>
 </div>
-<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">مشروع السلال الغذائية المتكاملة</h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-            تجهيز وشحن السلال التموينية للأسر المتعففة عبر اتفاقيات التعاقد المباشر مع الجمعيات الأهلية والخيرية بالمملكة.
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold" data-pw-fields="FeaturedProjects.collection2.item1.f022" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection2.item1.f022", item)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="FeaturedProjects.collection2.item1.f023" data-pw-item="@item.Id">
+            @Content.Text("FeaturedProjects.collection2.item1.f023", item)
           </p>
 </div>
+break;
+@case "FeaturedProjects.collection2.item2":
 <div class="p-space-lg rounded-xl bg-surface-container-lowest flex flex-col gap-space-sm shadow-sm">
 <div class="flex items-center justify-between">
 <span class="p-space-sm rounded-lg bg-surface-container text-primary">
 <span aria-hidden="true" class="material-symbols-outlined">backpack</span>
 </span>
-<span class="font-label-sm text-label-sm text-on-surface-variant font-bold">الدعم الطلابي</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold" data-pw-fields="FeaturedProjects.collection2.item2.f024" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection2.item2.f024", item)</span>
 </div>
-<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">مشروع الحقيبة المدرسية والشتوية</h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-            تأمين وتوزيع الحقائب الشاملة والمستلزمات الدراسية وحقائب الكسوة الشتوية لمستفيدي الجمعيات الخيرية بجودة نموذجية.
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold" data-pw-fields="FeaturedProjects.collection2.item2.f025" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection2.item2.f025", item)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="FeaturedProjects.collection2.item2.f026" data-pw-item="@item.Id">
+            @Content.Text("FeaturedProjects.collection2.item2.f026", item)
           </p>
 </div>
+break;
+@case "FeaturedProjects.collection2.item3":
 <div class="p-space-lg rounded-xl bg-surface-container-lowest flex flex-col gap-space-sm shadow-sm">
 <div class="flex items-center justify-between">
 <span class="p-space-sm rounded-lg bg-surface-container text-primary">
 <span aria-hidden="true" class="material-symbols-outlined">domain</span>
 </span>
-<span class="font-label-sm text-label-sm text-on-surface-variant font-bold">إسكان ومرافق</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant font-bold" data-pw-fields="FeaturedProjects.collection2.item3.f027" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection2.item3.f027", item)</span>
 </div>
-<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">تشغيل مباني إيواء البعثات والوفود</h3>
-<p class="font-body-sm text-body-sm text-on-surface-variant">
-            إدارة النظافة، والخدمات التموينية والمياه والصيانة الوقائية للأبراج الفندقية والمباني السكنية المخصصة للحجاج.
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold" data-pw-fields="FeaturedProjects.collection2.item3.f028" data-pw-item="@item.Id">@Content.Text("FeaturedProjects.collection2.item3.f028", item)</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="FeaturedProjects.collection2.item3.f029" data-pw-item="@item.Id">
+            @Content.Text("FeaturedProjects.collection2.item3.f029", item)
           </p>
 </div>
+break;
+}
+}
 </div>
 </div>
 </section>

@@ -1,7 +1,57 @@
 @inherits LayoutComponentBase
-<div class="public-website bg-background font-body-md text-body-md text-on-surface antialiased" lang="ar" dir="rtl" data-enhance-nav="false">
-<a class="website-skip-link" href="#website-main">انتقل إلى المحتوى</a>
+@implements IAsyncDisposable
+@inject WebsiteContentState Content
+@inject WebsitePublishedCache PublishedCache
+@inject AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services.PublicWebsiteService WebsiteService
+@inject NavigationManager Navigation
+@inject Microsoft.JSInterop.IJSRuntime JS
+@inject ILogger<WebsiteLayout> Logger
+@using Microsoft.JSInterop
+<div class="public-website bg-background font-body-md text-body-md text-on-surface antialiased" lang="@Content.Language" dir="@Content.Direction" data-enhance-nav="false">
+<a class="website-skip-link" href="#website-main" data-pw-fields="WebsiteLayout.skip">@Content.Text("WebsiteLayout.skip")</a>
 <WebsiteHeader />
 <main id="website-main" class="w-full pt-20 bg-background min-h-screen">@Body</main>
 <WebsiteFooter />
 </div>
+@code {
+    private IJSObjectReference? module;
+    private DotNetObjectReference<WebsiteLayout>? reference;
+    private readonly System.Text.StringBuilder previewBuffer = new();
+    protected override async Task OnInitializedAsync()
+    {
+        Content.Changed += Update;
+        try { var published = await WebsiteService.PublishedAsync(); PublishedCache.Remember(published); Content.Set(published); }
+        catch (Exception e) { if (PublishedCache.LastSuccessful() is { } last) Content.Set(last); Logger.LogError(e, "Unable to load published PublicWebsite content."); }
+    }
+    private void Update() => _ = InvokeAsync(StateHasChanged);
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query);
+        if (!query.TryGetValue("websiteEditor", out var session) || !Guid.TryParseExact(session, "N", out _)) return;
+        Content.PreviewSession = session;
+        module = await JS.InvokeAsync<IJSObjectReference>("import", "/website/editor-preview.js");
+        reference = DotNetObjectReference.Create(this);
+        await module.InvokeVoidAsync("connect", session.ToString(), reference);
+    }
+    [JSInvokable] public Task ReceivePreviewChunk(string chunk, bool first, bool last, bool editable)
+    {
+        if (Content.PreviewSession == null || chunk.Length > 4096) return Task.CompletedTask;
+        if (first) previewBuffer.Clear();
+        if (previewBuffer.Length + chunk.Length > 2 * 1024 * 1024) { previewBuffer.Clear(); throw new InvalidOperationException("Website preview is too large."); }
+        previewBuffer.Append(chunk);
+        if (last)
+        {
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<WebsiteSnapshot>(previewBuffer.ToString(), new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            previewBuffer.Clear();
+            if (snapshot?.SchemaVersion == 1) { Content.IsEditing = editable; Content.Set(snapshot); }
+        }
+        return Task.CompletedTask;
+    }
+    public async ValueTask DisposeAsync()
+    {
+        Content.Changed -= Update;
+        if (module != null) { try { await module.InvokeVoidAsync("disconnect"); await module.DisposeAsync(); } catch (JSDisconnectedException) { } }
+        reference?.Dispose();
+    }
+}

@@ -9,13 +9,13 @@
 <div class="max-w-3xl space-y-space-sm">
 <div class="inline-flex items-center gap-space-xs px-space-md py-space-xs rounded-full bg-surface-container-high text-primary font-label-md text-label-md shadow-sm">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-base">verified</span>
-<span>معتمدون لخدمات الإعاشة والتموين في العاصمة المقدسة والمشاعر</span>
+<span data-pw-fields="ServicesOverview.f001">@Content.Text("ServicesOverview.f001")</span>
 </div>
-<h1 class="font-headline-xl text-headline-xl text-on-surface font-bold tracking-tight">
-            خدماتنا ومجالات العمل
+<h1 class="font-headline-xl text-headline-xl text-on-surface font-bold tracking-tight" data-pw-fields="ServicesOverview.f002">
+            @Content.Text("ServicesOverview.f002")
           </h1>
-<p class="font-body-xl text-body-xl text-on-surface-variant leading-relaxed">
-            منظومة متكاملة من الحلول اللوجستية والإعاشة الاحترافية المعتمدة في مكة المكرمة والمشاعر المقدسة، مصممة للمؤسسات الحكومية، بعثات الحج، والجمعيات الخيرية الكبرى.
+<p class="font-body-xl text-body-xl text-on-surface-variant leading-relaxed" data-pw-fields="ServicesOverview.f003">
+            @Content.Text("ServicesOverview.f003")
           </p>
 </div>
 
@@ -26,46 +26,60 @@
 <div class="flex flex-col">
 <div class="flex items-center gap-space-xs">
 <span class="w-2.5 h-2.5 rounded-full bg-primary animate-pulse"></span>
-<span class="font-label-md text-label-md text-on-surface font-semibold">سلسلة التبريد المستمر النشطة</span>
+<span class="font-label-md text-label-md text-on-surface font-semibold" data-pw-fields="ServicesOverview.f004">@Content.Text("ServicesOverview.f004")</span>
 </div>
-<span class="font-body-sm text-body-sm text-on-surface-variant font-mono">درجة الحفظ: -18°C إلى +4°C (مراقبة لحظية SFDA)</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant font-mono" data-pw-fields="ServicesOverview.f005">@Content.Text("ServicesOverview.f005")</span>
 </div>
 </div>
 </div>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-space-md mt-space-xl">
+@foreach (var item in Content.Items("ServicesOverview.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "ServicesOverview.collection1.item1":
 <div class="p-space-md rounded-xl bg-surface-container shadow-md flex flex-col justify-between">
 <div class="flex items-center justify-between text-on-surface-variant mb-space-xs">
-<span class="font-label-sm text-label-sm">الطاقة اليومية للوجبات</span>
+<span class="font-label-sm text-label-sm" data-pw-fields="ServicesOverview.collection1.item1.f006" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item1.f006", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">inventory_2</span>
 </div>
-<div class="font-headline-md text-headline-md text-primary font-bold">120,000+</div>
-<span class="font-body-sm text-body-sm text-on-surface-variant">وجبة مطهية وجافة يومياً</span>
+<div class="font-headline-md text-headline-md text-primary font-bold" data-pw-fields="ServicesOverview.collection1.item1.f007" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item1.f007", item)</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="ServicesOverview.collection1.item1.f008" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item1.f008", item)</span>
 </div>
+break;
+@case "ServicesOverview.collection1.item2":
 <div class="p-space-md rounded-xl bg-surface-container shadow-md flex flex-col justify-between">
 <div class="flex items-center justify-between text-on-surface-variant mb-space-xs">
-<span class="font-label-sm text-label-sm">أسطول النقل المبرد الميداني</span>
+<span class="font-label-sm text-label-sm" data-pw-fields="ServicesOverview.collection1.item2.f009" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item2.f009", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">local_shipping</span>
 </div>
-<div class="font-headline-md text-headline-md text-on-surface font-bold">48+ شاحنة</div>
-<span class="font-body-sm text-body-sm text-on-surface-variant">مزودة بنظام تتبع GPS وتليمتري</span>
+<div class="font-headline-md text-headline-md text-on-surface font-bold" data-pw-fields="ServicesOverview.collection1.item2.f010" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item2.f010", item)</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="ServicesOverview.collection1.item2.f011" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item2.f011", item)</span>
 </div>
+break;
+@case "ServicesOverview.collection1.item3":
 <div class="p-space-md rounded-xl bg-surface-container shadow-md flex flex-col justify-between">
 <div class="flex items-center justify-between text-on-surface-variant mb-space-xs">
-<span class="font-label-sm text-label-sm">مساحة المستودعات المركزية</span>
+<span class="font-label-sm text-label-sm" data-pw-fields="ServicesOverview.collection1.item3.f012" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item3.f012", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">warehouse</span>
 </div>
-<div class="font-headline-md text-headline-md text-on-surface font-bold">8,500 م²</div>
-<span class="font-body-sm text-body-sm text-on-surface-variant">مستودعات جافة ومبردة معتمدة</span>
+<div class="font-headline-md text-headline-md text-on-surface font-bold" data-pw-fields="ServicesOverview.collection1.item3.f013" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item3.f013", item)</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="ServicesOverview.collection1.item3.f014" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item3.f014", item)</span>
 </div>
+break;
+@case "ServicesOverview.collection1.item4":
 <div class="p-space-md rounded-xl bg-surface-container shadow-md flex flex-col justify-between">
 <div class="flex items-center justify-between text-on-surface-variant mb-space-xs">
-<span class="font-label-sm text-label-sm">الكوادر البشرية الميدانية</span>
+<span class="font-label-sm text-label-sm" data-pw-fields="ServicesOverview.collection1.item4.f015" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item4.f015", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">groups</span>
 </div>
-<div class="font-headline-md text-headline-md text-primary font-bold">350+ كادر</div>
-<span class="font-body-sm text-body-sm text-on-surface-variant">فرق مدربة لإدارة التوزيع والتفويج</span>
+<div class="font-headline-md text-headline-md text-primary font-bold" data-pw-fields="ServicesOverview.collection1.item4.f016" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item4.f016", item)</div>
+<span class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="ServicesOverview.collection1.item4.f017" data-pw-item="@item.Id">@Content.Text("ServicesOverview.collection1.item4.f017", item)</span>
 </div>
+break;
+}
+}
 </div>
 </div>
 </div>

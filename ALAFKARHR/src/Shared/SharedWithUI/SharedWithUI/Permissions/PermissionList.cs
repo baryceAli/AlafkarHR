@@ -11,6 +11,7 @@ public static class PermissionList
     {
         List<string> list =
         [
+            ..PublicWebsitePermissions.Permissions,
             ..UsersPermissions.Permissions,
             ..RolesPermissions.Permissions,
             ..AcademicInistitutionPermissions.Permissions,
@@ -137,6 +138,16 @@ public static class PermissionList
 
         return list;
 
+    }
+
+    public static class PublicWebsitePermissions
+    {
+        public static string GroupName { get; set; } = "PublicWebsite.Content";
+        public const string View = "PublicWebsite.Content.View";
+        public const string Edit = "PublicWebsite.Content.Edit";
+        public const string Upload = "PublicWebsite.Content.Upload";
+        public const string Publish = "PublicWebsite.Content.Publish";
+        public static List<string> Permissions => [View, Edit, Upload, Publish];
     }
 
     public static List<string> GetPlatformPermissions()

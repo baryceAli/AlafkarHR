@@ -1,0 +1,19 @@
+@using SharedWithUI.GeneralSettings.Dtos
+@foreach (var section in Content.Snapshot.Pages.GetValueOrDefault(Path) ?? [])
+{
+    @if (section.Visible && Types.TryGetValue(section.Key, out var type))
+    {
+        <div class="website-section" data-pw-section="@section.Key" @key="section.Key"><DynamicComponent Type="type" Parameters="@Parameters(section.Key)" /></div>
+    }
+}
+@code {
+    [Parameter] public string Path { get; set; } = "/";
+    private static readonly Dictionary<string, Type> Types = WebsiteContentCatalog.Manifest.Pages.Values.SelectMany(x => x).Distinct()
+        .ToDictionary(k => k, k => typeof(WebsitePage).Assembly.GetType(typeof(WebsitePage).Namespace + "." + k)!);
+    private IDictionary<string, object>? Parameters(string section) => section switch
+    {
+        "CatalogueOverview" => new Dictionary<string, object> { ["Category"] = Content.PackageCategory, ["Changed"] = EventCallback.Factory.Create<int>(this, Content.SetPackageCategory) },
+        "PackagesCatalogue" => new Dictionary<string, object> { ["Category"] = Content.PackageCategory },
+        _ => null
+    };
+}

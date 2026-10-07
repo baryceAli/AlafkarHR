@@ -2530,6 +2530,20 @@ public class MenuItem
             {
                 new MenuItem
                 {
+                    TextEn = "Alafkar Public Website",
+                    TextAr = "موقع الأفكار العام",
+                    Icon = "bi-window",
+                    Url = "/PublicWebsite/ControlPanel",
+                    PermissionPolicy = PermissionList.PublicWebsitePermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupGeneralSettings,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 115,
+                    KeywordsEn = "public website visual editor content images media publish draft",
+                    KeywordsAr = "موقع عام محرر محتوى صور وسائط نشر مسودة"
+                },
+                new MenuItem
+                {
                     TextEn = "Setup Center",
                     TextAr = "مركز إعداد النظام",
                     Icon = "bi-magic",

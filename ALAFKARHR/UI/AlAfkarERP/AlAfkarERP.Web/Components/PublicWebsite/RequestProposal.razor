@@ -1,9 +1,5 @@
 @page "/request-proposal"
+@page "/en/request-proposal"
 @layout WebsiteLayout
-<WebsiteSeo Title="طلب استشارة / عرض سعر" Description="نموذج تجريبي لتحديد الباقة والخدمة المطلوبة. لا يتم إرسال الطلب أو حفظه." Path="/request-proposal" />
-<WebsitePageHeading Title="طلب استشارة / عرض سعر" Description="نموذج تجريبي لتحديد الباقة والخدمة المطلوبة. لا يتم إرسال الطلب أو حفظه." />
-<ProposalHub Package="@Package" Service="@Service" />
-@code {
- [SupplyParameterFromQuery(Name = "package")] public string? Package { get; set; }
- [SupplyParameterFromQuery(Name = "service")] public string? Service { get; set; }
-}
+<WebsiteSeo Title="@Content.Text("RequestProposal.f001")" Description="@Content.Text("RequestProposal.f002")" Path="/request-proposal" />
+<WebsitePage Path="/request-proposal" />

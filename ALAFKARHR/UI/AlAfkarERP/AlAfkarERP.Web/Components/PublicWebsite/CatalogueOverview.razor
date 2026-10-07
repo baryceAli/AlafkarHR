@@ -9,13 +9,13 @@
 <div class="flex flex-col gap-space-xs max-w-3xl">
 <div class="flex items-center gap-space-xs">
 <span class="h-2 w-2 rounded-full bg-primary animate-pulse"></span>
-<span class="font-label-md text-label-md text-primary tracking-widest uppercase">الكتالوج التنفيذي والتعاقد المؤسسي المباشر</span>
+<span class="font-label-md text-label-md text-primary tracking-widest uppercase" data-pw-fields="CatalogueOverview.f001">@Content.Text("CatalogueOverview.f001")</span>
 </div>
-<h1 class="font-headline-xl text-headline-xl text-on-surface font-bold tracking-tight">
-            الباقات والمنتجات المتاحة والطلب المباشر
+<h1 class="font-headline-xl text-headline-xl text-on-surface font-bold tracking-tight" data-pw-fields="CatalogueOverview.f002">
+            @Content.Text("CatalogueOverview.f002")
           </h1>
-<p class="font-body-xl text-body-xl text-on-surface-variant pt-space-xs leading-relaxed">
-            حلول وباقات جاهزة ومخصصة للجمعيات الخيرية، الجهات المانحة، وشركات حجاج الداخل والخارج وفق أرقى بروتوكولات الإعاشة وسلاسل الإمداد المبردة المعتمدة بالعاصمة المقدسة.
+<p class="font-body-xl text-body-xl text-on-surface-variant pt-space-xs leading-relaxed" data-pw-fields="CatalogueOverview.f003">
+            @Content.Text("CatalogueOverview.f003")
           </p>
 </div>
 
@@ -25,8 +25,8 @@
 <span aria-hidden="true" class="material-symbols-outlined text-xl">inventory_2</span>
 </div>
 <div>
-<p class="font-headline-sm text-headline-sm text-primary font-bold">+500,000</p>
-<p class="font-label-sm text-label-sm text-on-surface-variant">طاقة إنتاج يومية للوجبات</p>
+<p class="font-headline-sm text-headline-sm text-primary font-bold" data-pw-fields="CatalogueOverview.f004">@Content.Text("CatalogueOverview.f004")</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="CatalogueOverview.f005">@Content.Text("CatalogueOverview.f005")</p>
 </div>
 </div>
 <div class="flex items-center gap-space-sm pt-space-xs">
@@ -34,26 +34,26 @@
 <span aria-hidden="true" class="material-symbols-outlined text-xl">ac_unit</span>
 </div>
 <div>
-<p class="font-headline-sm text-headline-sm text-primary font-bold">-18°C إلى +4°C</p>
-<p class="font-label-sm text-label-sm text-on-surface-variant">سلسلة تبريد حرارية نشطة</p>
+<p class="font-headline-sm text-headline-sm text-primary font-bold" data-pw-fields="CatalogueOverview.f006">@Content.Text("CatalogueOverview.f006")</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant" data-pw-fields="CatalogueOverview.f007">@Content.Text("CatalogueOverview.f007")</p>
 </div>
 </div>
 </div>
 </div>
 
 <div class="flex flex-wrap items-center gap-space-xs pt-space-sm">
-<span class="font-label-md text-label-md text-on-surface-variant ml-space-sm">التصنيفات المعتمدة:</span>
-<button @onclick="() => Changed.InvokeAsync(0)" aria-pressed='@(Category == 0 ? "true" : "false")' class='px-space-md py-space-xs rounded-full font-label-md text-label-md font-semibold transition-all shadow-md @(Category == 0 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")'>
-          جميع الباقات (6)
+<span class="font-label-md text-label-md text-on-surface-variant ml-space-sm" data-pw-fields="CatalogueOverview.f008">@Content.Text("CatalogueOverview.f008")</span>
+<button @onclick="() => Changed.InvokeAsync(0)" aria-pressed='@(Category == 0 ? "true" : "false")' class='px-space-md py-space-xs rounded-full font-label-md text-label-md font-semibold transition-all shadow-md @(Category == 0 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")' data-pw-fields="CatalogueOverview.f009">
+          @Content.Text("CatalogueOverview.f009")
         </button>
-<button @onclick="() => Changed.InvokeAsync(1)" aria-pressed='@(Category == 1 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-all @(Category == 1 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")'>
-          إعاشة الحرم والمشاعر
+<button @onclick="() => Changed.InvokeAsync(1)" aria-pressed='@(Category == 1 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-all @(Category == 1 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")' data-pw-fields="CatalogueOverview.f010">
+          @Content.Text("CatalogueOverview.f010")
         </button>
-<button @onclick="() => Changed.InvokeAsync(2)" aria-pressed='@(Category == 2 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-all @(Category == 2 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")'>
-          سقيا وإفطار الجمعيات
+<button @onclick="() => Changed.InvokeAsync(2)" aria-pressed='@(Category == 2 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-all @(Category == 2 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")' data-pw-fields="CatalogueOverview.f011">
+          @Content.Text("CatalogueOverview.f011")
         </button>
-<button @onclick="() => Changed.InvokeAsync(3)" aria-pressed='@(Category == 3 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-all @(Category == 3 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")'>
-          التوريد المباشر والكسوة
+<button @onclick="() => Changed.InvokeAsync(3)" aria-pressed='@(Category == 3 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-all @(Category == 3 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")' data-pw-fields="CatalogueOverview.f012">
+          @Content.Text("CatalogueOverview.f012")
         </button>
 </div>
 </div>

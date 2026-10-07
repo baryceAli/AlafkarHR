@@ -52,6 +52,11 @@ builder.Services.AddScoped<SearchModalService>();
 
 
 builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<AlAfkarERP.Web.Components.PublicWebsite.WebsiteContentState>();
+builder.Services.AddSingleton<AlAfkarERP.Web.Components.PublicWebsite.WebsitePublishedCache>();
+builder.Services.AddSingleton<AlAfkarERP.Web.Components.PublicWebsite.WebsitePreviewSessions>();
+builder.Services.AddSingleton<IWebsitePreviewSessions>(sp => sp.GetRequiredService<AlAfkarERP.Web.Components.PublicWebsite.WebsitePreviewSessions>());
+builder.Services.AddHttpClient<PublicWebsiteService>(client => { client.BaseAddress = new Uri(apiConfig.BaseURL); client.Timeout = TimeSpan.FromMinutes(10); });
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 
 builder.Services.AddScoped<IAccountingService, AccountingService>();
@@ -494,13 +499,17 @@ app.UseAntiforgery();
 
 app.MapStaticAssets();
 
+AlAfkarERP.Web.Components.PublicWebsite.WebsiteMediaProxy.Map(app, apiConfig);
+
 // The crawl surface is deliberately limited to static public website routes.
 app.MapGet("/robots.txt", (IConfiguration configuration) => Results.Text(
     "User-agent: *\nAllow: /$\n" + string.Join("", AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p != "/").Select(p => $"Allow: {p}$\n")) +
+    "Allow: /en$\n" + string.Join("", AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p != "/").Select(p => $"Allow: /en{p}$\n")) +
     "Allow: /website/\nAllow: /_framework/\nDisallow: /\nSitemap: " + AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Origin(configuration) + "/sitemap.xml\n", "text/plain"));
 app.MapGet("/sitemap.xml", (IConfiguration configuration) => {
     var origin = AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Origin(configuration);
-    var paths = AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p is not ("/privacy-policy" or "/terms-and-conditions"));
+    var paths = AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p is not ("/privacy-policy" or "/terms-and-conditions"))
+        .SelectMany(p => new[] { p, p == "/" ? "/en" : "/en" + p });
     var document = new System.Xml.Linq.XDocument(new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("urlset", "http://www.sitemaps.org/schemas/sitemap/0.9"),
         paths.Select(p => new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("url", "http://www.sitemaps.org/schemas/sitemap/0.9"),
             new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("loc", "http://www.sitemaps.org/schemas/sitemap/0.9"), origin + p)))));

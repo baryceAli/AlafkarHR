@@ -1,75 +1,83 @@
 <section class="w-full bg-background py-space-xl" id="company-story">
 <div class="max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin">
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-center">
-
+@foreach (var item in Content.Items("CompanyStory.collection1"))
+{
+@switch (item.TemplateKey)
+{
+@case "CompanyStory.collection1.item1":
 <div class="lg:col-span-6 grid grid-cols-2 gap-space-md">
 <div class="flex flex-col gap-space-md">
 <div class="h-64 rounded-xl overflow-hidden bg-surface-container shadow-md">
-<img alt="Modern high capacity cold storage industrial warehouse in Makkah with gold ambient illumination, showing rows of pristine frozen food pallets and automated climate control systems." class="w-full h-full object-cover" decoding="async" height="279" loading="lazy" src="/website/image-af4790e44c63.webp" width="512"/>
+<img alt="@Content.Text("CompanyStory.collection1.item1.f001", item)" class="w-full h-full object-cover" decoding="async" height="279" loading="lazy" src="@Content.Media("CompanyStory.collection1.item1.f002", item)" width="512" data-pw-fields="CompanyStory.collection1.item1.f001,CompanyStory.collection1.item1.f002" data-pw-item="@item.Id"/>
 </div>
 <div class="p-space-md rounded-xl bg-surface-container-low flex flex-col gap-space-xs">
 <div class="flex items-center gap-space-xs text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-base">ac_unit</span>
-<span class="font-label-md text-label-md font-bold">المستودعات وثلاجات الحفظ</span>
+<span class="font-label-md text-label-md font-bold" data-pw-fields="CompanyStory.collection1.item1.f003" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item1.f003", item)</span>
 </div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">طاقة استيعابية تتجاوز 1000 طن متري من المواد الغذائية تحت درجات تبريد فائقة الدقة.</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="CompanyStory.collection1.item1.f004" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item1.f004", item)</p>
 </div>
 </div>
 <div class="flex flex-col gap-space-md -mt-6">
 <div class="p-space-md rounded-xl bg-surface-container-low flex flex-col gap-space-xs">
 <div class="flex items-center gap-space-xs text-primary">
 <span aria-hidden="true" class="material-symbols-outlined text-base">local_shipping</span>
-<span class="font-label-md text-label-md font-bold">أسطول النقل المبرد المعتمد</span>
+<span class="font-label-md text-label-md font-bold" data-pw-fields="CompanyStory.collection1.item1.f005" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item1.f005", item)</span>
 </div>
-<p class="font-body-sm text-body-sm text-on-surface-variant">سيارات خدمات وشاحنات مجهزة بتتبع حراري مستمر عبر الأقمار الصناعية لنقل وجبات الحرم والمشاعر.</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="CompanyStory.collection1.item1.f006" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item1.f006", item)</p>
 </div>
 <div class="h-64 rounded-xl overflow-hidden bg-surface-container shadow-md">
-<img alt="A fleet of high-tech refrigerated logistics trucks branded with elegant gold accents, stationed ready in Makkah logistics zone for sacred sites pilgrimage catering deployment." class="w-full h-full object-cover" decoding="async" height="279" loading="lazy" src="/website/image-83028d483d31.webp" width="512"/>
+<img alt="@Content.Text("CompanyStory.collection1.item1.f007", item)" class="w-full h-full object-cover" decoding="async" height="279" loading="lazy" src="@Content.Media("CompanyStory.collection1.item1.f008", item)" width="512" data-pw-fields="CompanyStory.collection1.item1.f007,CompanyStory.collection1.item1.f008" data-pw-item="@item.Id"/>
 </div>
 </div>
 </div>
-
+break;
+@case "CompanyStory.collection1.item2":
 <div class="lg:col-span-6 flex flex-col gap-space-md">
 <div class="flex items-center gap-space-sm">
 <span class="h-0.5 w-10 bg-primary"></span>
-<span class="font-label-lg text-label-lg text-primary font-bold">صرح وطني بخبرة عقد من الزمان</span>
+<span class="font-label-lg text-label-lg text-primary font-bold" data-pw-fields="CompanyStory.collection1.item2.f009" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f009", item)</span>
 </div>
-<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">
-            نبني منظومات الإطعام والتموين التي تليق بعظمة المشاعر المقدسة
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold" data-pw-fields="CompanyStory.collection1.item2.f010" data-pw-item="@item.Id">
+            @Content.Text("CompanyStory.collection1.item2.f010", item)
           </h2>
-<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
-            تأسست شركة الأفكار الناجحة التجارية لتكون الذراع التنفيذي الأقوى لخدمة ضيوف الرحمن والمؤسسات المانحة في المملكة العربية السعودية. نوظف بنيتنا التحتية المتقدمة لضمان تدفق الإعاشة وسلاسل الإمداد بموثوقية كاملة حتى في أوقات الذروة القصوى لموسم الحج.
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed" data-pw-fields="CompanyStory.collection1.item2.f011" data-pw-item="@item.Id">
+            @Content.Text("CompanyStory.collection1.item2.f011", item)
           </p>
 
 <div class="grid grid-cols-2 gap-space-md pt-space-xs">
 <div class="p-space-md rounded-lg bg-surface-container-low flex flex-col gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">lightbulb</span>
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold">الابتكار</span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">حلول تعبئة ذكية وحفظ حراري يعزز استدامة الوجبات ونقاء الطعم.</p>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold" data-pw-fields="CompanyStory.collection1.item2.f012" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f012", item)</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="CompanyStory.collection1.item2.f013" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f013", item)</p>
 </div>
 <div class="p-space-md rounded-lg bg-surface-container-low flex flex-col gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">verified</span>
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold">الجودة الشاملة</span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">شهادات سلامة معتمدة وفحوصات مخبرية مستمرة لكل شحنة.</p>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold" data-pw-fields="CompanyStory.collection1.item2.f014" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f014", item)</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="CompanyStory.collection1.item2.f015" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f015", item)</p>
 </div>
 <div class="p-space-md rounded-lg bg-surface-container-low flex flex-col gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">visibility</span>
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold">الشفافية والحوكمة</span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">تقارير توثيقية رقمية فورية للمانحين وشركاء المشاريع الإنسانية.</p>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold" data-pw-fields="CompanyStory.collection1.item2.f016" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f016", item)</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="CompanyStory.collection1.item2.f017" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f017", item)</p>
 </div>
 <div class="p-space-md rounded-lg bg-surface-container-low flex flex-col gap-space-xs">
 <span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">eco</span>
-<span class="font-headline-sm text-headline-sm text-on-surface font-bold">الاستدامة</span>
-<p class="font-body-sm text-body-sm text-on-surface-variant">ممارسات صديقة للبيئة والحد من الهدر الغذائي بمشاريع المشاعر.</p>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold" data-pw-fields="CompanyStory.collection1.item2.f018" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f018", item)</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant" data-pw-fields="CompanyStory.collection1.item2.f019" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f019", item)</p>
 </div>
 </div>
 <div class="pt-space-xs">
-<a class="inline-flex items-center gap-space-xs text-primary font-label-lg text-label-lg font-bold hover:underline" href="/#quick-inquiry">
-<span>اكتشف كيف نخدم مؤسستكم وجمعيتكم الخيرية</span>
+<a class="inline-flex items-center gap-space-xs text-primary font-label-lg text-label-lg font-bold hover:underline" href="@Content.Link("CompanyStory.collection1.item2.f020", item)" data-pw-fields="CompanyStory.collection1.item2.f020" data-pw-item="@item.Id">
+<span data-pw-fields="CompanyStory.collection1.item2.f021" data-pw-item="@item.Id">@Content.Text("CompanyStory.collection1.item2.f021", item)</span>
 <span aria-hidden="true" class="material-symbols-outlined text-base">arrow_back</span>
 </a>
 </div>
 </div>
+break;
+}
+}
 </div>
 </div>
 </section>

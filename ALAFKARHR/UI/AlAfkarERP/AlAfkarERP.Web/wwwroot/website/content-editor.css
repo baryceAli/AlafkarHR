@@ -1,0 +1,15 @@
+.public-website { --website-editor-accent: #d4af37; --website-editor-radius: .5rem; --website-editor-space: 1rem; }
+.website-section { display: contents; }
+.website-edit-preview [data-pw-fields] { cursor: pointer; }
+.website-edit-preview [data-pw-fields]:hover { outline: 2px dashed var(--website-editor-accent); outline-offset: 3px; }
+.website-edit-preview [data-pw-section] { display: block; }
+.website-brand-logo { width: 3rem; height: 3rem; object-fit: contain; }
+.website-language-switch { border: 1px solid currentColor; border-radius: var(--website-editor-radius); padding-block: .25rem; padding-inline: .5rem; }
+.website-resource-files { display: grid; gap: var(--website-editor-space); margin-block: var(--website-editor-space); }
+.website-resource-files video { width: 100%; max-height: 30rem; }
+.website-resource-upload-slot { border: 1px dashed var(--website-editor-accent); border-radius: var(--website-editor-radius); padding: var(--website-editor-space); }
+.public-website[dir="ltr"] .text-right { text-align: start; }
+.public-website[dir="ltr"] .font-body-md, .public-website[dir="ltr"] .font-headline-sm, .public-website[dir="ltr"] .font-headline-xl, .public-website[dir="ltr"] .font-display-hero { font-family: Arial, sans-serif; }
+.public-website[dir="ltr"] input.pr-10 { padding-inline-start: 2.5rem; padding-inline-end: 1rem; }
+.public-website[dir="ltr"] .right-3 { right: auto; inset-inline-start: .75rem; }
+.public-website[dir="ltr"] .material-symbols-outlined { direction: ltr; }

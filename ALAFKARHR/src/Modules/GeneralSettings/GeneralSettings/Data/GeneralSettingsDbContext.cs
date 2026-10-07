@@ -14,6 +14,10 @@ public class GeneralSettingsDbContext:DbContext
     }
 
     public DbSet<Currency> Currencies => Set<Currency>();
+    public DbSet<GeneralSettings.Features.PublicWebsite.PublicWebsiteSite> PublicWebsiteSites => Set<GeneralSettings.Features.PublicWebsite.PublicWebsiteSite>();
+    public DbSet<GeneralSettings.Features.PublicWebsite.PublicWebsiteRevision> PublicWebsiteRevisions => Set<GeneralSettings.Features.PublicWebsite.PublicWebsiteRevision>();
+    public DbSet<GeneralSettings.Features.PublicWebsite.PublicWebsiteMedia> PublicWebsiteMedia => Set<GeneralSettings.Features.PublicWebsite.PublicWebsiteMedia>();
+    public DbSet<GeneralSettings.Features.PublicWebsite.PublicWebsiteAudit> PublicWebsiteAudit => Set<GeneralSettings.Features.PublicWebsite.PublicWebsiteAudit>();
     public DbSet<CompanySetting> CompanySettings => Set<CompanySetting>();
     public DbSet<CompanySetupProfile> CompanySetupProfiles => Set<CompanySetupProfile>();
     public DbSet<HomePageTemplateSelection> HomePageTemplateSelections => Set<HomePageTemplateSelection>();
