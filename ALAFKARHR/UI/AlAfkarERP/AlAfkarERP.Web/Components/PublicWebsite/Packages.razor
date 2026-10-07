@@ -1,0 +1,11 @@
+@page "/packages"
+@layout WebsiteLayout
+<WebsiteSeo Title="الباقات والمنتجات" Description="استعرض باقات الوجبات والسقيا والسلال والتمور، ونموذج الاستشارة التوضيحي." Path="/packages" />
+<CatalogueAnnouncement />
+<CatalogueOverview Category="Category" Changed="SetCategory" />
+<PackagesCatalogue Category="Category" />
+<ProposalHub />
+<LocationHub />
+<CatalogueCallToAction />
+
+@code { private int Category; private void SetCategory(int value) => Category = value; }

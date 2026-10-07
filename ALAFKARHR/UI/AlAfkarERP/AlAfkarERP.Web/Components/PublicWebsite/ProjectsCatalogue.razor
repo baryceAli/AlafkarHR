@@ -1,0 +1,364 @@
+<section class="w-full bg-background py-space-xl">
+<div class="max-w-[1440px] mx-auto px-margin-mobile md:px-margin-tablet lg:px-margin flex flex-col gap-space-xl">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-xs text-primary font-label-md text-label-md">
+<span aria-hidden="true" class="material-symbols-outlined text-sm">inventory_2</span>
+<span>الملف العملياتي الموثق</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface font-bold">مشاريعنا النوعية الميدانية</h2>
+</div>
+<div class="flex items-center gap-space-xs overflow-x-auto pb-space-xs md:pb-0" id="filter-container">
+<button @onclick='() => Select("all")' aria-pressed='@(Filter == "all" ? "true" : "false")' class='filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md transition-all @(Filter == "all" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant")' data-filter="all">الكل</button>
+<button @onclick='() => Select("hajj-feeding")' aria-pressed='@(Filter == "hajj-feeding" ? "true" : "false")' class='filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md hover:text-primary transition-all @(Filter == "hajj-feeding" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant")' data-filter="hajj-feeding">إعاشة الحجاج</button>
+<button @onclick='() => Select("water")' aria-pressed='@(Filter == "water" ? "true" : "false")' class='filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md hover:text-primary transition-all @(Filter == "water" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant")' data-filter="water">مشاريع السقيا</button>
+<button @onclick='() => Select("bags")' aria-pressed='@(Filter == "bags" ? "true" : "false")' class='filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md hover:text-primary transition-all @(Filter == "bags" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant")' data-filter="bags">الحقائب النوعية</button>
+<button @onclick='() => Select("ramadan")' aria-pressed='@(Filter == "ramadan" ? "true" : "false")' class='filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md hover:text-primary transition-all @(Filter == "ramadan" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant")' data-filter="ramadan">مشاريع رمضان</button>
+<button @onclick='() => Select("development")' aria-pressed='@(Filter == "development" ? "true" : "false")' class='filter-btn px-space-md py-space-xs rounded-lg font-label-md text-label-md hover:text-primary transition-all @(Filter == "development" ? "bg-primary text-on-primary" : "bg-surface-container text-on-surface-variant")' data-filter="development">المبادرات التنموية</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-space-lg" id="projects-grid">
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="hajj-feeding" hidden='@(Filter != "all" && Filter != "hajj-feeding")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="High quality institutional catering meals preparation for pilgrims in Makkah commercial central kitchens, hygienic packaging line with thermal containers under gold warm cinematic lighting, ultra modern logistics setup." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="279" loading="lazy" src="/website/image-6a8c6c6d8a24.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">مشاعر منى وعرفات</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">HACCP معتمد</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                إطعام الحجاج بالمشاعر المقدسة ومكة المكرمة
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                تجهيز ونقل وتوزيع الوجبات الساخنة والجافة وفق أدق معايير سلامة الأغذية وسلاسل التبريد والتسخين السريع لنحو 85,000 حاج يومياً في ذروة أيام التشريق.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">إجمالي الوجبات</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">1,420,000</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">جاهزية الأسطول</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">42 شاحنة تبريد</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">المواسم: 1443 - 1446هـ</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">verified_user</span>
+</div>
+</article>
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="ramadan" hidden='@(Filter != "all" && Filter != "ramadan")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="Grand iftar distribution inside courtyards of the Grand Mosque of Makkah with elegant dates and water boxes aligned uniformly under ambient twilight, disciplined Saudi logistics team in uniforms." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="279" loading="lazy" src="/website/image-24a9e4adfbc6.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">ساحات الحرم المكي</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">موسم رمضان المبارك</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                مشروع إفطار صائم بالمسجد الحرام ومساجد مكة
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                تأمين وتوزيع سفر الإفطار الفردية المغلفة آلياً وتفويج المواد الغذائية لساحات الحرم المكي الشريف ومساجد الأحياء التاريخية خلال دقائق قبل أذان المغرب.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">وجبات الإفطار</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">2,100,000+</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">كوادر التوزيع</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">260 مشرف ميداني</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">معدل التوزيع اليومي: 70 ألف وجبة</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">task_alt</span>
+</div>
+</article>
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="water" hidden='@(Filter != "all" && Filter != "water")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="Chilled water bottles pallets organized in high tech logistics distribution depot with golden ambient lighting and cold mist effects, transport trucks loading for holy sites in Makkah." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="279" loading="lazy" src="/website/image-741cf822c46f.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">سقيا الحرم والمشاعر</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">سلاسل تبريد 4° مئوية</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                مشاريع السقيا الكبرى وشبكات التبريد
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                توريد وتوزيع مياه الشرب الصحية الباردة في محطات كدي وجبانة ومواقف حافلات المعتمرين ومقابر مكة ومداخل المشاعر المقدسة بتدفق لا ينقطع.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">إجمالي الكراتين</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">580,000 كرتون</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">نقاط الخدمة</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">38 موقع استراتيجي</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">مستمر طوال العام 24/7</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">water_drop</span>
+</div>
+</article>
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="ramadan" hidden='@(Filter != "all" && Filter != "ramadan")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="Standardized dry food aid baskets packed in gold stamped sturdy boxes with flour rice cooking oil and essentials in a vast clean fulfillment warehouse in Saudi Arabia." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="279" loading="lazy" src="/website/image-2fde7ee00af9.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">التموين الخيري</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">سلال غذائية نموذجية</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                السلال الغذائية المتكاملة للأسر المستفيدة
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                تأمين المكونات الغذائية الأساسية عبر خطوط إنتاج مؤتمتة، وشحنها إلى منازل المستفيدين ومقار الجمعيات الخيرية الشريكة بمختلف مدن ومحافظات المملكة.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">سلال مكتملة</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">185,000 سلة</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">الوزن التراكمي</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">4,625 طن مواد</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">تغطية تشمل 14 منطقة بالمملكة</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">all_inbox</span>
+</div>
+</article>
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="ramadan" hidden='@(Filter != "all" && Filter != "ramadan")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="Bulk packaged premium Saudi grain sacks for Zakat al-Fitr staged with precision digital scales and barcode stickers in modern distribution warehouse under golden lighting." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="279" loading="lazy" src="/website/image-bfbd8d3e0b9a.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">التزام شرعي دقيق</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">أواخر شهر رمضان</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                تنفيذ زكاة الفطر وتوزيعها في أوقاتها الشرعية
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                منظومة تنفيذية موقوتة للأرز الفاخر تضمن استلام الزكوات وتعبئتها وتوصيلها لمستحقيها الشرعيين في ليلة عيد الفطر وقبل صلاة العيد وفق الفتاوى المعتمدة.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">صاع وأكياس الأرز</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">340,000 كيس</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">نافذة الإنجاز</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">48 ساعة حاسمة</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">توثيق رقمي فوري لكل دفعة</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">timelapse</span>
+</div>
+</article>
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="bags" hidden='@(Filter != "all" && Filter != "bags")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="High quality school backpacks filled with notebooks and stationery alongside warm winter clothing packages displayed on modern minimalist shelves with dark gold architectural aesthetics." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="279" loading="lazy" src="/website/image-5c754d97f3f1.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">الرعاية المجتمعية</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">مشاريع موسمية</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                الحقائب المدرسية والشتوية للأسر المتعففة
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                تصنيع وتجهيز الحقائب المدرسية المتكاملة بالقرطاسية المعيارية، وحقائب الكسوة الشتوية الفاخرة للقرى والهجر النائية عبر شراكات الأوقاف الخيرية.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">الحقائب المدرسية</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">52,000 حقيبة</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">الحقائب الشتوية</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">38,000 حقيبة</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">وفق أعلى معايير الجودة والخامات</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">backpack</span>
+</div>
+</article>
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="hajj-feeding" hidden='@(Filter != "all" && Filter != "hajj-feeding")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="Luxurious pilgrim gift package boxes adorned with Islamic gold arabesque calligraphy containing prayer rug, miswak, and sacred mementos, staged on sleek black surface." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="279" loading="lazy" src="/website/image-93486f4e4e92.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">الضيافة والوفادة</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">ضيوف الرحمن</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                مشروع هدية وترحاب الحاج والمعتمر
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                حزم ترحيبية راقية تتضمن سجادات صلاة فاخرة، مظلات شمسية معزولة، عبوات ماء زمزم، ومطبوعات إرشادية متعددة اللغات لتكريم ضيوف الرحمن فور وصولهم.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">إجمالي الهدايا</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">95,000 هدية</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">مواقع الاستقبال</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">مطارات ومنافذ مكة</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">بالشراكة مع مكاتب شؤون الحجاج</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">card_giftcard</span>
+</div>
+</article>
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="development" hidden='@(Filter != "all" && Filter != "development")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="Exterior and elegant lobby view of a modern luxury residential tower for pilgrims in Makkah, golden warm architectural night lighting with prestigious Saudi hospitality design." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="286" loading="lazy" src="/website/image-6c9769668aa3.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">إدارة الأصول والإسكان</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">4 عمائر فندقية</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                التشغيل المتكامل لعمائر الحجاج والمعتمرين
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                الإدارة الفندقية الشاملة، الصيانة الدورية، خدمات الإعاشة المركزية، والتنظيف والتعقيم على مدار الساعة لـ 4 مجمعات سكنية في العاصمة المقدسة.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">الطاقة الاستيعابية</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">2,800 سرير</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">نسبة الرضا</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">98.4%</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">مواقع مخدومة بخطوط نقل ترددية</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">apartment</span>
+</div>
+</article>
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="development" hidden='@(Filter != "all" && Filter != "development")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="Interior of a beautifully restored historic mosque in Makkah with plush patterned prayer rugs, modern subtle chandeliers and spotless marble columns." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="279" loading="lazy" src="/website/image-3612443d85f7.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">عمارة المساجد</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">صيانة وترميم</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                مشاريع ترميم المساجد والعناية بها
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                إحلال السجاد الفاخر، صيانة أنظمة التكييف الصامتة، تحديث المؤثرات الصوتية والإنارة الموفرة للطاقة، وتأمين متطلبات النظافة والتعقيم المستمر.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">المساجد المشمولة</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">24 مسجداً</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">المساحة المجددة</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">36,000 م²</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">مشاريع منفذة بالتعاون مع جهات الوقف</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">mosque</span>
+</div>
+</article>
+<article class="project-card group bg-surface-container rounded-xl overflow-hidden shadow-lg flex flex-col justify-between transition-all hover:-translate-y-1" data-category="development" hidden='@(Filter != "all" && Filter != "development")'>
+<div class="flex flex-col">
+<div class="relative w-full h-56 overflow-hidden">
+<img alt="Premium Saudi dates including Sukari and Ajwa packaged in luxury dark boxes with dried apricots and raisins, direct from Madinah and Qassim factories to shipping docks." class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" decoding="async" height="286" loading="lazy" src="/website/image-a31bc27151c5.webp" width="512"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container via-surface-container/30 to-transparent"></div>
+<div class="absolute top-space-md right-space-md flex flex-wrap gap-space-xs">
+<span class="px-space-sm py-space-xs rounded-lg bg-surface-container-lowest/80 backdrop-blur-md text-primary font-label-sm text-label-sm">سلاسل الإمداد المباشرة</span>
+<span class="px-space-sm py-space-xs rounded-lg bg-primary/20 text-primary font-label-sm text-label-sm">من المصانع والمزارع</span>
+</div>
+</div>
+<div class="p-space-lg flex flex-col gap-space-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold group-hover:text-primary transition-colors">
+                التوريد المباشر للتمور والمجففات الغذائية
+              </h3>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                شراكات تصنيعية مباشرة مع مزارع القصيم والمدينة لتأمين أجود أصناف التمور (سكري، خلاص، عجوة) والمشمش المجفف والزبيب للوجبات وسفر الإفطار.
+              </p>
+<div class="grid grid-cols-2 gap-space-sm pt-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">التمور الموردة</span>
+<span class="font-headline-sm text-headline-sm text-primary font-bold">1,850 طن</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg flex flex-col">
+<span class="font-label-sm text-label-sm text-secondary">المجففات والفواكه</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">420 طن</span>
+</div>
+</div>
+</div>
+</div>
+<div class="px-space-lg pb-space-lg pt-space-xs flex items-center justify-between">
+<span class="font-label-sm text-label-sm text-on-surface-variant">عقود مباشرة تضمن استقرار التكلفة والجودة</span>
+<span aria-hidden="true" class="material-symbols-outlined text-primary text-xl">nutrition</span>
+</div>
+</article>
+</div>
+</div>
+</section>
+@code { private string Filter = "all"; private void Select(string filter) => Filter = filter; }

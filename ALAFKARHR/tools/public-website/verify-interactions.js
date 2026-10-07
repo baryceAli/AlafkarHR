@@ -1,0 +1,30 @@
+async (page) => {
+ const results = {};
+ await page.goto('http://localhost:5148/projects');
+ await page.waitForFunction(()=>!document.querySelector('form button[type=submit]').disabled);
+ await page.getByRole('button', {name:'قراءة البيان الصحفي'}).first().click();
+ await page.locator('#partnerreportform-field-0').fill('DEMO-ONLY');
+ await page.locator('#partnerreportform-field-1').fill('demo');
+ await page.getByRole('button', {name:'عرض التقرير الموثق الفوري'}).click();
+ results.mediaExpanded = await page.getByRole('button', {name:'قراءة البيان الصحفي'}).first().getAttribute('aria-expanded');
+ results.partnerDemo = await page.getByRole('status').textContent();
+ await page.goto('http://localhost:5148/request-proposal?package=demo-package&service='+encodeURIComponent('سقيا'));
+ await page.locator('#submitBtn').waitFor({state:'visible'});
+ await page.waitForFunction(()=>!document.querySelector('#submitBtn').disabled);
+ results.queryService = await page.locator('#proposalform-field-2').inputValue();
+ results.queryPackage = await page.locator('#proposalform-field-6').inputValue();
+ await page.goto('http://localhost:5148/');
+ const submit=page.locator('form button[type=submit]').first();
+ await page.waitForFunction(()=>!document.querySelector('form button[type=submit]').disabled);
+ await submit.click();
+ results.emptyFormInvalid = await page.locator('form').first().evaluate(f=>!f.checkValidity());
+ results.noEmptySubmission = await page.getByRole('status').count()===0;
+ await page.locator('#quickinquiryform-field-0').fill('Website demo');
+ await page.locator('#quickinquiryform-field-1').fill('500000000');
+ await submit.click();
+ results.quickDemo = await page.getByRole('status').textContent();
+ await page.emulateMedia({reducedMotion:'reduce'});
+ results.reducedMotion = await page.evaluate(()=>({enabled:matchMedia('(prefers-reduced-motion: reduce)').matches, duration:getComputedStyle(document.querySelector('form button')).transitionDuration}));
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ return results;
+}

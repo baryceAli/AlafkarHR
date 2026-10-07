@@ -1,0 +1,223 @@
+- generic [ref=f30e2]:
+  - link "انتقل إلى المحتوى" [ref=f30e3] [cursor=pointer]:
+    - /url: "#website-main"
+  - banner [ref=f30e4]:
+    - link "الصورة المرجعية لهوية الشركة غير متاحة شركة الأفكار الناجحة للتجارة والإعاشة اللوجستية" [ref=f30e6] [cursor=pointer]:
+      - /url: /
+      - img "الصورة المرجعية لهوية الشركة غير متاحة" [ref=f30e7]: img
+      - generic [ref=f30e8]:
+        - generic [ref=f30e9]: شركة الأفكار الناجحة
+        - generic [ref=f30e10]: للتجارة والإعاشة اللوجستية
+    - group [ref=f30e11]:
+      - generic "☰القائمة" [ref=f30e12] [cursor=pointer]
+  - main [ref=f30e13]:
+    - generic [ref=f30e14]:
+      - heading "طلب استشارة / عرض سعر" [level=1] [ref=f30e15]
+      - paragraph [ref=f30e16]: نموذج تجريبي لتحديد الباقة والخدمة المطلوبة. لا يتم إرسال الطلب أو حفظه.
+    - generic [ref=f30e18]:
+      - paragraph [ref=f30e19]: عرض توضيحي ثابت — الأرقام والمؤشرات من التصميم، وليست بيانات مباشرة.
+      - generic [ref=f30e20]:
+        - generic [ref=f30e22]:
+          - generic [ref=f30e23]: بوابة التعاقد والتسعير المؤسسي
+          - heading "طلب عرض سعر واستشارة مباشرة" [level=2] [ref=f30e24]
+        - paragraph [ref=f30e25]: يُرجى تعبئة الحقول بدقة لتحويل طلبكم مباشرة إلى مكتب التسعير الفني التابع لإدارة المشروعات والإعاشة. سيتم تزويدكم بعرض السعر وجدول الإمداد خلال 24 ساعة عمل.
+        - generic [ref=f30e26]:
+          - generic [ref=f30e27]:
+            - generic [ref=f30e28]:
+              - text: الاسم الكامل / اسم الجهة أو الجمعية الخيرية
+              - generic [ref=f30e29]: "*"
+            - generic [ref=f30e30]:
+              - generic [aria-hidden]: corporate_fare
+              - textbox "الاسم الكامل / اسم الجهة أو الجمعية الخيرية *" [ref=f30e31]:
+                - /placeholder: "مثال: جمعية الإحسان لرعاية ضيوف الرحمن / مؤسسة إعاشة الحجاج"
+          - generic [ref=f30e32]:
+            - generic [ref=f30e33]:
+              - generic [ref=f30e34]:
+                - text: نوع الجهة
+                - generic [ref=f30e35]: "*"
+              - combobox "نوع الجهة *" [ref=f30e36] [cursor=pointer]:
+                - option "اختر صفة الجهة التعاقدية" [disabled] [selected]
+                - option "جمعية خيرية / منظمة غير ربحية"
+                - option "شركة إعاشة وتموين مؤسسي"
+                - option "جهة مانحة / أوقاف استثمارية"
+                - option "شركة خدمة حجاج (طوافة / داخل)"
+                - option "فاعل خير / قطاع أفراد"
+            - generic [ref=f30e37]:
+              - generic [ref=f30e38]:
+                - text: نوع الخدمة أو الباقة المطلوبة
+                - generic [ref=f30e39]: "*"
+              - combobox "نوع الخدمة أو الباقة المطلوبة *" [ref=f30e40] [cursor=pointer]:
+                - option "حدد البرنامج اللوجستي" [disabled] [selected]
+                - option "إعاشة حجاج المشاعر المقدسة"
+                - option "وجبات إفطار صائم بالحرم المكي"
+                - option "برنامج السقيا المباركة والمياه"
+                - option "السلال والمواد الغذائية التموينية"
+                - option "توريد التمور والمواد الجافة"
+                - option "نقل وتخزين مبرد ومجمد"
+                - option "أخرى / حقائب مدرسية وكسوة"
+          - generic [ref=f30e41]:
+            - generic [ref=f30e42]:
+              - generic [ref=f30e43]:
+                - text: عدد المستفيدين / حجم الكمية التقديري
+                - generic [ref=f30e44]: "*"
+              - generic [ref=f30e45]:
+                - generic [aria-hidden]: groups
+                - textbox "عدد المستفيدين / حجم الكمية التقديري *" [ref=f30e46]:
+                  - /placeholder: "مثال: 5,000 وجبة أو 500 سلة تموينية"
+            - generic [ref=f30e47]:
+              - generic [ref=f30e48]:
+                - text: رقم الجوال المعتمد (السعودية)
+                - generic [ref=f30e49]: "*"
+              - generic [ref=f30e50]:
+                - generic: "+966"
+                - textbox "رقم الجوال المعتمد (السعودية) *" [ref=f30e51]:
+                  - /placeholder: 5X XXX XXXX
+          - generic [ref=f30e52]:
+            - generic [ref=f30e53]:
+              - text: البريد الإلكتروني الرسمي
+              - generic [ref=f30e54]: "*"
+            - generic [ref=f30e55]:
+              - generic [aria-hidden]: alternate_email
+              - textbox "البريد الإلكتروني الرسمي *" [ref=f30e56]:
+                - /placeholder: procurement@organization.sa
+          - generic [ref=f30e57]:
+            - generic [ref=f30e58]: المواصفات الفنية وملاحظات الجدول الزمني
+            - textbox "المواصفات الفنية وملاحظات الجدول الزمني" [ref=f30e59]:
+              - /placeholder: يرجى توضيح موقع التوزيع (منى، عرفات، الحرم، مستودعات خارجية)، فترات التوريد، أية اشتراطات خاصة بالتغليف أو الهوية...
+              - text: "الطلب التجريبي للباقة: Package"
+          - generic [ref=f30e60]:
+            - checkbox "أقر بأن هذا نموذج توضيحي لا يرسل طلباً أو ينشئ تعاقداً. مسودة سياسة الخصوصية" [ref=f30e61] [cursor=pointer]
+            - generic [ref=f30e62] [cursor=pointer]:
+              - text: أقر بأن هذا نموذج توضيحي لا يرسل طلباً أو ينشئ تعاقداً.
+              - link "مسودة سياسة الخصوصية" [ref=f30e63]:
+                - /url: /privacy-policy
+          - button "إرسال طلب التعاقد / الاستشارة المباشرة" [disabled] [ref=f30e65]:
+            - generic [aria-hidden] [ref=f30e66]: send
+        - paragraph [ref=f30e68]: "عرض توضيحي: لا يتم إرسال طلب أو إنشاء تعاقد في هذه النسخة."
+      - generic [ref=f30e69]:
+        - generic [ref=f30e70]:
+          - generic [ref=f30e71]:
+            - generic [ref=f30e72]:
+              - generic [aria-hidden] [ref=f30e73]: location_city
+              - heading "المقر والمعلومات الرسمية" [level=3] [ref=f30e74]
+            - generic [ref=f30e75]: مكة المكرمة
+          - paragraph [ref=f30e76]: تعمل شركة الأفكار الناجحة التجارية من قلب العاصمة المقدسة لضمان أقصى سرعة استجابة ومرونة ميدانية في تغطية مواسم الحج والعمرة والبرامج الوقفية المستمرة طوال العام.
+          - generic [ref=f30e77]:
+            - generic [ref=f30e78]:
+              - generic [aria-hidden] [ref=f30e80]: pin_drop
+              - generic [ref=f30e81]:
+                - generic [ref=f30e82]: "المقر الرئيسي للإدارة العامة:"
+                - generic [ref=f30e83]: طريق مكة - جدة السريع، حي الحمراء، مكة المكرمة، المملكة العربية السعودية
+            - generic [ref=f30e84]:
+              - generic [aria-hidden] [ref=f30e86]: warehouse
+              - generic [ref=f30e87]:
+                - generic [ref=f30e88]: "المستودعات المركزية وثلاجات الحفظ:"
+                - generic [ref=f30e89]: منطقة المستودعات المركزية بالشميسي وجنوب مكة، سعة تخزينية +10,000 طبلية
+        - generic [ref=f30e90]:
+          - heading "قنوات الاتصال المباشر والخدمة السريعة" [level=3] [ref=f30e91]:
+            - generic [aria-hidden] [ref=f30e92]: quick_reference_all
+            - text: قنوات الاتصال المباشر والخدمة السريعة
+          - generic [ref=f30e93]:
+            - link "الهاتف الموحد +966 12 000 0000" [ref=f30e94] [cursor=pointer]:
+              - /url: /contact#direct-contact
+              - generic [aria-hidden] [ref=f30e96]: phone_in_talk
+              - generic [ref=f30e97]:
+                - generic [ref=f30e98]: الهاتف الموحد
+                - generic [ref=f30e99]: +966 12 000 0000
+            - link "واتساب الجمعيات والحجاج +966 50 000 0000" [ref=f30e100] [cursor=pointer]:
+              - /url: /contact#direct-contact
+              - generic [aria-hidden] [ref=f30e102]: chat
+              - generic [ref=f30e103]:
+                - generic [ref=f30e104]: واتساب الجمعيات والحجاج
+                - generic [ref=f30e105]: +966 50 000 0000
+            - link "بريد التعاقدات الرسمية sales@najehah.com.sa" [ref=f30e106] [cursor=pointer]:
+              - /url: /contact#direct-contact
+              - generic [aria-hidden] [ref=f30e108]: mail_lock
+              - generic [ref=f30e109]:
+                - generic [ref=f30e110]: بريد التعاقدات الرسمية
+                - generic [ref=f30e111]: sales@najehah.com.sa
+            - link "الدعم الميداني والعمليات info@najehah.com.sa" [ref=f30e112] [cursor=pointer]:
+              - /url: /contact#direct-contact
+              - generic [aria-hidden] [ref=f30e114]: support_agent
+              - generic [ref=f30e115]:
+                - generic [ref=f30e116]: الدعم الميداني والعمليات
+                - generic [ref=f30e117]: info@najehah.com.sa
+        - generic [ref=f30e118]:
+          - generic [ref=f30e119]:
+            - generic [ref=f30e120]: مؤشر التحكم الحراري للأسطول الميداني
+            - generic [ref=f30e122]: تحديث حي
+          - generic [ref=f30e123]:
+            - generic [ref=f30e124]:
+              - generic [aria-hidden] [ref=f30e125]: thermostat
+              - generic [ref=f30e126]:
+                - generic [ref=f30e127]: "-18.4°C"
+                - generic [ref=f30e128]: ثلاجة المستودع المركزي A-4
+            - generic [ref=f30e130]:
+              - generic [aria-hidden] [ref=f30e131]: directions_boat
+              - generic [ref=f30e132]:
+                - generic [ref=f30e133]: +3.8°C
+                - generic [ref=f30e134]: أسطول الإمداد نحو منى
+  - contentinfo [ref=f30e135]:
+    - generic [ref=f30e136]:
+      - generic [ref=f30e137]:
+        - generic [ref=f30e138]:
+          - generic [ref=f30e139]: شركة الأفكار الناجحة
+          - paragraph [ref=f30e141]: "\"أفكار نابضة… وحلول ناجحة\""
+          - paragraph [ref=f30e142]: صرح لوجستي رائد في العاصمة المقدسة يقود منظومة الإعاشة والتموين المؤسسي لضيوف الرحمن وخدمة المشاعر المقدسة وفق أعلى المعايير القياسية العالمية.
+          - generic [ref=f30e143]:
+            - generic [aria-hidden] [ref=f30e144]: verified
+            - generic [ref=f30e145]: مرخصون لتقديم خدمات الإعاشة بالحرم المكي والمشاعر
+        - generic [ref=f30e146]:
+          - generic [ref=f30e147]: روابط الوصول السريع
+          - link "عن الشركة ورؤيتنا" [ref=f30e148] [cursor=pointer]:
+            - /url: /about
+          - link "خدمات الإعاشة والتموين" [ref=f30e149] [cursor=pointer]:
+            - /url: /services
+          - link "أسطول النقل وسلاسل الإمداد" [ref=f30e150] [cursor=pointer]:
+            - /url: /infrastructure
+          - link "باقات وبرامج ضيوف الرحمن" [ref=f30e151] [cursor=pointer]:
+            - /url: /packages
+          - link "التقارير والمركز الإعلامي" [ref=f30e152] [cursor=pointer]:
+            - /url: /projects#media-center
+        - generic [ref=f30e153]:
+          - generic [ref=f30e154]: المشاريع والشراكات
+          - link "إعاشة مخيمات مشعر منى" [ref=f30e155] [cursor=pointer]:
+            - /url: /projects
+          - link "منظومة الإمداد في عرفات ومزدلفة" [ref=f30e156] [cursor=pointer]:
+            - /url: /projects
+          - link "شراكات الأوقاف والمؤسسات الخيرية" [ref=f30e157] [cursor=pointer]:
+            - /url: /projects
+          - link "الوجبات الجافة والمطهية مسبقاً" [ref=f30e158] [cursor=pointer]:
+            - /url: /packages
+          - link "المستودعات وثلاجات الحفظ المركزي" [ref=f30e159] [cursor=pointer]:
+            - /url: /infrastructure
+        - generic [ref=f30e160]:
+          - generic [ref=f30e161]: معلومات التواصل
+          - generic [ref=f30e162]:
+            - generic [aria-hidden] [ref=f30e163]: location_on
+            - generic [ref=f30e164]: "المقر الرئيسي: مكة المكرمة، المملكة العربية السعودية"
+          - generic [ref=f30e165]:
+            - generic [aria-hidden] [ref=f30e166]: call
+            - generic [ref=f30e167]: +966 12 000 0000
+          - generic [ref=f30e168]:
+            - generic [aria-hidden] [ref=f30e169]: mail
+            - generic [ref=f30e170]: info@najehah.com.sa
+          - generic [ref=f30e171]:
+            - link "معلومات التواصل" [ref=f30e172] [cursor=pointer]:
+              - /url: /contact#direct-contact
+              - generic [aria-hidden] [ref=f30e173]: share
+            - link "معلومات التواصل" [ref=f30e174] [cursor=pointer]:
+              - /url: /contact#direct-contact
+              - generic [aria-hidden] [ref=f30e175]: public
+            - link "معلومات التواصل" [ref=f30e176] [cursor=pointer]:
+              - /url: /contact#direct-contact
+              - generic [aria-hidden] [ref=f30e177]: alternate_email
+      - generic [ref=f30e178]:
+        - paragraph [ref=f30e179]: جميع الحقوق محفوظة لشركة الأفكار الناجحة التجارية © 2025.
+        - generic [ref=f30e180]:
+          - link "سياسة الخصوصية" [ref=f30e181] [cursor=pointer]:
+            - /url: /privacy-policy
+          - link "الشروط والأحكام" [ref=f30e182] [cursor=pointer]:
+            - /url: /terms-and-conditions
+          - link "اعتمادات الجودة والسلامة الغنائية" [ref=f30e183] [cursor=pointer]:
+            - /url: /infrastructure

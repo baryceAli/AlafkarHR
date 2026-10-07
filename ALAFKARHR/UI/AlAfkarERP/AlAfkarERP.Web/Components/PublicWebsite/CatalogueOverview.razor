@@ -1,0 +1,61 @@
+<section class="relative w-full bg-surface-container-low px-margin-mobile md:px-margin-tablet lg:px-margin pt-space-xl pb-space-xl overflow-hidden">
+
+<div class="absolute -top-32 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute bottom-0 left-10 w-80 h-80 bg-tertiary-container/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="max-w-[1440px] mx-auto relative z-10 flex flex-col gap-space-lg">
+<StaticDataNote />
+
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-lg">
+<div class="flex flex-col gap-space-xs max-w-3xl">
+<div class="flex items-center gap-space-xs">
+<span class="h-2 w-2 rounded-full bg-primary animate-pulse"></span>
+<span class="font-label-md text-label-md text-primary tracking-widest uppercase">الكتالوج التنفيذي والتعاقد المؤسسي المباشر</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface font-bold tracking-tight">
+            الباقات والمنتجات المتاحة والطلب المباشر
+          </h1>
+<p class="font-body-xl text-body-xl text-on-surface-variant pt-space-xs leading-relaxed">
+            حلول وباقات جاهزة ومخصصة للجمعيات الخيرية، الجهات المانحة، وشركات حجاج الداخل والخارج وفق أرقى بروتوكولات الإعاشة وسلاسل الإمداد المبردة المعتمدة بالعاصمة المقدسة.
+          </p>
+</div>
+
+<div class="flex flex-wrap md:flex-col items-start gap-space-sm bg-surface-container p-space-md rounded-xl shadow-lg min-w-[260px]">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span aria-hidden="true" class="material-symbols-outlined text-xl">inventory_2</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm text-primary font-bold">+500,000</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">طاقة إنتاج يومية للوجبات</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm pt-space-xs">
+<div class="w-10 h-10 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
+<span aria-hidden="true" class="material-symbols-outlined text-xl">ac_unit</span>
+</div>
+<div>
+<p class="font-headline-sm text-headline-sm text-primary font-bold">-18°C إلى +4°C</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">سلسلة تبريد حرارية نشطة</p>
+</div>
+</div>
+</div>
+</div>
+
+<div class="flex flex-wrap items-center gap-space-xs pt-space-sm">
+<span class="font-label-md text-label-md text-on-surface-variant ml-space-sm">التصنيفات المعتمدة:</span>
+<button @onclick="() => Changed.InvokeAsync(0)" aria-pressed='@(Category == 0 ? "true" : "false")' class='px-space-md py-space-xs rounded-full font-label-md text-label-md font-semibold transition-all shadow-md @(Category == 0 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")'>
+          جميع الباقات (6)
+        </button>
+<button @onclick="() => Changed.InvokeAsync(1)" aria-pressed='@(Category == 1 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-all @(Category == 1 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")'>
+          إعاشة الحرم والمشاعر
+        </button>
+<button @onclick="() => Changed.InvokeAsync(2)" aria-pressed='@(Category == 2 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-all @(Category == 2 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")'>
+          سقيا وإفطار الجمعيات
+        </button>
+<button @onclick="() => Changed.InvokeAsync(3)" aria-pressed='@(Category == 3 ? "true" : "false")' class='px-space-md py-space-xs rounded-full hover:text-primary font-label-md text-label-md transition-all @(Category == 3 ? "bg-primary text-on-primary" : "bg-surface-container-high text-on-surface")'>
+          التوريد المباشر والكسوة
+        </button>
+</div>
+</div>
+</section>
+@code { [Parameter] public int Category { get; set; } [Parameter] public EventCallback<int> Changed { get; set; } }
