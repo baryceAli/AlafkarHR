@@ -1,0 +1,33 @@
+@inject IConfiguration Configuration
+<PageTitle>@Title | شركة الأفكار الناجحة</PageTitle>
+<HeadContent>
+ <meta name="description" content="@Description" />
+ <link rel="canonical" href="@Canonical" />
+ <meta property="og:type" content="website" />
+ <meta property="og:locale" content="ar_SA" />
+ <meta property="og:site_name" content="شركة الأفكار الناجحة" />
+ <meta property="og:title" content="@FullTitle" />
+ <meta property="og:description" content="@Description" />
+ <meta property="og:url" content="@Canonical" />
+ <meta property="og:image" content="@Preview" />
+ <meta property="og:image:alt" content="صورة الإعاشة من التصميم المعتمد" />
+ <meta name="twitter:card" content="summary_large_image" />
+ <meta name="twitter:title" content="@FullTitle" />
+ <meta name="twitter:description" content="@Description" />
+ <meta name="twitter:image" content="@Preview" />
+ @if (Path is "/privacy-policy" or "/terms-and-conditions" or "/website-not-found") { <meta name="robots" content="noindex,follow" /> }
+ <script type="application/ld+json">@((MarkupString)Schema)</script>
+</HeadContent>
+@code {
+ [Parameter] public string Title { get; set; } = "";
+ [Parameter] public string Description { get; set; } = "";
+ [Parameter] public string Path { get; set; } = "/";
+ private string Origin => WebsiteRoutes.Origin(Configuration);
+ private string Canonical => Origin + Path;
+ private string FullTitle => Title + " | شركة الأفكار الناجحة";
+ private string Preview => Origin + "/website/image-129661eed588.webp";
+ private string Schema => System.Text.Json.JsonSerializer.Serialize(new Dictionary<string,object> {
+  ["@context"] = "https://schema.org", ["@type"] = "WebPage", ["name"] = FullTitle,
+  ["description"] = Description, ["url"] = Canonical, ["inLanguage"] = "ar"
+ });
+}

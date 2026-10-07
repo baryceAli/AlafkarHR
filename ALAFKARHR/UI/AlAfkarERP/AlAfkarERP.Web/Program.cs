@@ -487,12 +487,25 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
+app.UseStatusCodePagesWithReExecute("/website-not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();
 
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
+// The crawl surface is deliberately limited to static public website routes.
+app.MapGet("/robots.txt", (IConfiguration configuration) => Results.Text(
+    "User-agent: *\nAllow: /$\n" + string.Join("", AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p != "/").Select(p => $"Allow: {p}$\n")) +
+    "Allow: /website/\nAllow: /_framework/\nDisallow: /\nSitemap: " + AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Origin(configuration) + "/sitemap.xml\n", "text/plain"));
+app.MapGet("/sitemap.xml", (IConfiguration configuration) => {
+    var origin = AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Origin(configuration);
+    var paths = AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p is not ("/privacy-policy" or "/terms-and-conditions"));
+    var document = new System.Xml.Linq.XDocument(new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("urlset", "http://www.sitemaps.org/schemas/sitemap/0.9"),
+        paths.Select(p => new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("url", "http://www.sitemaps.org/schemas/sitemap/0.9"),
+            new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("loc", "http://www.sitemaps.org/schemas/sitemap/0.9"), origin + p)))));
+    return Results.Text(document.ToString(), "application/xml");
+});
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
