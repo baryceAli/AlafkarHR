@@ -1,0 +1,235 @@
+@page "/PublicWebsite/Configuration"
+@layout AdminLayout
+@using AlAfkarERP.Shared.Dtos
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Components
+@using Microsoft.AspNetCore.Components.Authorization
+@using SharedWithUI.GeneralSettings.Dtos
+@using SharedWithUI.Permissions
+@implements IDisposable
+@inject PublicWebsiteService Service
+@inject AuthenticationStateProvider Authentication
+@inject SharedDataService SharedDataService
+@inject ApiConfig ApiConfig
+
+<div class="erp-page" dir="@SharedDataService.PageDirection">
+    <PageHeader Title="@T("Public Website Configuration", "تهيئة الموقع العام")" Subtitle="@T("Set up ownership, media storage and the public address before editing the website.", "هيئ الشركة المالكة وتخزين الوسائط والعنوان العام قبل تحرير الموقع.")" Icon="bi-sliders">
+        <Actions>
+            @if (configuration?.Activated == true && Can(PermissionList.PublicWebsitePermissions.View))
+            { <a class="btn btn-outline-primary" href="/PublicWebsite/ControlPanel">@T("Open control panel", "فتح لوحة التحكم")</a> }
+            @if (Can(PermissionList.RolesPermissions.View))
+            { <a class="btn btn-outline-secondary" href="/Auth/Role/List">@T("Role management", "إدارة الصلاحيات")</a> }
+        </Actions>
+    </PageHeader>
+    @if (!string.IsNullOrEmpty(message)) { <div class="alert @(error ? "alert-danger" : "alert-success")" role="status">@message</div> }
+    @if (loading) { <div class="erp-loading">@T("Loading configuration…", "جارٍ تحميل التهيئة…")</div> }
+    else if (!Can(PermissionList.PublicWebsiteConfigurationPermissions.View))
+    { <div class="alert alert-warning">@T("Your account needs website configuration access.", "يحتاج حسابك إلى صلاحية عرض تهيئة الموقع.")</div> }
+    else if (configuration == null)
+    { <button class="btn btn-outline-secondary" disabled="@busy" @onclick="Load">@T("Retry connection", "إعادة الاتصال")</button> }
+    else if (context != null)
+    {
+        <NavigationLock ConfirmExternalNavigation="@(dirty || folderDirty)" OnBeforeInternalNavigation="BeforeNavigation" />
+        @if (navigationBlocked) { <div class="alert alert-warning">@T("Save or discard changes before leaving.", "احفظ التغييرات أو ألغها قبل المغادرة.")</div> }
+        <EditForm EditContext="@context" OnSubmit="Save">
+            <ValidationSummary />
+            <div class="erp-table-toolbar mb-3">
+                <StatusChip Text="@(configuration.Activated ? T("Control panel active", "لوحة التحكم مفعلة") : T("Setup required", "التهيئة مطلوبة"))" Tone="@(configuration.Activated ? "success" : "warning")" />
+                <span class="text-muted">@(dirty ? T("Unsaved changes", "تغييرات غير محفوظة") : T("Settings loaded", "تم تحميل الإعدادات"))</span>
+                <button type="submit" class="btn btn-primary" disabled="@(!CanEdit || busy || (!dirty && configuration.Token != Guid.Empty))">@T("Save settings", "حفظ الإعدادات")</button>
+                <button type="button" class="btn btn-outline-primary" disabled="@busy" @onclick="Check">@T("Check readiness", "فحص الجاهزية")</button>
+                <button type="button" class="btn btn-success" disabled="@(!CanEdit || busy || dirty || configuration.Token == Guid.Empty || configuration.Activated || readiness?.Ready != true)" @onclick="Activate">@T("Activate control panel", "تفعيل لوحة التحكم")</button>
+                <button type="button" class="btn btn-outline-secondary" disabled="@(!dirty || busy)" @onclick="Discard">@T("Discard changes", "إلغاء التغييرات")</button>
+                <button type="button" class="btn btn-outline-secondary" disabled="@(dirty || busy)" @onclick="Load">@T("Reload", "تحديث")</button>
+            </div>
+            <AppCard CssClass="mb-3 allow-overflow">
+                <h2 class="h6">@T("Website ownership", "ملكية الموقع")</h2>
+                <label class="form-label">@T("Owning company", "الشركة المالكة")</label>
+                @if (configuration.OwnerLocked || !CanEdit || busy)
+                { <p>@CompanyName(selectedCompany)</p> }
+                else
+                {
+                    <AutoCompleteComponent TItem="WebsiteCompanyChoice" Items="@configuration.Companies" ItemText="CompanyName" Value="@selectedCompany" ValueChanged="SelectCompany" PlaceHolder="@T("Select a company…", "اختر شركة…")" />
+                }
+                <p class="text-muted small mt-2">@T("Initial setup is restricted to the parent administrator. Ownership locks after activation or once website records exist.", "تقتصر التهيئة الأولية على مسؤول الشركة الأم. تُقفل الملكية بعد التفعيل أو إنشاء سجلات الموقع.")</p>
+            </AppCard>
+            <AppCard CssClass="mb-3">
+                <h2 class="h6">@T("Media storage", "تخزين الوسائط")</h2>
+                <label class="form-label" for="website-storage">@T("Approved storage location", "موقع التخزين المعتمد")</label>
+                <InputSelect id="website-storage" class="form-select" @bind-Value="values.StorageLocationKey" disabled="@(!CanEdit || busy || configuration.StorageLocked)">
+                    @foreach (var location in configuration.StorageLocations) { <option value="@location.Key">@StorageName(location)</option> }
+                </InputSelect>
+                @if (configuration.CanCreateStorageFolder && CanEdit)
+                {
+                    <button type="button" class="btn btn-outline-primary mt-2" disabled="@busy" @onclick="OpenStorageForm"><i class="bi bi-folder-plus" aria-hidden="true"></i> @T("Add Storage Folder", "إضافة مجلد تخزين")</button>
+                }
+                <button type="button" class="btn btn-outline-secondary mt-2" disabled="@busy" @onclick="RefreshStorageLocations">@T("Refresh storage locations", "تحديث مواقع التخزين")</button>
+                <p class="text-muted small mt-2">@StorageDescription</p>
+                @if (busy) { <p class="text-muted small">@T("Storage changes are paused while an operation or dialog is open.", "تتوقف تغييرات التخزين أثناء العملية أو فتح نافذة.")</p> }
+                @if (!string.IsNullOrEmpty(StorageBlockedMessage)) { <p class="text-muted small" role="status">@StorageBlockedMessage</p> }
+                @if (!CanEdit && configuration.StorageChangeBlockedReason != "missing-permission") { <p class="text-muted small">@T("Your account also needs PublicWebsite.Configuration.Edit to manage storage.", "يحتاج حسابك أيضاً إلى PublicWebsite.Configuration.Edit لإدارة التخزين.")</p> }
+            </AppCard>
+            <AppCard CssClass="mb-3">
+                <h2 class="h6">@T("Public address", "العنوان العام")</h2>
+                <label class="form-label" for="website-origin">@T("Public website origin", "العنوان الأساسي للموقع العام")</label>
+                <InputText id="website-origin" class="form-control" dir="ltr" @bind-Value="values.PublicOrigin" disabled="@(!CanEdit || busy)" />
+                <p class="text-muted small mt-2">@T("Example: https://alafkar.com — without a page path. Used for canonical links, language alternatives and sitemap.", "مثال: https://alafkar.com دون مسار صفحة. يُستخدم للروابط الأساسية وبدائل اللغات وخريطة الموقع.")</p>
+            </AppCard>
+            <AppCard CssClass="mb-3">
+                <h2 class="h6">@T("Upload limits", "حدود رفع الملفات")</h2>
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label" for="website-images">@T("Images (MiB)", "الصور (MiB)")</label><InputNumber id="website-images" class="form-control" min="1" max="100" @bind-Value="values.ImageLimitMiB" disabled="@(!CanEdit || busy)" /></div>
+                    <div class="col-md-4"><label class="form-label" for="website-pdfs">@T("PDF files (MiB)", "ملفات PDF (MiB)")</label><InputNumber id="website-pdfs" class="form-control" min="1" max="100" @bind-Value="values.PdfLimitMiB" disabled="@(!CanEdit || busy)" /></div>
+                    <div class="col-md-4"><label class="form-label" for="website-media">@T("Video, audio and ZIP (MiB)", "الفيديو والصوت وZIP (MiB)")</label><InputNumber id="website-media" class="form-control" min="1" max="100" @bind-Value="values.MediaLimitMiB" disabled="@(!CanEdit || busy)" /></div>
+                </div>
+                <p class="text-muted small mt-2">@T("Allowed range: 1–100 MiB. Server and proxy limits must support the chosen sizes.", "النطاق المسموح: 1–100 MiB. يجب أن تدعم حدود الخادم والوكيل الأحجام المختارة.")</p>
+            </AppCard>
+        </EditForm>
+        <AppCard CssClass="mb-3">
+            <h2 class="h6">@T("Readiness", "الجاهزية")</h2>
+            <p class="text-muted">@T("API connection established. Checks report application readiness; they do not apply migrations or configure servers.", "تم الاتصال بالواجهة البرمجية. تعرض الفحوص جاهزية التطبيق ولا تطبق ترحيلات أو تهيئ الخوادم.")</p>
+            @if (readiness == null) { <p>@T("Run Check Readiness to inspect the selected settings.", "اضغط فحص الجاهزية للتحقق من الإعدادات المختارة.")</p> }
+            else
+            {
+                @if (dirty) { <p class="text-muted">@T("These checks use unsaved settings. Save before activation.", "تعتمد هذه الفحوص على إعدادات غير محفوظة. احفظ قبل التفعيل.")</p> }
+                @foreach (var check in readiness.Checks)
+                {
+                    <div class="d-flex align-items-center gap-2 py-2">
+                        <StatusChip Text="@(check.Passed ? T("Passed", "ناجح") : T("Action required", "إجراء مطلوب"))" Tone="@(check.Passed ? "success" : "warning")" />
+                        <span>@ReadinessText(check)</span>
+                    </div>
+                }
+            }
+            <p class="text-muted small mt-3">@T("Editors need Content.View; editing, uploads and publishing require their separate content permissions. Configuration permissions do not grant content access. Refresh login after role changes.", "يحتاج المحرر إلى Content.View، وللتعديل والرفع والنشر صلاحيات محتوى مستقلة. لا تمنح صلاحيات التهيئة وصولاً للمحتوى. جدد تسجيل الدخول بعد تغيير الصلاحيات.")</p>
+            @if (configuration.UpdatedAt.HasValue) { <p class="text-muted small">@T("Last updated", "آخر تحديث"): @configuration.UpdatedAt.Value.AddHours(3).ToString("yyyy-MM-dd HH:mm") (UTC+03:00) · @configuration.UpdatedBy</p> }
+        </AppCard>
+    }
+</div>
+
+@if (showStorageForm && configuration != null)
+{
+    <PublicWebsiteStorageFolderDialog Roots="@configuration.ManagedRoots" ExpectedToken="@configuration.Token" OnCreated="StorageFolderCreated" OnClose="CloseStorageForm" OnDirty="SetFolderDirty" />
+}
+
+@code {
+    private WebsiteConfigurationDto? configuration;
+    private WebsiteConfigurationValues values = new();
+    private WebsiteCompanyChoice? selectedCompany;
+    private WebsiteReadinessDto? readiness;
+    private EditContext? context;
+    private System.Security.Claims.ClaimsPrincipal? user;
+    private bool loading = true, busy, dirty, error, navigationBlocked;
+    private bool showStorageForm, folderDirty;
+    private string message = "";
+    private bool Can(string permission) => user?.HasClaim("Permission", permission) == true;
+    private bool CanEdit => configuration?.CanEdit == true && Can(PermissionList.PublicWebsiteConfigurationPermissions.Edit);
+    private string T(string en, string ar) => SharedDataService.PageDirection == "rtl" ? ar : en;
+    private string CompanyName(WebsiteCompanyChoice? company) => company == null ? T("No company selected", "لم تُحدد شركة") : T(string.IsNullOrWhiteSpace(company.NameEng) ? company.Name : company.NameEng, company.Name);
+    private string StorageName(WebsiteStorageChoice location) => location.Key == "legacy" ? T("Existing website storage", "تخزين الموقع الحالي") : location.Name;
+    private string StorageDescription => values.StorageLocationKey == "legacy" ? T("Existing server location. Deployment must provide durable storage and backups.", "موقع الخادم الحالي. يجب توفير تخزين دائم ونسخ احتياطية عند النشر.") : configuration?.StorageLocations.FirstOrDefault(x => x.Key == values.StorageLocationKey)?.Description ?? "";
+    private string StorageBlockedMessage => configuration?.StorageChangeBlockedReason switch
+    {
+        "media-exists" => T("Existing uploads lock storage selection. Files and historical revisions must be relocated through a separate process.", "تُقفل قائمة التخزين عند وجود ملفات مرفوعة. يتطلب نقل الملفات والإصدارات السابقة إجراءً منفصلاً."),
+        "missing-permission" => T("Your account needs PublicWebsite.Configuration.Edit to change storage or add folders.", "يحتاج حسابك إلى PublicWebsite.Configuration.Edit لتغيير التخزين أو إضافة مجلدات."),
+        "single-location" => T("Only one storage location is available. Add a folder inside a managed storage root to create another choice.", "يوجد موقع تخزين واحد فقط. أضف مجلداً داخل جذر التخزين المُدار لتوفير خيار آخر."),
+        _ => ""
+    };
+    private void OpenStorageForm()
+    {
+        if (busy || !CanEdit || configuration?.CanCreateStorageFolder != true) return;
+        folderDirty = false; showStorageForm = true; busy = true;
+    }
+    private void CloseStorageForm() { showStorageForm = false; folderDirty = false; busy = false; }
+    private void SetFolderDirty(bool changed) => folderDirty = changed;
+    private void StorageFolderCreated(WebsiteStorageChoice location)
+    {
+        if (configuration == null) return;
+        var locations = configuration.StorageLocations.Where(x => x.Key != location.Key).Append(location).ToList();
+        configuration = configuration with { StorageLocations = locations, StorageChangeBlockedReason = null };
+        values.StorageLocationKey = location.Key; dirty = true; readiness = null;
+        error = false; message = T("Storage folder created and selected. Save Settings to use it; the website has not been activated or published.", "تم إنشاء مجلد التخزين واختياره. احفظ الإعدادات لاستخدامه؛ لم يُفعّل الموقع أو يُنشر.");
+        CloseStorageForm();
+    }
+    private async Task RefreshStorageLocations()
+    {
+        if (busy || configuration == null) return; busy = true;
+        try
+        {
+            var result = await Service.ConfigurationAsync();
+            if (!result.IsSuccess || result.Data == null) { Fail(result.Error); return; }
+            var latest = result.Data;
+            // Refresh choices and lock state without replacing unsaved values or their concurrency token.
+            configuration = configuration with { StorageLocations = latest.StorageLocations, ManagedRoots = latest.ManagedRoots, StorageLocked = latest.StorageLocked, CanCreateStorageFolder = latest.CanCreateStorageFolder, StorageChangeBlockedReason = latest.StorageChangeBlockedReason, CanEdit = latest.CanEdit };
+            error = false; message = latest.Token != configuration.Token ? T("Storage locations refreshed. Another administrator changed configuration; retain your edits and reload before saving.", "تم تحديث مواقع التخزين. غيّر مسؤول آخر التهيئة؛ احتفظ بتعديلاتك وأعد التحميل قبل الحفظ.") : T("Storage locations refreshed. Your unsaved settings are retained.", "تم تحديث مواقع التخزين والاحتفاظ بإعداداتك غير المحفوظة.");
+        }
+        catch (Exception) { error = true; message = T("Could not refresh storage locations. Your settings are retained.", "تعذر تحديث مواقع التخزين. تم الاحتفاظ بإعداداتك."); }
+        finally { busy = false; }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        SharedDataService.OnChange1 += LanguageChanged;
+        user = (await Authentication.GetAuthenticationStateAsync()).User;
+        await Load();
+    }
+    private Task LanguageChanged() => InvokeAsync(StateHasChanged);
+    private void Apply(WebsiteConfigurationDto dto, bool seedOrigin = true)
+    {
+        configuration = dto;
+        values = System.Text.Json.JsonSerializer.Deserialize<WebsiteConfigurationValues>(System.Text.Json.JsonSerializer.Serialize(dto.Values))!;
+        dirty = false;
+        if (seedOrigin && CanEdit && string.IsNullOrWhiteSpace(values.PublicOrigin) && !string.IsNullOrWhiteSpace(ApiConfig.WebSiteURL)) { values.PublicOrigin = ApiConfig.WebSiteURL; dirty = true; }
+        selectedCompany = dto.Companies.FirstOrDefault(x => x.Id == values.OwnerCompanyId);
+        if (context != null) context.OnFieldChanged -= FieldChanged;
+        context = new EditContext(values); context.OnFieldChanged += FieldChanged;
+        readiness = null; navigationBlocked = false;
+    }
+    private void FieldChanged(object? sender, FieldChangedEventArgs e) { dirty = true; readiness = null; }
+    private void SelectCompany(WebsiteCompanyChoice? company) { selectedCompany = company; values.OwnerCompanyId = company?.Id ?? Guid.Empty; dirty = true; readiness = null; }
+    private WebsiteConfigurationSaveRequest Request => new(configuration?.Token ?? Guid.Empty, values);
+    private void Fail(ErrorResponseDto? detail) { error = true; message = detail?.GetDisplayMessage(SharedDataService.PageDirection == "rtl" ? "Ar" : "En") ?? T("The operation failed. Your changes are retained.", "فشلت العملية. تم الاحتفاظ بتغييراتك."); }
+    private async Task Load()
+    {
+        if (!Can(PermissionList.PublicWebsiteConfigurationPermissions.View)) { loading = false; StateHasChanged(); return; }
+        busy = true;
+        try { var result = await Service.ConfigurationAsync(); if (result.IsSuccess && result.Data != null) { Apply(result.Data); message = ""; error = false; } else Fail(result.Error); }
+        catch (Exception) { error = true; message = T("Unable to connect to the configuration API. Retry after checking deployment.", "تعذر الاتصال بواجهة التهيئة. تحقق من النشر ثم أعد المحاولة."); }
+        finally { busy = false; loading = false; StateHasChanged(); }
+    }
+    private async Task Save(EditContext _)
+    {
+        if (!CanEdit || busy) return;
+        if (values.OwnerCompanyId == Guid.Empty) { error = true; message = T("Select the owning company.", "اختر الشركة المالكة."); return; }
+        if (context?.GetValidationMessages().Any() == true) { error = true; message = T("Correct the invalid fields before saving.", "صحح الحقول غير الصالحة قبل الحفظ."); return; }
+        busy = true;
+        try { var result = await Service.SaveConfigurationAsync(Request); if (result.IsSuccess && result.Data != null) { Apply(result.Data); error = false; message = T("Website settings saved.", "تم حفظ إعدادات الموقع."); } else Fail(result.Error); }
+        catch (Exception) { error = true; message = T("Saving failed. Your changes are retained.", "فشل الحفظ. تم الاحتفاظ بتغييراتك."); }
+        finally { busy = false; }
+    }
+    private async Task Check()
+    {
+        if (busy) return; busy = true;
+        try { var result = await Service.CheckReadinessAsync(Request); if (result.IsSuccess && result.Data != null) { readiness = result.Data; error = false; message = ""; } else Fail(result.Error); }
+        catch (Exception) { error = true; message = T("Readiness check failed. Retry after checking the API connection.", "فشل فحص الجاهزية. تحقق من الاتصال ثم أعد المحاولة."); }
+        finally { busy = false; }
+    }
+    private async Task Activate()
+    {
+        if (!CanEdit || busy || dirty || configuration == null) return; busy = true;
+        try { var result = await Service.ActivateAsync(configuration.Token); if (result.IsSuccess && result.Data != null) { Apply(result.Data); error = false; message = T("Control panel activated. Content remains unchanged.", "تم تفعيل لوحة التحكم. لم يتغير محتوى الموقع."); } else Fail(result.Error); }
+        catch (Exception) { error = true; message = T("Activation failed. Existing settings are retained.", "فشل التفعيل. لم تتغير الإعدادات الحالية."); }
+        finally { busy = false; }
+    }
+    private void Discard() { if (configuration != null) Apply(configuration, false); }
+    private void BeforeNavigation(LocationChangingContext e) { if (dirty || folderDirty) { e.PreventNavigation(); navigationBlocked = true; } }
+    private string ReadinessText(WebsiteReadinessCheck check) => check.Key switch
+    {
+        "schema" => T(check.Passed ? "Website database tables are available." : "Apply website migrations through deployment.", check.Passed ? "جداول الموقع متاحة." : "طبق ترحيلات الموقع من خلال عملية النشر."),
+        "owner" => T("Active authorized owning company selected.", "تم تحديد شركة مالكة نشطة ومصرح بها."),
+        "origin" => T(check.Passed ? "Public website origin is valid." : "Use an HTTP(S) origin without a path, credentials, query or fragment.", check.Passed ? "العنوان العام صالح." : "استخدم عنوان HTTP(S) دون مسار أو بيانات دخول أو استعلام أو جزء مرجعي."),
+        "limits" => T(check.Passed ? "Upload limits are within 1–100 MiB." : "Upload limits must be within 1–100 MiB.", check.Passed ? "حدود الرفع ضمن 1–100 MiB." : "يجب أن تكون حدود الرفع ضمن 1–100 MiB."),
+        "storage" => T(check.Passed ? "Storage supports reading, writing and deletion. Verify durability and backups through deployment." : "Storage unavailable. Check server permissions and mounted storage.", check.Passed ? "يدعم التخزين القراءة والكتابة والحذف. تحقق من ديمومة التخزين والنسخ الاحتياطية عند النشر." : "التخزين غير متاح. تحقق من أذونات الخادم ووحدات التخزين."),
+        _ => check.Message
+    };
+    public void Dispose() { SharedDataService.OnChange1 -= LanguageChanged; if (context != null) context.OnFieldChanged -= FieldChanged; }
+}

@@ -25,7 +25,7 @@
  [Parameter] public string Title { get; set; } = "";
  [Parameter] public string Description { get; set; } = "";
  [Parameter] public string Path { get; set; } = "/";
- private string Origin => WebsiteRoutes.Origin(Configuration);
+ private string Origin => Content.PublicOrigin ?? WebsiteRoutes.Origin(Configuration);
  private string Canonical => Origin + (Content.English ? Content.LocalizeEnglish(Path) : Path);
  private string Brand => Content.Text("WebsiteHeader.f004");
  private string FullTitle => Title + " | " + Brand;

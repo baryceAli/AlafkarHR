@@ -1,8 +1,11 @@
 namespace Organization.Organizations.Services;
 
 public class CompanyHierarchyContext(OrganizationDbContext dbContext, IHttpContextAccessor httpContextAccessor)
-    : ICompanyHierarchyContext, Shared.Contracts.Organization.ICompanyHierarchyReader
+    : ICompanyHierarchyContext, Shared.Contracts.Organization.ICompanyHierarchyReader, Shared.Contracts.Organization.IWebsiteCompanyReader
 {
+    public Task<List<Shared.Contracts.Organization.WebsiteCompanyInfo>> GetActiveCompaniesAsync(Guid parentCompanyId, CancellationToken cancellationToken)
+        => dbContext.Companies.AsNoTracking().Where(x => x.IsActive && (x.Id == parentCompanyId || x.ParentCompanyId == parentCompanyId))
+            .Select(x => new Shared.Contracts.Organization.WebsiteCompanyInfo(x.Id, x.Name, x.NameEng)).ToListAsync(cancellationToken);
     public async Task<Guid> GetCurrentParentCompanyIdAsync(CancellationToken cancellationToken)
     {
         var companyIdValue = httpContextAccessor.HttpContext?.User?.FindFirst("company_id")?.Value;

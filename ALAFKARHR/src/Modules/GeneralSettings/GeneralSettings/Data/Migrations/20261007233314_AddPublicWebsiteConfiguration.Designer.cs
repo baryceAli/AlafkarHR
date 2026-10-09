@@ -4,6 +4,7 @@ using GeneralSettings.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GeneralSettings.Data.Migrations
 {
     [DbContext(typeof(GeneralSettingsDbContext))]
-    partial class GeneralSettingsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261007233314_AddPublicWebsiteConfiguration")]
+    partial class AddPublicWebsiteConfiguration
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -106,51 +109,6 @@ namespace GeneralSettings.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_PublicWebsiteConfiguration_Singleton", "[Id] = 1");
                         });
-                });
-
-            modelBuilder.Entity("GeneralSettings.GeneralSettings.Features.PublicWebsite.PublicWebsiteManagedLocation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("DisplayName")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("FolderName")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<Guid>("ParentCompanyId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("RootKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ParentCompanyId", "RootKey", "FolderName")
-                        .IsUnique();
-
-                    b.ToTable("PublicWebsiteManagedLocations", "GeneralSettings");
                 });
 
             modelBuilder.Entity("GeneralSettings.GeneralSettings.Features.PublicWebsite.PublicWebsiteMedia", b =>

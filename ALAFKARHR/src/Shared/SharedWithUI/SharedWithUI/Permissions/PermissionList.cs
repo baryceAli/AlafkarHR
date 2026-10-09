@@ -12,6 +12,7 @@ public static class PermissionList
         List<string> list =
         [
             ..PublicWebsitePermissions.Permissions,
+            ..PublicWebsiteConfigurationPermissions.Permissions,
             ..UsersPermissions.Permissions,
             ..RolesPermissions.Permissions,
             ..AcademicInistitutionPermissions.Permissions,
@@ -150,6 +151,14 @@ public static class PermissionList
         public static List<string> Permissions => [View, Edit, Upload, Publish];
     }
 
+    public static class PublicWebsiteConfigurationPermissions
+    {
+        public static string GroupName { get; set; } = "PublicWebsite.Configuration";
+        public const string View = "PublicWebsite.Configuration.View";
+        public const string Edit = "PublicWebsite.Configuration.Edit";
+        public static List<string> Permissions => [View, Edit];
+    }
+
     public static List<string> GetPlatformPermissions()
         => ParentCompanyPermissions.Permissions
             .Concat(DemoDataPermissions.Permissions)
@@ -181,6 +190,7 @@ public static class PermissionList
             SystemSettingsPermissions.Edit,
             SystemSetupPermissions.View,
             SystemSetupPermissions.Manage,
+            ..PublicWebsiteConfigurationPermissions.Permissions,
         ];
 
         return list

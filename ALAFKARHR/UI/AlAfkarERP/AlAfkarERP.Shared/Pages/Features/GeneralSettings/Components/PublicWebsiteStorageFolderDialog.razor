@@ -1,0 +1,85 @@
+@using AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services
+@using SharedWithUI.GeneralSettings.Dtos
+@implements IDisposable
+@inject PublicWebsiteService Service
+@inject SharedDataService SharedDataService
+
+<div class="modal-backdrop fade show"></div>
+<div class="modal fade show d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="website-storage-dialog-title" dir="@SharedDataService.PageDirection" @onkeydown="KeyDown">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <EditForm EditContext="@context" OnSubmit="Create">
+                <div class="modal-header">
+                    <h2 class="modal-title h5" id="website-storage-dialog-title">@T("Add Storage Folder", "إضافة مجلد تخزين")</h2>
+                    <button type="button" class="btn-close" aria-label="@T("Close", "إغلاق")" disabled="@busy" @onclick="Close"></button>
+                </div>
+                <div class="modal-body" @oninput="MarkDirty">
+                    @if (!string.IsNullOrEmpty(message)) { <div class="alert alert-danger" role="alert">@message</div> }
+                    <label class="form-label" for="website-managed-root">@T("Managed storage root", "جذر التخزين المُدار")</label>
+                    <InputSelect id="website-managed-root" class="form-select mb-2" @bind-Value="values.RootKey" disabled="@busy">
+                        <option value="">@T("Select a storage root…", "اختر جذر التخزين…")</option>
+                        @foreach (var root in Roots) { <option value="@root.Key">@RootName(root)</option> }
+                    </InputSelect>
+                    <p class="text-muted small">@RootDescription</p>
+                    <label class="form-label" for="website-folder-display">@T("Display name", "الاسم المعروض")</label>
+                    <InputText id="website-folder-display" class="form-control mb-3" maxlength="150" @bind-Value="values.DisplayName" disabled="@busy" />
+                    <label class="form-label" for="website-folder-name">@T("Folder name", "اسم المجلد")</label>
+                    <InputText id="website-folder-name" class="form-control" dir="ltr" maxlength="64" @bind-Value="values.FolderName" disabled="@busy" />
+                    <p class="text-muted small mt-2">@T("Example: website-media. Use 1–64 ASCII letters, digits, hyphens or underscores. Enter a folder name, not a server path.", "مثال: website-media. استخدم 1–64 حرفاً إنجليزياً أو رقماً أو شرطة أو شرطة سفلية. أدخل اسم مجلد وليس مسار خادم.")</p>
+                    <label class="form-label" for="website-folder-description">@T("Description (optional)", "الوصف (اختياري)")</label>
+                    <InputText id="website-folder-description" class="form-control" maxlength="500" @bind-Value="values.Description" disabled="@busy" />
+                    <p class="text-muted small mt-3">@T("The API creates and tests this folder inside your company's managed storage area. Save Settings afterward to use it. Creating a folder does not activate or publish the website.", "تنشئ الواجهة البرمجية المجلد وتختبره داخل منطقة التخزين المُدارة لشركتك. احفظ الإعدادات بعد ذلك لاستخدامه. إنشاء المجلد لا يُفعّل الموقع أو ينشره.")</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" disabled="@busy" @onclick="Close">@T("Cancel", "إلغاء")</button>
+                    <button type="submit" class="btn btn-primary" disabled="@busy">@(busy ? T("Creating and checking…", "جارٍ الإنشاء والفحص…") : T("Create and select folder", "إنشاء المجلد واختياره"))</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<WebsiteManagedRootChoice> Roots { get; set; } = [];
+    [Parameter] public Guid ExpectedToken { get; set; }
+    [Parameter] public EventCallback<WebsiteStorageChoice> OnCreated { get; set; }
+    [Parameter] public EventCallback OnClose { get; set; }
+    [Parameter] public EventCallback<bool> OnDirty { get; set; }
+    private readonly WebsiteStorageFolderValues values = new();
+    private readonly Guid operationId = Guid.NewGuid();
+    private EditContext context = null!;
+    private string message = "";
+    private bool busy;
+    private string T(string en, string ar) => SharedDataService.PageDirection == "rtl" ? ar : en;
+    private string RootName(WebsiteManagedRootChoice root) => root.Key == "default" ? T("Managed website storage", "تخزين الموقع المُدار") : root.Name;
+    private string RootDescription => values.RootKey == "default" ? T("Server-managed folders. Deployment must provide durable storage and backups.", "مجلدات يديرها الخادم. يجب توفير تخزين دائم ونسخ احتياطية عند النشر.") : Roots.FirstOrDefault(x => x.Key == values.RootKey)?.Description ?? "";
+    protected override void OnInitialized()
+    {
+        if (Roots.Count == 1) values.RootKey = Roots[0].Key;
+        context = new EditContext(values); context.OnFieldChanged += Changed;
+        SharedDataService.OnChange1 += LanguageChanged;
+    }
+    private Task LanguageChanged() => InvokeAsync(StateHasChanged);
+    private void Changed(object? sender, FieldChangedEventArgs e) => _ = OnDirty.InvokeAsync(true);
+    private Task MarkDirty() => OnDirty.InvokeAsync(true);
+    private Task Close() => busy ? Task.CompletedTask : OnClose.InvokeAsync();
+    private Task KeyDown(KeyboardEventArgs e) => e.Key == "Escape" ? Close() : Task.CompletedTask;
+    private async Task Create(EditContext _)
+    {
+        if (busy) return;
+        if (string.IsNullOrWhiteSpace(values.DisplayName) || !Roots.Any(x => x.Key == values.RootKey))
+        { message = T("Select a storage root and enter a display name.", "اختر جذر التخزين وأدخل الاسم المعروض."); return; }
+        if (!System.Text.RegularExpressions.Regex.IsMatch(values.FolderName ?? "", "\\A[A-Za-z0-9_-]{1,64}\\z"))
+        { message = T("Use 1–64 letters, digits, hyphens or underscores for the folder name.", "استخدم 1–64 حرفاً إنجليزياً أو رقماً أو شرطة أو شرطة سفلية لاسم المجلد."); return; }
+        busy = true; message = "";
+        try
+        {
+            var result = await Service.CreateStorageFolderAsync(new(ExpectedToken, operationId, values));
+            if (result.IsSuccess && result.Data != null) await OnCreated.InvokeAsync(result.Data);
+            else message = result.Error?.GetDisplayMessage(SharedDataService.PageDirection == "rtl" ? "Ar" : "En") ?? T("Folder creation failed. Your values are retained.", "فشل إنشاء المجلد. تم الاحتفاظ بالقيم المدخلة.");
+        }
+        catch (Exception) { message = T("Could not confirm folder creation. Your values are retained. Refresh storage locations before retrying if the connection failed.", "تعذر تأكيد إنشاء المجلد. تم الاحتفاظ بالقيم. حدّث مواقع التخزين قبل إعادة المحاولة إذا فُقد الاتصال."); }
+        finally { busy = false; }
+    }
+    public void Dispose() { SharedDataService.OnChange1 -= LanguageChanged; context.OnFieldChanged -= Changed; }
+}

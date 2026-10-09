@@ -15,6 +15,12 @@ public interface IWebsitePreviewSessions
 public sealed class PublicWebsiteService(HttpClient http, ITokenService tokens, ApiConfig config) : BaseApiService(http, tokens, config)
 {
     private readonly string path = $"api/{config.Version}/publicwebsite";
+    public Task<ApiResult<WebsiteConfigurationDto>> ConfigurationAsync() => SendAsync<WebsiteConfigurationDto>(new(HttpMethod.Get, path + "/configuration"), null);
+    public Task<ApiResult<WebsiteStorageChoice>> CreateStorageFolderAsync(WebsiteStorageFolderRequest request) => SendAsync<WebsiteStorageChoice>(new(HttpMethod.Post, path + "/configuration/storage-locations") { Content = JsonContent.Create(request) }, null);
+    public Task<ApiResult<WebsiteConfigurationDto>> SaveConfigurationAsync(WebsiteConfigurationSaveRequest request) => SendAsync<WebsiteConfigurationDto>(new(HttpMethod.Put, path + "/configuration") { Content = JsonContent.Create(request) }, null);
+    public Task<ApiResult<WebsiteReadinessDto>> CheckReadinessAsync(WebsiteConfigurationSaveRequest request) => SendAsync<WebsiteReadinessDto>(new(HttpMethod.Post, path + "/configuration/readiness") { Content = JsonContent.Create(request) }, null);
+    public Task<ApiResult<WebsiteConfigurationDto>> ActivateAsync(Guid token) => SendAsync<WebsiteConfigurationDto>(new(HttpMethod.Post, path + "/configuration/activate") { Content = JsonContent.Create(new WebsiteVersionRequest(token)) }, null);
+    public Task<ApiResult<WebsiteManagementStatusDto>> ManagementStatusAsync() => SendAsync<WebsiteManagementStatusDto>(new(HttpMethod.Get, path + "/management-status"), null);
     public async Task<string?> PreviewTokenAsync()
     {
         var auth = await tokens.GetTokensAsync();
