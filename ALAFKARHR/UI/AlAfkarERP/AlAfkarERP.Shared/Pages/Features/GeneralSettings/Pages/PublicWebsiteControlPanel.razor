@@ -16,12 +16,21 @@
 @inject IJSRuntime JS
 
 <div class="erp-page website-control-panel" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@T("Alafkar Public Website", "موقع الأفكار العام")" Subtitle="@T("Edit the website, save privately, then publish both languages.", "عدل الموقع، واحفظ المسودة بشكل خاص، ثم انشر اللغتين.")" Icon="bi-window" />
+    <PageHeader Title="@T("Alafkar Public Website", "موقع الأفكار العام")" Subtitle="@T("Edit the website, save privately, then publish both languages.", "عدل الموقع، واحفظ المسودة بشكل خاص، ثم انشر اللغتين.")" Icon="bi-window">
+        <Actions>@if (Can(PermissionList.PublicWebsiteConfigurationPermissions.View)) { <a class="btn btn-outline-secondary" href="/PublicWebsite/Configuration">@T("Configuration", "التهيئة")</a> }</Actions>
+    </PageHeader>
     @if (!string.IsNullOrEmpty(message)) { <div class="alert @(error ? "alert-danger" : "alert-success")" role="status">@message</div> }
     @if (loading) { <div class="erp-loading">@T("Loading website…", "جاري تحميل الموقع…")</div> }
     else if (!Can(PermissionList.PublicWebsitePermissions.View))
     {
         <div class="alert alert-warning">@T("Sign in with an authorized website editor account.", "يرجى تسجيل الدخول بحساب مخول لإدارة الموقع.") <a href="/login">@T("Sign in", "تسجيل الدخول")</a></div>
+    }
+    else if (setupRequired)
+    {
+        <div class="alert alert-warning">@T("Website management is not active. Complete Public Website Configuration first.", "إدارة الموقع غير مفعلة. أكمل تهيئة الموقع العام أولاً.")
+            @if (Can(PermissionList.PublicWebsiteConfigurationPermissions.View)) { <a href="/PublicWebsite/Configuration">@T("Open configuration", "فتح التهيئة")</a> }
+            else { <span>@T("Contact your company administrator.", "تواصل مع مسؤول شركتك.")</span> }
+        </div>
     }
     else if (draft != null)
     {
@@ -125,6 +134,7 @@
     private System.Security.Claims.ClaimsPrincipal? user;
     private List<WebsiteRevisionDto>? revisions;
     private string selectedPage = "/", language = "ar", message = "", fieldKey = "", activeSection = "LandingHero";
+    private bool setupRequired;
     private bool loading = true, busy, dirty, error, mobile, navigationPending, attached, editMode = true;
     private string previewFragment = "";
     private int uploadProgress;
@@ -169,6 +179,10 @@
         busy = true;
         try
         {
+            var status = await Service.ManagementStatusAsync();
+            if (!status.IsSuccess || status.Data == null) { Fail(status.Error); return; }
+            setupRequired = !status.Data.Activated;
+            if (setupRequired) return;
             var result = await Service.DraftAsync();
             if (result.IsSuccess && result.Data != null) { draft = result.Data; saved = draft.Content.Clone(); dirty = false; error = false; message = ""; selectedKeys = []; selectedItemId = null; await RegisterMedia(); await SendPreview(); }
             else Fail(result.Error);

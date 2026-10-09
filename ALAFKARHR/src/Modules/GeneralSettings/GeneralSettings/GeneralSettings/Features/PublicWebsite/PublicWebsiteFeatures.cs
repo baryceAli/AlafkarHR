@@ -47,6 +47,10 @@ public sealed class PublicWebsiteEndpoints : ICarterModule
             try { return await next(context); }
             catch (UnauthorizedAccessException) { return Results.Forbid(); }
             catch (DbUpdateConcurrencyException) { return Results.Problem("Another editor saved changes. Reload the draft before saving again.", statusCode: 409); }
+            catch (Microsoft.Data.SqlClient.SqlException e) when (e.Number == 1205)
+            { return Results.Problem("Website configuration changed during this operation. Reload and retry.", statusCode: 409); }
+            catch (DbUpdateException e) when (e.InnerException is Microsoft.Data.SqlClient.SqlException { Number: 1205 })
+            { return Results.Problem("Website configuration changed during this operation. Reload and retry.", statusCode: 409); }
             catch (BadHttpRequestException e) { return Results.Problem(e.Message, statusCode: e.StatusCode); }
         });
         group.MapGet("/published", async (ISender sender) => (await sender.Send(new ReadWebsiteQuery(false))).Content).AllowAnonymous();
@@ -77,13 +81,15 @@ public sealed class PublicWebsiteEndpoints : ICarterModule
 }
 
 public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpContextAccessor accessor,
-    IOptions<PublicWebsiteOptions> options, IWebHostEnvironment environment) :
+    PublicWebsiteSettingsResolver settingsResolver) :
     IQueryHandler<ReadWebsiteQuery, WebsiteDraftDto>, ICommandHandler<SaveWebsiteCommand, WebsiteDraftDto>,
     ICommandHandler<PublishWebsiteCommand, WebsiteDraftDto>, ICommandHandler<RestoreWebsiteCommand, WebsiteDraftDto>,
     IQueryHandler<ListWebsiteRevisionsQuery, List<WebsiteRevisionDto>>, ICommandHandler<UploadWebsiteMediaCommand, WebsiteMediaDto>,
     IQueryHandler<ReadWebsiteMediaQuery, WebsiteMediaFile>
 {
-    private Guid Owner => options.Value.OwnerCompanyId;
+    private EffectiveWebsiteSettings settings = null!;
+    private Guid Owner => settings.OwnerCompanyId;
+    private async Task LoadSettings(CancellationToken ct) => settings = await settingsResolver.GetAsync(ct);
     private string User
     {
         get
@@ -94,9 +100,10 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
             return string.IsNullOrWhiteSpace(name) ? id : name[..Math.Min(220, name.Length)] + " (" + id + ")";
         }
     }
-    private void Authorize()
+    private async Task Authorize(CancellationToken ct)
     {
-        if (Owner == Guid.Empty) throw new BadRequestException("Configure PublicWebsite:OwnerCompanyId before using the control panel.");
+        await LoadSettings(ct);
+        if (Owner == Guid.Empty || !settings.Activated) throw new BadRequestException("Website management is not active. Complete Public Website Configuration first.");
         if (!Guid.TryParse(accessor.HttpContext?.User.FindFirst("company_id")?.Value, out var company) || company != Owner)
             throw new UnauthorizedAccessException();
     }
@@ -106,7 +113,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
     { Id = Guid.NewGuid(), CompanyId = Owner, Action = action, Token = token, At = DateTime.UtcNow, By = User });
     private async Task<PublicWebsiteSite> Site(CancellationToken ct)
     {
-        Authorize();
+        await Authorize(ct);
         var site = await db.Set<PublicWebsiteSite>().SingleOrDefaultAsync(x => x.CompanyId == Owner, ct);
         if (site != null) return site;
         var baseline = new PublicWebsiteRevision { Id = Guid.NewGuid(), CompanyId = Owner, ContentJson = JsonSerializer.Serialize(WebsiteContentCatalog.Manifest.CreateSnapshot()), PublishedAt = DateTime.UtcNow, PublishedBy = "system: initial website" };
@@ -131,6 +138,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
     public async Task<WebsiteDraftDto> Handle(ReadWebsiteQuery q, CancellationToken ct)
     {
         if (q.Draft) return Dto(await Site(ct));
+        await LoadSettings(ct);
         var json = Owner == Guid.Empty ? null : await db.Set<PublicWebsiteSite>().AsNoTracking()
             .Where(x => x.CompanyId == Owner).Join(db.Set<PublicWebsiteRevision>(), s => s.PublishedRevisionId, r => (Guid?)r.Id, (s, r) => r.ContentJson).SingleOrDefaultAsync(ct);
         return new(Guid.Empty, json == null ? WebsiteContentCatalog.Manifest.CreateSnapshot() : Parse(json), default, "");
@@ -166,7 +174,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
     }
     public async Task<List<WebsiteRevisionDto>> Handle(ListWebsiteRevisionsQuery query, CancellationToken ct)
     {
-        Authorize(); return await db.Set<PublicWebsiteRevision>().AsNoTracking().Where(x => x.CompanyId == Owner)
+        await Authorize(ct); return await db.Set<PublicWebsiteRevision>().AsNoTracking().Where(x => x.CompanyId == Owner)
             .OrderByDescending(x => x.PublishedAt).Select(x => new WebsiteRevisionDto(x.Id, x.PublishedAt, x.PublishedBy)).ToListAsync(ct);
     }
     private static IEnumerable<WebsiteValue> Values(WebsiteSnapshot s) => s.Fields.Values.Concat(s.Collections.Values.SelectMany(x => x).SelectMany(x => x.Fields.Values));
@@ -227,17 +235,16 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
     private string PhysicalPath(string key)
     {
         if (Path.GetFileName(key) != key || key.Contains('\\') || key.Contains('/')) throw new BadRequestException("Invalid storage key.");
-        var root = Path.GetFullPath(options.Value.StorageRoot, environment.ContentRootPath);
-        if (environment.WebRootPath is { } webRoot && (root + Path.DirectorySeparatorChar).StartsWith(Path.GetFullPath(webRoot) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-            throw new BadRequestException("Website uploads must be stored outside wwwroot.");
+        var root = settings.StoragePath;
         return Path.Combine(root, key);
     }
     public async Task<WebsiteMediaDto> Handle(UploadWebsiteMediaCommand command, CancellationToken ct)
     {
-        Authorize(); var file = command.File;
+        await using var transaction = await db.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        await Authorize(ct); var file = command.File;
         var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
         var type = extension switch { ".jpg" or ".jpeg" => "image/jpeg", ".png" => "image/png", ".gif" => "image/gif", ".webp" => "image/webp", ".pdf" => "application/pdf", ".mp4" => "video/mp4", ".webm" => "video/webm", ".mp3" => "audio/mpeg", ".zip" => "application/zip", _ => "" };
-        var limit = type.StartsWith("image/") ? options.Value.ImageMaxBytes : type == "application/pdf" ? options.Value.PdfMaxBytes : options.Value.MediaMaxBytes;
+        var limit = type.StartsWith("image/") ? settings.ImageMaxBytes : type == "application/pdf" ? settings.PdfMaxBytes : settings.MediaMaxBytes;
         if (type == "" || !string.Equals(file.ContentType, type, StringComparison.OrdinalIgnoreCase) || file.Length <= 0 || file.Length > limit) throw new BadRequestException("Unsupported file type or file exceeds the upload size limit.");
         await using var input = file.OpenReadStream(); var header = new byte[32]; var count = await input.ReadAtLeastAsync(header, 32, throwOnEndOfStream: false, ct);
         if (!Signature(type, header.AsSpan(0, count))) throw new BadRequestException("File signature does not match the selected file type.");
@@ -252,7 +259,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
             }
             var name = string.Concat(Path.GetFileName(file.FileName).Where(c => !char.IsControl(c))); if (name.Length > 255) name = name[^255..];
             db.Add(new PublicWebsiteMedia { Id = id, CompanyId = Owner, Name = name, ContentType = type, Size = file.Length, StorageKey = key, UploadedAt = DateTime.UtcNow, UploadedBy = User });
-            Audit("Upload " + id, id); await db.SaveChangesAsync(ct);
+            Audit("Upload " + id, id); await db.SaveChangesAsync(ct); await transaction.CommitAsync(ct);
             return new(id, name, type, file.Length);
         }
         catch { if (File.Exists(path)) File.Delete(path); throw; }
@@ -271,7 +278,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
     };
     public async Task<WebsiteMediaFile> Handle(ReadWebsiteMediaQuery query, CancellationToken ct)
     {
-        if (query.Draft) Authorize();
+        if (query.Draft) await Authorize(ct); else await LoadSettings(ct);
         var media = await db.Set<PublicWebsiteMedia>().AsNoTracking().SingleOrDefaultAsync(x => x.Id == query.Id && x.CompanyId == Owner && (query.Draft || x.WasPublished), ct)
             ?? throw new NotFoundException("Website media not found.");
         var path = PhysicalPath(media.StorageKey); if (!File.Exists(path)) throw new NotFoundException("Website media file is missing.");

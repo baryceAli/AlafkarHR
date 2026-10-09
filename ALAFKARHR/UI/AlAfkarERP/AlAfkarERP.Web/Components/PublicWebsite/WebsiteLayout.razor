@@ -2,6 +2,7 @@
 @implements IAsyncDisposable
 @inject WebsiteContentState Content
 @inject WebsitePublishedCache PublishedCache
+@inject WebsiteRuntimeSettings RuntimeSettings
 @inject AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services.PublicWebsiteService WebsiteService
 @inject NavigationManager Navigation
 @inject Microsoft.JSInterop.IJSRuntime JS
@@ -20,8 +21,10 @@
     protected override async Task OnInitializedAsync()
     {
         Content.Changed += Update;
+        var origin = RuntimeSettings.OriginAsync();
         try { var published = await WebsiteService.PublishedAsync(); PublishedCache.Remember(published); Content.Set(published); }
         catch (Exception e) { if (PublishedCache.LastSuccessful() is { } last) Content.Set(last); Logger.LogError(e, "Unable to load published PublicWebsite content."); }
+        Content.SetPublicOrigin(await origin);
     }
     private void Update() => _ = InvokeAsync(StateHasChanged);
     protected override async Task OnAfterRenderAsync(bool firstRender)

@@ -19,6 +19,8 @@ public sealed class WebsiteContentState(NavigationManager navigation)
     public string Direction => English ? "ltr" : "rtl";
     public string? PreviewSession { get; set; }
     public bool IsEditing { get; set; } = true;
+    public string? PublicOrigin { get; private set; }
+    public void SetPublicOrigin(string origin) { PublicOrigin = origin; Changed?.Invoke(); }
     public int PackageCategory { get; private set; }
     public void SetPackageCategory(int category) { PackageCategory = category; Changed?.Invoke(); }
     public void Set(WebsiteSnapshot snapshot) { Snapshot = snapshot; Changed?.Invoke(); }

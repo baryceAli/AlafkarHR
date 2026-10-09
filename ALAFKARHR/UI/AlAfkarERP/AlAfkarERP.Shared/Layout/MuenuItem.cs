@@ -1,4 +1,4 @@
-﻿using SharedWithUI.Permissions;
+using SharedWithUI.Permissions;
 
 namespace AlAfkarERP.Shared.Layout;
 
@@ -2528,6 +2528,20 @@ public class MenuItem
             KeywordsAr = "إدارة إعدادات عامة إعدادات النظام عملات تهيئة",
             Children = new()
             {
+                new MenuItem
+                {
+                    TextEn = "Public Website Configuration",
+                    TextAr = "تهيئة الموقع العام",
+                    Icon = "bi-sliders",
+                    Url = "/PublicWebsite/Configuration",
+                    PermissionPolicy = PermissionList.PublicWebsiteConfigurationPermissions.View,
+                    WorkspaceKey = NavigationMenuResolver.WorkspaceAdmin,
+                    NavigationFunctionalGroupKey = NavigationMenuResolver.AdminFunctionalGroupGeneralSettings,
+                    NavigationGroupKey = NavigationMenuResolver.NavigationGroupSetup,
+                    NavigationOrder = 114,
+                    KeywordsEn = "public website configuration setup ownership storage readiness activation",
+                    KeywordsAr = "موقع عام تهيئة إعدادات ملكية تخزين جاهزية تفعيل"
+                },
                 new MenuItem
                 {
                     TextEn = "Alafkar Public Website",

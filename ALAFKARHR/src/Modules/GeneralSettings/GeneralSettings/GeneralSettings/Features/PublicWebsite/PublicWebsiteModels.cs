@@ -84,9 +84,71 @@ public sealed class PublicWebsiteAuditConfiguration : IEntityTypeConfiguration<P
 
 public sealed class PublicWebsiteOptions
 {
+    public string Origin { get; set; } = "";
+    public List<WebsiteStorageLocation> StorageLocations { get; set; } = [];
+    public List<WebsiteStorageLocation> ManagedStorageRoots { get; set; } = [];
     public Guid OwnerCompanyId { get; set; } 
     public string StorageRoot { get; set; } = "App_Data/PublicWebsite";
     public long ImageMaxBytes { get; set; } = 10 * 1024 * 1024;
     public long PdfMaxBytes { get; set; } = 25 * 1024 * 1024;
     public long MediaMaxBytes { get; set; } = 100 * 1024 * 1024;
+}
+
+public sealed class WebsiteStorageLocation
+{
+    public string Key { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
+    public string Path { get; set; } = "";
+}
+public sealed class PublicWebsiteManagedLocation
+{
+    public Guid Id { get; set; }
+    public Guid ParentCompanyId { get; set; }
+    public string RootKey { get; set; } = "";
+    public string FolderName { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+    public string Description { get; set; } = "";
+    public DateTime CreatedAt { get; set; }
+    public string CreatedBy { get; set; } = "";
+}
+public sealed class PublicWebsiteManagedLocationMapping : IEntityTypeConfiguration<PublicWebsiteManagedLocation>
+{
+    public void Configure(EntityTypeBuilder<PublicWebsiteManagedLocation> b)
+    {
+        b.ToTable("PublicWebsiteManagedLocations"); b.HasKey(x => x.Id);
+        b.HasIndex(x => new { x.ParentCompanyId, x.RootKey, x.FolderName }).IsUnique();
+        b.Property(x => x.RootKey).HasMaxLength(100);
+        b.Property(x => x.FolderName).HasMaxLength(64);
+        b.Property(x => x.DisplayName).HasMaxLength(150);
+        b.Property(x => x.Description).HasMaxLength(500);
+        b.Property(x => x.CreatedBy).HasMaxLength(300);
+    }
+}
+public sealed class PublicWebsiteConfiguration
+{
+    public int Id { get; set; } = 1;
+    public Guid OwnerCompanyId { get; set; }
+    public Guid AdministratorParentCompanyId { get; set; }
+    public string StorageLocationKey { get; set; } = "legacy";
+    public string PublicOrigin { get; set; } = "";
+    public int ImageLimitMiB { get; set; } = 10;
+    public int PdfLimitMiB { get; set; } = 25;
+    public int MediaLimitMiB { get; set; } = 100;
+    public bool Activated { get; set; }
+    public Guid Token { get; set; }
+    public DateTime UpdatedAt { get; set; }
+    public string UpdatedBy { get; set; } = "";
+}
+public sealed class PublicWebsiteConfigurationMapping : IEntityTypeConfiguration<PublicWebsiteConfiguration>
+{
+    public void Configure(EntityTypeBuilder<PublicWebsiteConfiguration> b)
+    {
+        b.ToTable("PublicWebsiteConfiguration", t => t.HasCheckConstraint("CK_PublicWebsiteConfiguration_Singleton", "[Id] = 1"));
+        b.HasKey(x => x.Id); b.Property(x => x.Id).ValueGeneratedNever();
+        b.Property(x => x.Token).IsConcurrencyToken();
+        b.Property(x => x.StorageLocationKey).HasMaxLength(100);
+        b.Property(x => x.PublicOrigin).HasMaxLength(2048);
+        b.Property(x => x.UpdatedBy).HasMaxLength(300);
+    }
 }

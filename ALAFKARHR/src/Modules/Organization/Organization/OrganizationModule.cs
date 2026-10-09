@@ -40,6 +40,7 @@ public static class OrganizationModule
         services.AddScoped<IDataSeeder<OrganizationDbContext>, OrganizationDataSeeder>();
         services.AddScoped<ICompanyHierarchyContext, CompanyHierarchyContext>();
         services.AddScoped<ICompanyHierarchyReader, CompanyHierarchyContext>();
+        services.AddScoped<IWebsiteCompanyReader, CompanyHierarchyContext>();
         services.AddScoped<IBusinessLineEntitlementService, BusinessLineEntitlementService>();
         services.AddScoped<ISetupReadinessContributor, OrganizationReadinessContributor>();
 
