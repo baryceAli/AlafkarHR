@@ -8,6 +8,7 @@ namespace SharedWithUI.Auth.Dtos
     public class RoleDto
     {
         public string RoleName { get; set; } = string.Empty;
+        public string? TemplateKey { get; set; }
 
         [Required(ErrorMessage = "Role name is required")]
         public string DisplayName { get; set; } = string.Empty;

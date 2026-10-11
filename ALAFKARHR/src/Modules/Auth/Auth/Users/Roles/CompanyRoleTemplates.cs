@@ -7,10 +7,36 @@ public static class CompanyRoleTemplates
     public const string PlatformSystemUserRoleName = "Platform-system-user";
     public const string PlatformSystemUserTemplateKey = "platform-system-user";
 
+    public static IReadOnlyList<CompanyRoleTemplate> PublicWebsite { get; } =
+    [
+        new("public-website-viewer", "Alafkar Public Website Viewer",
+            [PermissionList.PublicWebsitePermissions.View]),
+        new("public-website-editor", "Alafkar Public Website Editor",
+            [PermissionList.PublicWebsitePermissions.View, PermissionList.PublicWebsitePermissions.Edit,
+                PermissionList.PublicWebsitePermissions.Upload]),
+        new("public-website-publisher", "Alafkar Public Website Publisher",
+            [PermissionList.PublicWebsitePermissions.View, PermissionList.PublicWebsitePermissions.Publish]),
+        new("public-website-administrator", "Alafkar Public Website Administrator",
+            [..PermissionList.PublicWebsitePermissions.Permissions,
+                ..PermissionList.PublicWebsiteConfigurationPermissions.Permissions]),
+    ];
+
+    public static bool IsPublicWebsiteTemplate(string? key)
+        => PublicWebsite.Any(template => string.Equals(template.Key, key, StringComparison.Ordinal));
+
+    public static async Task EnsurePublicWebsiteRolesAsync(RoleManager<ApplicationRole> roleManager, Guid companyId)
+    {
+        foreach (var template in PublicWebsite)
+        {
+            await EnsureTemplateRoleAsync(roleManager, companyId, template);
+        }
+    }
+
     public static IReadOnlyList<CompanyRoleTemplate> All { get; } =
     [
         new("admin", "Admin", PermissionList.GetTenantPermissions()),
         new("all-roles", "All Roles", PermissionList.GetTenantPermissions()),
+        ..PublicWebsite,
         new("manager", "Manager", ManagerPermissions()),
         new("approver", "Approver", ApproverPermissions()),
         new("employee", "Employee", EmployeePermissions()),

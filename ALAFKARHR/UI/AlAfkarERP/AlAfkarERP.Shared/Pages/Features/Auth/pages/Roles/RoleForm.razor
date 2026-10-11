@@ -21,7 +21,8 @@
 @inject ToastService ToastService
 @inject NavigationManager NavigationManager
 
-@if (AuthState != null && !AuthState.User.Claims.Any(c => c.Value == PermissionList.RolesPermissions.Create))
+@if (AuthState != null && !AuthState.User.HasClaim("Permission", PermissionList.RolesPermissions.Create)
+    && !(IsManagedWebsiteRole && AuthState.User.HasClaim("Permission", PermissionList.RolesPermissions.View)))
 {
     <div class="alert alert-warning" dir="@SharedDataService.PageDirection">
         <span>@SharedDataService.SelectViewLang("You don't have permissions to view this page.", "ليس لديك الصلاحيات لعرض هذه الصفحة")</span>
@@ -36,6 +37,13 @@
                 Overline='@SharedDataService.SelectViewLang("Auth", "الصلاحيات")'
                 Icon="bi-shield-check" />
 
+    @if (IsManagedWebsiteRole)
+    {
+        <div class="alert alert-info">
+            @SharedDataService.SelectViewLang("This managed Alafkar Public Website role is read-only. Create a custom role to use a different permission set.", "دور موقع الأفكار العام المُدار للقراءة فقط. أنشئ دوراً مخصصاً لاستخدام مجموعة صلاحيات مختلفة.")
+        </div>
+    }
+
     <EditForm Model="roleDto" OnValidSubmit="ApplyChanges">
         <DataAnnotationsValidator />
         @* <ValidationSummary/> *@
@@ -43,14 +51,17 @@
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-lg-8">
                     <label for="inputFirstName" class="form-label">@SharedDataService.SelectViewLang("Role Name", "اسم الصلاحية")</label>
-                    <InputText id="inputFirstName" class="form-control" @bind-Value="roleDto.DisplayName" />
+                    <InputText id="inputFirstName" class="form-control" @bind-Value="roleDto.DisplayName" disabled="@IsManagedWebsiteRole" />
                     <ValidationMessage For="() => roleDto.DisplayName" />
                 </div>
                 <div class="col-12 col-lg-4 d-flex justify-content-lg-end">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-check2-circle"></i>
-                        @SharedDataService.SelectViewLang("Apply Change", "حفظ التعديلات")
-                    </button>
+                    @if (!IsManagedWebsiteRole)
+                    {
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check2-circle"></i>
+                            @SharedDataService.SelectViewLang("Apply Change", "حفظ التعديلات")
+                        </button>
+                    }
                 </div>
             </div>
         </AppCard>
@@ -83,10 +94,9 @@
                                                     <label class="form-check-label d-inline-flex align-items-center gap-2">
                                                         <InputCheckbox class="form-check-input m-0"
                                                                        @bind-Value="SelectedPermissions[permission]"
-                                                                       @onclick="() => OnCheckBoxClicked(permission)" />
+                                                                       disabled="@IsManagedWebsiteRole" />
                                                         @action
                                                     </label>
-                                                    @* @onclick="() => { SelectedPermissions[permission] = !SelectedPermissions[permission]; }" /> *@
                                                 }
                                             </div>
                                         </td>
@@ -122,6 +132,9 @@
     // private List<string> CurrentRolePermissions = [];
     private Guid companyId;
     RoleDto roleDto = new RoleDto();
+    private bool IsManagedWebsiteRole => roleDto.TemplateKey is
+        "public-website-viewer" or "public-website-editor" or
+        "public-website-publisher" or "public-website-administrator";
     protected override async Task OnInitializedAsync()
     {
         // if (!authState.User.Identity.IsAuthenticated)
@@ -147,6 +160,7 @@
                 roleDto = new RoleDto
                 {
                     RoleName = role.RoleName,
+                    TemplateKey = role.TemplateKey,
                     DisplayName = role.DisplayName,
                     CompanyId = companyId,
                     Permissions = role.Permissions ?? []
@@ -174,6 +188,9 @@
     }
     private async Task ApplyChanges()
     {
+        if (IsManagedWebsiteRole)
+            return;
+
         if (string.IsNullOrWhiteSpace(roleDto.DisplayName))
         {
             await ModalService.ShowAsync(
@@ -239,18 +256,6 @@
                 });
         }
 
-    }
-    private void OnCheckBoxClicked(string policy)
-    {
-        SelectedPermissions[policy] = !SelectedPermissions[policy];
-
-        // saveIt to db
-
-
-        // if ()
-        // {
-            
-        // }
     }
     protected override void OnInitialized()
     {
