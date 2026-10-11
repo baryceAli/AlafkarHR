@@ -1,0 +1,12 @@
+<div class="d2-heading @(Centered ? "d2-centered" : "")">
+    @if (!string.IsNullOrWhiteSpace(Eyebrow)) { <span class="d2-eyebrow"><span class="d2-dot" aria-hidden="true"></span>@Eyebrow</span> }
+    @if (Hero) { <h1>@Title</h1> } else { <h2>@Title</h2> }
+    @if (!string.IsNullOrWhiteSpace(Text)) { <p>@Text</p> }
+</div>
+@code {
+    [Parameter] public string Eyebrow { get; set; } = "";
+    [Parameter] public string Title { get; set; } = "";
+    [Parameter] public string Text { get; set; } = "";
+    [Parameter] public bool Hero { get; set; }
+    [Parameter] public bool Centered { get; set; }
+}

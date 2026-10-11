@@ -1,0 +1,30 @@
+@inject NavigationManager Navigation
+<header class="d2-header">
+    <div class="d2-header-inner d2-container">
+        <a target="_top" class="d2-brand" href="/design-2" aria-label="الأفكار الناجحة — الرئيسية">
+            <span class="d2-brand-mark" aria-hidden="true"><img src="/_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" alt="" width="32" height="32" /></span>
+            <span><strong>الأفكار الناجحة</strong><small>أفكار نابضة.. حلول ناجحة</small></span>
+        </a>
+        <nav class="d2-desktop-nav" aria-label="التنقل الرئيسي">
+            @foreach (var entry in Design2Content.Pages.Where(p => p.Key != "request-proposal"))
+            {
+                <a target="_top" href="@entry.Url" aria-current="@Current(entry)">@entry.Label</a>
+            }
+        </nav>
+        <a target="_top" class="d2-button d2-header-cta" href="/design-2/request-proposal" aria-current="@ProposalCurrent">اطلب عرض سعر <span aria-hidden="true">↗</span></a>
+        <details class="d2-mobile-nav">
+            <summary aria-label="قائمة التنقل"><Design2Icon Name="menu" /><span>القائمة</span></summary>
+            <nav aria-label="التنقل على الجوال">
+                @foreach (var entry in Design2Content.Pages.Where(p => p.Key != "request-proposal"))
+                {
+                    <a target="_top" href="@entry.Url" aria-current="@Current(entry)">@entry.Label</a>
+                }
+                <a target="_top" href="/design-2/request-proposal" aria-current="@ProposalCurrent">اطلب عرض سعر</a>
+            </nav>
+        </details>
+    </div>
+</header>
+@code {
+    private string? ProposalCurrent => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals(Design2Content.ProposalUrl, StringComparison.OrdinalIgnoreCase) ? "page" : null;
+    private string? Current(Design2Content.Page page) => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals(page.Url, StringComparison.OrdinalIgnoreCase) ? "page" : null;
+}

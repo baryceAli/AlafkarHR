@@ -1,0 +1,7 @@
+<div class="d2-grid d2-grid-3 d2-workflow">
+    @for (var i = 0; i < Design2Content.Workflow.Length; i++)
+    {
+        var step = Design2Content.Workflow[i];
+        <article class="d2-card" data-d2-motion="card"><span class="d2-step">@((i + 1).ToString("00"))</span><h3>@step.Title</h3><p>@step.Text</p></article>
+    }
+</div>
