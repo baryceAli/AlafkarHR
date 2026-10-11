@@ -1,0 +1,36 @@
+@page "/services/iftar-haram"
+@page "/en/services/iftar-haram"
+@page "/services/suqya"
+@page "/en/services/suqya"
+@page "/services/meals"
+@page "/en/services/meals"
+@page "/services/food-baskets"
+@page "/en/services/food-baskets"
+@page "/services/hajj-season"
+@page "/en/services/hajj-season"
+@page "/services/pilgrim-housing"
+@page "/en/services/pilgrim-housing"
+@layout WebsiteLayout
+@inject NavigationManager Navigation
+@inject IHttpContextAccessor ContextAccessor
+@if (Visible)
+{
+    <WebsiteSeo Title="@Content.Text(Section + ".f001")" Description="@Content.Text(Section + ".f002")" Path="@Path" />
+    <WebsitePage Path="@Path" />
+}
+else
+{
+    <WebsiteSeo Title="@Content.Text("WebsiteNotFound.f003")" Description="@Content.Text("WebsiteNotFound.f004")" Path="@Path" NoIndex="true" />
+    <WebsiteNotFoundBody />
+}
+@code {
+    private string Path => WebsiteRoutes.ArabicPath(new Uri(Navigation.Uri).AbsolutePath).ToLowerInvariant();
+    private string Section => WebsiteServicePages.Sections.GetValueOrDefault(Path) ?? "";
+    private bool Visible => WebsiteServicePages.IsVisible(Content.Snapshot, Path);
+    protected override void OnParametersSet()
+    {
+        if (!Visible && ContextAccessor.HttpContext is { Response.HasStarted: false } context &&
+            !Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query).ContainsKey("websiteEditor"))
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+    }
+}

@@ -507,9 +507,14 @@ app.MapGet("/robots.txt", async (AlAfkarERP.Web.Components.PublicWebsite.Website
     "User-agent: *\nAllow: /$\n" + string.Join("", AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p != "/").Select(p => $"Allow: {p}$\n")) +
     "Allow: /en$\n" + string.Join("", AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p != "/").Select(p => $"Allow: /en{p}$\n")) +
     "Allow: /website/\nAllow: /_framework/\nDisallow: /\nSitemap: " + (await runtime.OriginAsync(context.RequestAborted)) + "/sitemap.xml\n", "text/plain"));
-app.MapGet("/sitemap.xml", async (AlAfkarERP.Web.Components.PublicWebsite.WebsiteRuntimeSettings runtime, HttpContext context) => {
+app.MapGet("/sitemap.xml", async (AlAfkarERP.Web.Components.PublicWebsite.WebsiteRuntimeSettings runtime, AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services.PublicWebsiteService website, HttpContext context) => {
     var origin = await runtime.OriginAsync(context.RequestAborted);
+    SharedWithUI.GeneralSettings.Dtos.WebsiteSnapshot published;
+    try { published = SharedWithUI.GeneralSettings.Dtos.WebsiteContentCompatibility.Adapt(await website.PublishedAsync(context.RequestAborted)); }
+    catch (Exception e) when (e is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
+    { return Results.StatusCode(StatusCodes.Status503ServiceUnavailable); }
     var paths = AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p is not ("/privacy-policy" or "/terms-and-conditions"))
+        .Where(p => SharedWithUI.GeneralSettings.Dtos.WebsiteServicePages.IsVisible(published, p))
         .SelectMany(p => new[] { p, p == "/" ? "/en" : "/en" + p });
     var document = new System.Xml.Linq.XDocument(new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("urlset", "http://www.sitemaps.org/schemas/sitemap/0.9"),
         paths.Select(p => new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("url", "http://www.sitemaps.org/schemas/sitemap/0.9"),

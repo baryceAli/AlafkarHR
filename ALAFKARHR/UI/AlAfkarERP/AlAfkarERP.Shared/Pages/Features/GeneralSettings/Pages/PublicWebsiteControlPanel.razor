@@ -45,6 +45,8 @@
             <button class="btn btn-outline-secondary" disabled="@busy" @onclick="History">@T("Version history", "سجل الإصدارات")</button>
             <button class="btn btn-outline-secondary" disabled="@(busy || !dirty)" @onclick="Discard">@T("Discard unsaved edits", "إلغاء التعديلات غير المحفوظة")</button>
             <button class="btn btn-outline-secondary" disabled="@(busy || dirty)" @onclick="Load">@T("Reload", "تحديث")</button>
+            <button class="btn btn-outline-secondary" disabled="@busy" @onclick="ExportDraft">@T("Export draft", "تصدير المسودة")</button>
+            <button class="btn btn-outline-primary" disabled="@(!CanEdit || busy)" @onclick="LoadApprovedContent">@T("Load approved website content", "تحميل محتوى الموقع المعتمد")</button>
             <span class="erp-status-chip">@(dirty ? T("Unsaved changes", "تغييرات غير محفوظة") : T("Draft saved", "المسودة محفوظة"))</span>
         </div>
         @if (navigationPending)
@@ -212,6 +214,34 @@
         finally { busy = false; }
     }
     private async Task History() { var result = await Service.RevisionsAsync(); if (result.IsSuccess) revisions = result.Data; else Fail(result.Error); }
+    private async Task ExportDraft()
+    {
+        if (draft == null) return;
+        var exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "/_content/AlAfkarERP.Shared/lib/MyJs/PublicWebsiteEditor.js");
+        try { await exportModule.InvokeVoidAsync("exportDraft", draft.Content); }
+        finally { await exportModule.DisposeAsync(); }
+    }
+    private async Task LoadApprovedContent()
+    {
+        if (draft == null || !CanEdit) return;
+        busy = true;
+        try
+        {
+            // Export current local content before replacing it, including any unsaved edits.
+            await ExportDraft();
+            draft = draft with { Content = WebsiteContentCompatibility.ApprovedReplacement(draft.Content) };
+            selectedPage = "/"; selectedKeys = []; selectedItemId = null; previewFragment = "";
+            SelectSection("ApprovedHero"); dirty = true; error = false;
+            message = T("Approved content loaded into the local draft. The previous draft was exported. Review both languages, save, then publish when ready.",
+                "تم تحميل المحتوى المعتمد في المسودة المحلية وتصدير المسودة السابقة. راجع اللغتين ثم احفظ وانشر عند الجاهزية.");
+            await SendPreview();
+        }
+        catch (JSException)
+        {
+            error = true; message = T("Draft export failed; the content was not replaced.", "تعذر تصدير المسودة؛ لم يتم استبدال المحتوى.");
+        }
+        finally { busy = false; }
+    }
     private async Task Restore(Guid id)
     {
         if (draft == null) return; busy = true;
@@ -316,8 +346,8 @@
     private string ItemLabel(WebsiteCollectionItem item) { var d = WebsiteContentCatalog.Manifest.Fields.FirstOrDefault(x => x.Key.StartsWith(item.TemplateKey + ".") && x.Kind == "text"); if (d == null) return T("Item", "عنصر"); var value = item.Fields.GetValueOrDefault(d.Key) ?? draft!.Content.Fields[d.Key]; var text = language == "en" ? value.En : value.Ar; return text.Length > 30 ? text[..30] + "…" : text; }
     private static bool IsMedia(string kind) => kind is "image" or "pdf" or "video" or "audio" or "download";
     private static string Accept(string kind) => kind switch { "image" => "image/jpeg,image/png,image/webp,image/gif", "pdf" => "application/pdf", "video" => "video/mp4,video/webm", "audio" => "audio/mpeg", _ => "application/zip" };
-    private static string PageComponent(string path) => path switch { "/" => "Landing", "/privacy-policy" => "Privacy", "/terms-and-conditions" => "Terms", "/request-proposal" => "RequestProposal", "/website-not-found" => "WebsiteNotFound", _ => char.ToUpperInvariant(path[1]) + path[2..] };
-    private string PageLabel(string path) => path switch { "/" => T("Home", "الرئيسية"), "/about" => T("About", "من نحن"), "/services" => T("Services", "الخدمات"), "/packages" => T("Packages", "الباقات"), "/projects" => T("Projects", "المشاريع"), "/infrastructure" => T("Infrastructure", "البنية التحتية"), "/contact" => T("Contact", "التواصل"), "/request-proposal" => T("Request proposal", "طلب عرض سعر"), "/privacy-policy" => T("Privacy", "الخصوصية"), "/website-not-found" => T("Page not found (404)", "صفحة غير موجودة (404)"), _ => T("Terms", "الشروط والأحكام") };
+    private static string PageComponent(string path) => WebsiteServicePages.Sections.TryGetValue(path, out var section) ? section : path switch { "/" => "Landing", "/privacy-policy" => "Privacy", "/terms-and-conditions" => "Terms", "/request-proposal" => "RequestProposal", "/website-not-found" => "WebsiteNotFound", _ => char.ToUpperInvariant(path[1]) + path[2..] };
+    private string PageLabel(string path) => WebsiteServicePages.Sections.TryGetValue(path, out var section) ? FieldLabel(section + ".title") : path switch { "/" => T("Home", "الرئيسية"), "/about" => T("About", "من نحن"), "/services" => T("Services", "الخدمات"), "/packages" => T("Packages", "الباقات"), "/projects" => T("Projects", "المشاريع"), "/infrastructure" => T("Infrastructure", "البنية التشغيلية"), "/contact" => T("Contact", "التواصل"), "/request-proposal" => T("Request proposal", "طلب عرض سعر"), "/privacy-policy" => T("Privacy", "الخصوصية"), "/website-not-found" => T("Page not found (404)", "صفحة غير موجودة (404)"), _ => T("Terms", "الشروط والأحكام") };
     public async ValueTask DisposeAsync()
     {
         SharedDataService.OnChange1 -= LanguageChanged; Sessions.Remove(session);

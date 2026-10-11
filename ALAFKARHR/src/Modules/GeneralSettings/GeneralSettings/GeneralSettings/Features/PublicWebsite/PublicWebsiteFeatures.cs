@@ -107,7 +107,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
         if (!Guid.TryParse(accessor.HttpContext?.User.FindFirst("company_id")?.Value, out var company) || company != Owner)
             throw new UnauthorizedAccessException();
     }
-    private static WebsiteSnapshot Parse(string json) => JsonSerializer.Deserialize<WebsiteSnapshot>(json)!;
+    private static WebsiteSnapshot Parse(string json) => WebsiteContentCompatibility.Adapt(JsonSerializer.Deserialize<WebsiteSnapshot>(json)!);
     private static WebsiteDraftDto Dto(PublicWebsiteSite site) => new(site.Token, Parse(site.DraftJson), site.UpdatedAt, site.UpdatedBy);
     private void Audit(string action, Guid token) => db.Set<PublicWebsiteAudit>().Add(new()
     { Id = Guid.NewGuid(), CompanyId = Owner, Action = action, Token = token, At = DateTime.UtcNow, By = User });
@@ -116,7 +116,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
         await Authorize(ct);
         var site = await db.Set<PublicWebsiteSite>().SingleOrDefaultAsync(x => x.CompanyId == Owner, ct);
         if (site != null) return site;
-        var baseline = new PublicWebsiteRevision { Id = Guid.NewGuid(), CompanyId = Owner, ContentJson = JsonSerializer.Serialize(WebsiteContentCatalog.Manifest.CreateSnapshot()), PublishedAt = DateTime.UtcNow, PublishedBy = "system: initial website" };
+        var baseline = new PublicWebsiteRevision { Id = Guid.NewGuid(), CompanyId = Owner, ContentJson = JsonSerializer.Serialize(WebsiteContentCompatibility.UnpublishedDefaults()), PublishedAt = DateTime.UtcNow, PublishedBy = "system: initial website" };
         site = new() { Id = Guid.NewGuid(), CompanyId = Owner, Token = Guid.NewGuid(), PublishedRevisionId = baseline.Id, DraftJson = baseline.ContentJson, UpdatedAt = DateTime.UtcNow, UpdatedBy = User };
         db.Add(baseline);
         db.Add(site);
@@ -141,7 +141,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
         await LoadSettings(ct);
         var json = Owner == Guid.Empty ? null : await db.Set<PublicWebsiteSite>().AsNoTracking()
             .Where(x => x.CompanyId == Owner).Join(db.Set<PublicWebsiteRevision>(), s => s.PublishedRevisionId, r => (Guid?)r.Id, (s, r) => r.ContentJson).SingleOrDefaultAsync(ct);
-        return new(Guid.Empty, json == null ? WebsiteContentCatalog.Manifest.CreateSnapshot() : Parse(json), default, "");
+        return new(Guid.Empty, json == null ? WebsiteContentCompatibility.UnpublishedDefaults() : Parse(json), default, "");
     }
     public async Task<WebsiteDraftDto> Handle(SaveWebsiteCommand command, CancellationToken ct)
     {
@@ -158,6 +158,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
     {
         var site = await Site(ct); CheckToken(site, command.ExpectedToken);
         var snapshot = Parse(site.DraftJson); await Validate(snapshot, true, ct);
+        site.DraftJson = JsonSerializer.Serialize(snapshot);
         var revision = new PublicWebsiteRevision { Id = Guid.NewGuid(), CompanyId = Owner, ContentJson = site.DraftJson, PublishedAt = DateTime.UtcNow, PublishedBy = User };
         db.Add(revision); site.PublishedRevisionId = revision.Id;
         var ids = Values(snapshot).Where(x => x.MediaId.HasValue).Select(x => x.MediaId!.Value).ToHashSet();
@@ -169,7 +170,7 @@ public sealed class PublicWebsiteHandlers(GeneralSettingsDbContext db, IHttpCont
         var site = await Site(ct); CheckToken(site, command.ExpectedToken);
         var revision = await db.Set<PublicWebsiteRevision>().SingleOrDefaultAsync(x => x.Id == command.RevisionId && x.CompanyId == Owner, ct)
             ?? throw new NotFoundException("Website revision not found.");
-        site.DraftJson = revision.ContentJson; Touch(site, "Restore " + revision.Id);
+        site.DraftJson = JsonSerializer.Serialize(Parse(revision.ContentJson)); Touch(site, "Restore " + revision.Id);
         await db.SaveChangesAsync(ct); return Dto(site);
     }
     public async Task<List<WebsiteRevisionDto>> Handle(ListWebsiteRevisionsQuery query, CancellationToken ct)

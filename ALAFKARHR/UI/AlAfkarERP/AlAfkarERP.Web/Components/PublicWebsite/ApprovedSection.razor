@@ -1,0 +1,108 @@
+@if (Layout != "resources" || HasResources || Content.PreviewSession != null)
+{
+<section class="website-approved-section" id="@SectionId">
+    <div class="website-approved-inner @(Has("image") ? "website-approved-with-image" : "")">
+        <div class="website-approved-copy">
+            @if (Has("eyebrow")) { <p class="website-approved-eyebrow" data-pw-fields="@Key("eyebrow")">@Text("eyebrow")</p> }
+            @if (Layout is "hero" or "page" or "projects" or "contact" or "quotation")
+            { <h1 class="font-headline-xl text-headline-xl" data-pw-fields="@Key("title")">@Text("title")</h1> }
+            else
+            { <h2 class="font-headline-lg text-headline-lg" data-pw-fields="@Key("title")">@Text("title")</h2> }
+            @if (Has("body")) { <p class="font-body-xl text-body-xl" data-pw-fields="@Key("body")">@Text("body")</p> }
+            @if (Layout == "hero" && Content.Value("MediaCenter.profile").MediaId.HasValue)
+            { <a href="@Content.Media("MediaCenter.profile")" download data-pw-fields="MediaCenter.profile,LandingHero.f012">@Content.Text("LandingHero.f012")</a> }
+        </div>
+        @if (Has("image"))
+        {
+            <figure class="website-approved-visual">
+                <img src="@Content.Media(Key("image"))" alt="@Text("alt")" loading="@(Layout == "hero" ? "eager" : "lazy")" data-pw-fields="@($"{Key("image")},{Key("alt")}")" />
+                <figcaption data-pw-fields="ApprovedVisual.note">@Content.Text("ApprovedVisual.note")</figcaption>
+            </figure>
+        }
+        else if (Content.PreviewSession != null && Content.IsEditing)
+        {
+            <button type="button" class="website-resource-upload-slot" data-pw-fields="@Key("image")">@Content.Text("MediaCenter.uploadLabel")</button>
+        }
+    </div>
+    @if (Layout == "projects")
+    {
+        <div class="website-approved-filters" aria-label="@Text("title")">
+            <button type="button" aria-pressed="@(filter == "")" @onclick="() => filter = string.Empty" data-pw-fields="@Key("all")">@Text("all")</button>
+            @foreach (var category in Items.Select(x => ItemText(x, "category")).Where(x => x.Length > 0).Distinct())
+            { <button type="button" aria-pressed="@(filter == category)" @onclick="() => filter = category">@category</button> }
+        </div>
+    }
+    @if (Items.Count > 0)
+    {
+        <div class="website-approved-grid @(Layout == "steps" ? "website-approved-steps" : "")">
+        @foreach (var item in Items)
+        {
+            var prefix = item.TemplateKey;
+            @if (Layout == "faq")
+            {
+                <details class="website-approved-card" @key="item.Id" data-pw-item="@item.Id">
+                    <summary data-pw-fields="@(prefix + ".title")">@ItemText(item, "title")</summary>
+                    <p data-pw-fields="@(prefix + ".body")">@ItemText(item, "body")</p>
+                </details>
+            }
+            else
+            {
+                <article class="website-approved-card" @key="item.Id" data-pw-item="@item.Id" id="@Anchor(item)" hidden="@(Layout == "projects" && filter.Length > 0 && ItemText(item, "category") != filter)">
+                    @if (ItemText(item, "image").Length > 0 || Content.Value(prefix + ".image", item).MediaId.HasValue)
+                    {
+                        <figure class="website-approved-visual">
+                            <img src="@Content.Media(prefix + ".image", item)" alt="@ItemText(item, "alt")" loading="lazy" data-pw-fields="@(prefix + ".image," + prefix + ".alt")" />
+                            <figcaption data-pw-fields="ApprovedVisual.note">@Content.Text("ApprovedVisual.note")</figcaption>
+                        </figure>
+                    }
+                    @if (ItemText(item, "value").Length > 0) { <p class="website-approved-value" data-pw-fields="@(prefix + ".value")">@ItemText(item, "value")</p> }
+                    <h3 class="font-headline-sm text-headline-sm" data-pw-fields="@(prefix + ".title")">@ItemText(item, "title")</h3>
+                    @if (ItemText(item, "body").Length > 0) { <p data-pw-fields="@(prefix + ".body")">@ItemText(item, "body")</p> }
+                    @if (Section == "ApprovedPackages")
+                    { <a class="website-approved-button" href="@WebsiteWhatsApp.Link(WebsiteWhatsApp.Message(new Dictionary<string, string> { [Content.Text("ApprovedForm.package")] = ItemText(item, "title") }))" target="_blank" rel="noopener noreferrer" data-pw-fields="@(prefix + ".action")">@ItemText(item, "action")</a> }
+                    else if (ItemLinkAvailable(item))
+                    { <a class="website-approved-button" href="@Content.Link(prefix + ".link", item)" data-pw-fields="@(prefix + ".link," + prefix + ".action")">@ItemText(item, "action")</a> }
+                </article>
+            }
+        }
+        </div>
+    }
+    @if (Layout == "contact")
+    {
+        <address class="website-approved-contact">
+            <span data-pw-fields="@Key("phoneLabel")">@Text("phoneLabel")</span><a href="@("tel:" + Text("phone"))" dir="ltr" data-pw-fields="@Key("phone")">@Text("phone")</a>
+            <a href="https://wa.me/966580007040" target="_blank" rel="noopener noreferrer" data-pw-fields="WebsiteHeader.f024">@Content.Text("WebsiteHeader.f024")</a>
+            <span data-pw-fields="@Key("emailLabel")">@Text("emailLabel")</span><a href="@("mailto:" + Text("email"))" dir="ltr" data-pw-fields="@Key("email")">@Text("email")</a>
+            <span data-pw-fields="@Key("addressLabel")">@Text("addressLabel")</span><p data-pw-fields="@Key("address")">@Text("address")</p>
+        </address>
+    }
+    @if (Layout is "inquiry" or "quotation") { <WebsiteWhatsAppForm Quotation="@(Layout == "quotation")" /> }
+    @if (Layout == "resources") { <WebsiteResources /> }
+    @if (Has("link"))
+    {
+        <div class="website-approved-actions">
+            <a class="website-approved-button" href="@PrimaryLink" data-pw-fields="@($"{Key("link")},{Key("action")}")">@Text("action")</a>
+            @if (Has("secondaryLink")) { <a class="website-approved-button website-approved-secondary" href="@Content.Link(Key("secondaryLink"))" data-pw-fields="@($"{Key("secondaryLink")},{Key("secondaryAction")}")">@Text("secondaryAction")</a> }
+        </div>
+    }
+</section>
+}
+@code {
+    [Parameter] public string Section { get; set; } = "";
+    private string filter = "";
+    private string Layout => WebsiteContentCatalog.Manifest.SectionLayouts.GetValueOrDefault(Section, "cards");
+    private string Key(string suffix) => Section + "." + suffix;
+    private string Text(string suffix) => Content.Text(Key(suffix));
+    private bool Has(string suffix) => !string.IsNullOrWhiteSpace(Text(suffix)) || Content.Value(Key(suffix)).MediaId.HasValue;
+    private List<WebsiteCollectionItem> Items => Content.Items(Section + ".collection1");
+    private string ItemText(WebsiteCollectionItem item, string suffix) => Content.Text(item.TemplateKey + "." + suffix, item);
+    private bool ItemLinkAvailable(WebsiteCollectionItem item)
+    {
+        var link = ItemText(item, "link");
+        return link.Length > 0 && (!WebsiteServicePages.Sections.ContainsKey(link) || WebsiteServicePages.IsVisible(Content.Snapshot, link));
+    }
+    private string? Anchor(WebsiteCollectionItem item) => ItemText(item, "anchor") is { Length: > 0 } id ? Content.ElementId(id, item) : null;
+    private bool HasResources => new[] { "MediaCenter.profile", "MediaCenter.press", "MediaCenter.report", "MediaCenter.kit", "MediaCenter.audio" }.Any(x => Content.Value(x).MediaId.HasValue);
+    private string SectionId => Section switch { "ApprovedContact" => "direct-contact", "ApprovedInquiry" => "quick-inquiry", "ApprovedServices" => "services-matrix", "ApprovedResources" => "media-resources", _ => Section.ToLowerInvariant() };
+    private string PrimaryLink => Content.Link(Key("link"));
+}

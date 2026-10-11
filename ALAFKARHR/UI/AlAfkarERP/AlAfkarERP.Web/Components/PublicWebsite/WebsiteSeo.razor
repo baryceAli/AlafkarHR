@@ -1,5 +1,5 @@
 @inject IConfiguration Configuration
-<PageTitle>@Title | @Brand</PageTitle>
+<PageTitle>@Title</PageTitle>
 <HeadContent>
  <meta name="description" content="@Description" />
  <link rel="canonical" href="@Canonical" />
@@ -13,25 +13,41 @@
  <meta property="og:description" content="@Description" />
  <meta property="og:url" content="@Canonical" />
  <meta property="og:image" content="@Preview" />
- <meta property="og:image:alt" content="@Content.Text("LandingHero.f019")" />
+ <meta property="og:image:alt" content="@Content.Text("ApprovedHero.alt")" />
  <meta name="twitter:card" content="summary_large_image" />
  <meta name="twitter:title" content="@FullTitle" />
  <meta name="twitter:description" content="@Description" />
  <meta name="twitter:image" content="@Preview" />
- @if (Content.PreviewSession != null || Path is "/privacy-policy" or "/terms-and-conditions" or "/website-not-found") { <meta name="robots" content="noindex,follow" /> }
+ @if (NoIndex || Content.PreviewRequested || Path is "/privacy-policy" or "/terms-and-conditions" or "/website-not-found") { <meta name="robots" content="noindex,follow" /> }
  <script type="application/ld+json">@((MarkupString)Schema)</script>
 </HeadContent>
 @code {
  [Parameter] public string Title { get; set; } = "";
  [Parameter] public string Description { get; set; } = "";
  [Parameter] public string Path { get; set; } = "/";
+ [Parameter] public bool NoIndex { get; set; }
  private string Origin => Content.PublicOrigin ?? WebsiteRoutes.Origin(Configuration);
  private string Canonical => Origin + (Content.English ? Content.LocalizeEnglish(Path) : Path);
  private string Brand => Content.Text("WebsiteHeader.f004");
- private string FullTitle => Title + " | " + Brand;
- private string Preview { get { var image = Content.Media("LandingHero.f020"); return image.StartsWith("/") ? Origin + image : image; } }
- private string Schema => System.Text.Json.JsonSerializer.Serialize(new Dictionary<string,object> {
-  ["@context"] = "https://schema.org", ["@type"] = "WebPage", ["name"] = FullTitle,
-  ["description"] = Description, ["url"] = Canonical, ["inLanguage"] = Content.Language
- });
+ private string FullTitle => Title;
+ private string Preview { get { var image = Content.Media("ApprovedHero.image"); return image.StartsWith("/") ? Origin + image : image; } }
+ private string Schema
+ {
+  get
+  {
+   var organisation = new Dictionary<string, object> {
+    ["@type"] = "Organization", ["@id"] = Origin + "/#organization", ["name"] = Content.Text("WebsiteFooter.f001"),
+    ["url"] = Origin, ["telephone"] = WebsiteWhatsApp.Phone, ["email"] = WebsiteWhatsApp.Email,
+    ["address"] = new Dictionary<string, object> { ["@type"] = "PostalAddress", ["streetAddress"] = Content.Text("ApprovedContact.address"), ["addressLocality"] = "Makkah", ["addressCountry"] = "SA" }
+   };
+   var graph = new List<object> { new Dictionary<string, object> {
+    ["@type"] = "WebPage", ["name"] = FullTitle, ["description"] = Description, ["url"] = Canonical, ["inLanguage"] = Content.Language
+   } };
+   if (Path == "/") graph.Add(organisation);
+   if (!NoIndex && WebsiteServicePages.Sections.TryGetValue(Path, out var section))
+    graph.Add(new Dictionary<string, object> { ["@type"] = "Service", ["name"] = Content.Text(section + ".title"), ["description"] = Description,
+     ["url"] = Canonical, ["provider"] = organisation, ["areaServed"] = "Makkah and the holy sites" });
+   return System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object> { ["@context"] = "https://schema.org", ["@graph"] = graph });
+  }
+ }
 }

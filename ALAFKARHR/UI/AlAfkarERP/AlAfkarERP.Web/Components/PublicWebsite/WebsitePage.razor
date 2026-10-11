@@ -9,11 +9,11 @@
 @code {
     [Parameter] public string Path { get; set; } = "/";
     private static readonly Dictionary<string, Type> Types = WebsiteContentCatalog.Manifest.Pages.Values.SelectMany(x => x).Distinct()
-        .ToDictionary(k => k, k => typeof(WebsitePage).Assembly.GetType(typeof(WebsitePage).Namespace + "." + k)!);
+        .ToDictionary(k => k, k => WebsiteContentCatalog.Manifest.SectionLayouts.ContainsKey(k) ? typeof(ApprovedSection) : typeof(WebsitePage).Assembly.GetType(typeof(WebsitePage).Namespace + "." + k)!);
     private IDictionary<string, object>? Parameters(string section) => section switch
     {
         "CatalogueOverview" => new Dictionary<string, object> { ["Category"] = Content.PackageCategory, ["Changed"] = EventCallback.Factory.Create<int>(this, Content.SetPackageCategory) },
         "PackagesCatalogue" => new Dictionary<string, object> { ["Category"] = Content.PackageCategory },
-        _ => null
+        _ => WebsiteContentCatalog.Manifest.SectionLayouts.ContainsKey(section) ? new Dictionary<string, object> { ["Section"] = section } : null
     };
 }
