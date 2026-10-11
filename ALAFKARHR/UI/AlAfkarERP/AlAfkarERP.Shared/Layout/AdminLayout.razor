@@ -7,7 +7,7 @@
 @using Microsoft.JSInterop
 @using SharedWithUI.Permissions
 @inherits LayoutComponentBase
-@implements IDisposable
+@implements IAsyncDisposable
 
 @inject SharedDataService SharedDataService
 @inject AuthenticationStateProvider AuthenticationStateProvider
@@ -100,6 +100,8 @@
     private bool showSetupProgress;
     private int setupPercent;
     private bool setupComplete;
+    private bool isDisposed;
+    private bool jsUnavailableDuringInitialization;
 
     protected override async Task OnInitializedAsync()
     {
@@ -107,23 +109,40 @@
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (firstRender && !isDisposed)
         {
             AuthState = await ((CustomAuthStateProvider)AuthenticationStateProvider).GetAuthenticationStateAsync();
+            if (isDisposed) return;
             if (AuthState.User.Identity?.IsAuthenticated != true)
             {
                 NavigationManager.NavigateTo("login", true);
+                return;
             }
             else
             {
                 await LoadLicensedBusinessLinesAsync();
+                if (isDisposed) return;
                 await LoadSetupProgressAsync();
+                if (isDisposed) return;
                 await RunTaskDailyCheckSilentlyAsync();
+                if (isDisposed) return;
             }
-            activeWorkspace = await LoadActiveWorkspaceAsync();
-            shortcutReference = DotNetObjectReference.Create(this);
-            await JSRuntime.InvokeVoidAsync("alafkarNavigation.bindShortcuts", shortcutReference);
-            await InvokeAsync(StateHasChanged);
+            var workspace = await LoadActiveWorkspaceAsync();
+            if (isDisposed) return;
+            activeWorkspace = workspace;
+            if (!jsUnavailableDuringInitialization)
+            {
+                shortcutReference = DotNetObjectReference.Create(this);
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("alafkarNavigation.bindShortcuts", shortcutReference);
+                }
+                catch (Exception ex) when (ex is JSDisconnectedException or OperationCanceledException or InvalidOperationException or JSException)
+                {
+                    // Shortcuts are optional when the browser connection is unavailable.
+                }
+            }
+            await RenderIfActiveAsync();
             // NavigationManager.NavigateTo("/login");
         }
     }
@@ -135,8 +154,15 @@
 
     private async Task HandleChangeAsync()
     {
-        await InvokeAsync(StateHasChanged);
+        await RenderIfActiveAsync();
     }
+
+    private Task RenderIfActiveAsync() => isDisposed
+        ? Task.CompletedTask
+        : InvokeAsync(() =>
+        {
+            if (!isDisposed) StateHasChanged();
+        });
 
     private async Task<string> LoadActiveWorkspaceAsync()
     {
@@ -145,6 +171,11 @@
         {
             var stored = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", NavigationShellState.ActiveWorkspaceStorageKey);
             resolvedWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, stored);
+        }
+        catch (Exception ex) when (ex is JSDisconnectedException or OperationCanceledException)
+        {
+            jsUnavailableDuringInitialization = true;
+            resolvedWorkspace = NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri);
         }
         catch (InvalidOperationException)
         {
@@ -167,6 +198,7 @@
         }
 
         var result = await CompanyService.GetCurrentLicenseAsync();
+        if (isDisposed) return;
         licensedBusinessLineKeys = result.IsSuccess && result.Data is not null
             ? result.Data.BusinessLines.Select(line => line.Key).ToHashSet(StringComparer.OrdinalIgnoreCase)
             : new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -181,6 +213,7 @@
         }
 
         var result = await SystemSetupService.GetCurrentAsync();
+        if (isDisposed) return;
         if (!result.IsSuccess || result.Data is null)
         {
             showSetupProgress = false;
@@ -194,12 +227,13 @@
 
     private async Task SetActiveWorkspaceAsync(string workspaceKey)
     {
+        if (isDisposed) return;
         activeWorkspace = EnsureAuthorizedWorkspace(workspaceKey);
         try
         {
             await JSRuntime.InvokeVoidAsync("localStorage.setItem", NavigationShellState.ActiveWorkspaceStorageKey, activeWorkspace);
         }
-        catch (JSException)
+        catch (Exception ex) when (ex is JSDisconnectedException or OperationCanceledException or InvalidOperationException or JSException)
         {
         }
     }
@@ -223,30 +257,35 @@
 
     private void OpenMoreHub()
     {
+        if (isDisposed) return;
         moreHubInitialView = MoreHub.ViewDirectory;
         isMoreHubOpen = true;
     }
 
     private void OpenWorkspaceHub()
     {
+        if (isDisposed) return;
         moreHubInitialView = MoreHub.ViewWorkspace;
         isMoreHubOpen = true;
     }
 
     private void OpenRecentHub()
     {
+        if (isDisposed) return;
         moreHubInitialView = MoreHub.ViewRecent;
         isMoreHubOpen = true;
     }
 
     private void OpenFavoritesHub()
     {
+        if (isDisposed) return;
         moreHubInitialView = MoreHub.ViewFavorites;
         isMoreHubOpen = true;
     }
 
     private void OpenCommandPalette()
     {
+        if (isDisposed) return;
         commandPaletteInitialSearchText = null;
         isCommandPaletteOpen = true;
     }
@@ -254,19 +293,22 @@
     [JSInvokable]
     public async Task OpenCommandPaletteFromShortcut()
     {
+        if (isDisposed) return;
         commandPaletteInitialSearchText = null;
         isCommandPaletteOpen = true;
-        await InvokeAsync(StateHasChanged);
+        await RenderIfActiveAsync();
     }
 
     private Task SetMoreHubOpen(bool value)
     {
+        if (isDisposed) return Task.CompletedTask;
         isMoreHubOpen = value;
         return Task.CompletedTask;
     }
 
     private Task SetCommandPaletteOpen(bool value)
     {
+        if (isDisposed) return Task.CompletedTask;
         isCommandPaletteOpen = value;
         if (!value)
         {
@@ -294,15 +336,32 @@
 
     private void HandleLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs args)
     {
+        if (isDisposed) return;
         activeWorkspace = EnsureAuthorizedWorkspace(NavigationMenuResolver.ResolveActiveWorkspace(NavigationManager.Uri, NavigationManager.BaseUri, activeWorkspace));
-        _ = InvokeAsync(StateHasChanged);
+        _ = RenderIfActiveAsync();
     }
 
-    public void Dispose()
+    public async ValueTask DisposeAsync()
     {
+        if (isDisposed) return;
+        isDisposed = true;
         SharedDataService.OnChange1 -= HandleChangeAsync;
         NavigationManager.LocationChanged -= HandleLocationChanged;
-        _ = JSRuntime.InvokeVoidAsync("alafkarNavigation.unbindShortcuts");
-        shortcutReference?.Dispose();
+        try
+        {
+            if (shortcutReference is not null)
+            {
+                await JSRuntime.InvokeVoidAsync("alafkarNavigation.unbindShortcuts");
+            }
+        }
+        catch (Exception ex) when (ex is JSDisconnectedException or OperationCanceledException or InvalidOperationException or JSException)
+        {
+            // Cleanup may run after navigation or circuit disconnection.
+        }
+        finally
+        {
+            shortcutReference?.Dispose();
+            shortcutReference = null;
+        }
     }
 }

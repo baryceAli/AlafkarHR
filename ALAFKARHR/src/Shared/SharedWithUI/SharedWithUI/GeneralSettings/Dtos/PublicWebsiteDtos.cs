@@ -48,10 +48,13 @@ public sealed class WebsiteManifest
     public Dictionary<string, List<string>> Pages { get; set; } = [];
     public Dictionary<string, List<string>> Collections { get; set; } = [];
     public Dictionary<string, List<string>> SectionChildren { get; set; } = [];
+    public Dictionary<string, List<string>> ApprovedPages { get; set; } = [];
+    public Dictionary<string, string> SectionLayouts { get; set; } = [];
+    public Dictionary<string, string> MediaAliases { get; set; } = [];
     public WebsiteSnapshot CreateSnapshot() => new()
     {
         Fields = Fields.ToDictionary(x => x.Key, x => new WebsiteValue { Ar = x.Ar, En = x.En }),
-        Pages = Pages.ToDictionary(x => x.Key, x => x.Value.Select(k => new WebsiteSection { Key = k }).ToList()),
+        Pages = Pages.ToDictionary(x => x.Key, x => x.Value.Select(k => new WebsiteSection { Key = k, Visible = ApprovedPages.GetValueOrDefault(x.Key, x.Value).Contains(k) }).ToList()),
         Collections = Collections.ToDictionary(x => x.Key, x => x.Value.Select(k => new WebsiteCollectionItem { Id = Guid.NewGuid(), Original = true, TemplateKey = k }).ToList())
     };
 }

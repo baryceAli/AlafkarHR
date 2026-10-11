@@ -1,7 +1,7 @@
 namespace AlAfkarERP.Web.Components.PublicWebsite;
 public static class WebsiteRoutes
 {
- public static readonly string[] Paths = ["/", "/services", "/packages", "/projects", "/about", "/infrastructure", "/contact", "/request-proposal", "/privacy-policy", "/terms-and-conditions"];
+ public static readonly string[] Paths = ["/", "/services", "/packages", "/projects", "/about", "/infrastructure", "/contact", "/request-proposal", "/privacy-policy", "/terms-and-conditions", .. SharedWithUI.GeneralSettings.Dtos.WebsiteServicePages.Sections.Keys];
  public static string ArabicPath(string? path)
  {
   var normalized = path?.TrimEnd('/') is "" ? "/" : path?.TrimEnd('/') ?? "/";

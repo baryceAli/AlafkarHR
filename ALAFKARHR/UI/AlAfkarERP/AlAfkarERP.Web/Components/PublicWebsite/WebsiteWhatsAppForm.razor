@@ -1,0 +1,102 @@
+@using Microsoft.JSInterop
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+<form class="website-approved-form" @onsubmit="Continue" @onsubmit:preventDefault="true">
+    <label data-pw-fields="ApprovedForm.name" for="@(id + "name")">@T("name") *</label>
+    <input id="@(id + "name")" @bind="name" autocomplete="name" required maxlength="200" />
+    @if (Quotation)
+    {
+        <label data-pw-fields="ApprovedForm.type" for="@(id + "type")">@T("type") *</label>
+        <select id="@(id + "type")" @bind="organisationType" required>
+            <option value="" data-pw-fields="ApprovedForm.select">@T("select")</option>
+            @for (var i = 0; i < 5; i++) { <option value="@i" data-pw-fields="@("ApprovedForm.type" + i)">@T("type" + i)</option> }
+        </select>
+        <fieldset>
+            <legend data-pw-fields="ApprovedForm.services">@T("services") *</legend>
+            @foreach (var service in Services)
+            {
+                <label class="website-approved-check" data-pw-fields="@("ApprovedForm.service." + service)">
+                    <input type="checkbox" checked="@selected.Contains(service)" @onchange="e => Select(service, e.Value is true)" />@T("service." + service)
+                </label>
+            }
+        </fieldset>
+        <label for="@(id + "quantity")" data-pw-fields="ApprovedForm.quantity">@T("quantity") *</label>
+        <input id="@(id + "quantity")" @bind="quantity" required maxlength="200" />
+        <label for="@(id + "date")" data-pw-fields="ApprovedForm.date">@T("date")</label>
+        <input id="@(id + "date")" @bind="date" maxlength="200" />
+    }
+    else
+    {
+        <label for="@(id + "organisation")" data-pw-fields="ApprovedForm.organisation">@T("organisation")</label>
+        <input id="@(id + "organisation")" @bind="organisation" maxlength="200" />
+    }
+    <label for="@(id + "phone")" data-pw-fields="ApprovedForm.phone">@T("phone") *</label>
+    <input id="@(id + "phone")" @bind="phone" type="tel" autocomplete="tel" dir="ltr" required minlength="9" maxlength="20" />
+    @if (Quotation)
+    {
+        <label for="@(id + "email")" data-pw-fields="ApprovedForm.email">@T("email")</label>
+        <input id="@(id + "email")" @bind="email" type="email" autocomplete="email" dir="ltr" maxlength="254" />
+    }
+    <label for="@(id + "details")" data-pw-fields="@("ApprovedForm." + (Quotation ? "details" : "message"))">@T(Quotation ? "details" : "message")@(!Quotation ? " *" : "")</label>
+    <textarea id="@(id + "details")" @bind="details" rows="5" required="@(!Quotation)" maxlength="2000"></textarea>
+    <p data-pw-fields="ApprovedForm.notice">@T("notice")</p>
+    @if (invalid) { <p role="alert" data-pw-fields="ApprovedForm.required">@T("required")</p> }
+    <button type="submit" class="website-approved-button" disabled="@(!interactive)" data-pw-fields="ApprovedForm.continue">@T("continue")</button>
+    @if (messageUrl != null)
+    {
+        <p role="status" data-pw-fields="ApprovedForm.handoff">@T("handoff")</p>
+        <a href="@messageUrl" target="_blank" rel="noopener noreferrer" data-pw-fields="ApprovedForm.open">@T("open")</a>
+    }
+</form>
+@code {
+    [Parameter] public bool Quotation { get; set; }
+    private readonly string id = "wa-" + Guid.NewGuid().ToString("N");
+    private static readonly string[] Services = WebsiteWhatsApp.ServiceKeys;
+    private readonly HashSet<string> selected = [];
+    private string name = "", organisation = "", organisationType = "", quantity = "", date = "", phone = "", email = "", details = "", package = "";
+    private string? messageUrl;
+    private bool invalid, interactive;
+    private IJSObjectReference? module;
+    private string T(string suffix) => Content.Text("ApprovedForm." + suffix);
+    protected override void OnInitialized()
+    {
+        base.OnInitialized();
+        var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query);
+        package = query.GetValueOrDefault("package").ToString();
+        if (Quotation && query.TryGetValue("service", out var requested))
+        {
+            if (WebsiteWhatsApp.ServiceKey(requested.ToString()) is { } service) selected.Add(service);
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        module = await JS.InvokeAsync<IJSObjectReference>("import", "/website/whatsapp.js");
+        interactive = true; StateHasChanged();
+    }
+    private void Select(string service, bool value) { if (value) selected.Add(service); else selected.Remove(service); }
+    private async Task Continue()
+    {
+        invalid = string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(phone) || phone.Count(char.IsDigit) < 9 ||
+            (Quotation ? string.IsNullOrWhiteSpace(organisationType) || selected.Count == 0 || string.IsNullOrWhiteSpace(quantity) : string.IsNullOrWhiteSpace(details));
+        if (invalid) { messageUrl = null; return; }
+        var fields = new Dictionary<string, string> { [T("name")] = name, [T("phone")] = phone };
+        if (Quotation)
+        {
+            fields[T("type")] = T("type" + organisationType);
+            fields[T("services")] = string.Join(", ", Services.Where(selected.Contains).Select(x => T("service." + x)));
+            fields[T("quantity")] = quantity; fields[T("date")] = date; fields[T("email")] = email;
+            fields[T("package")] = package;
+        }
+        else fields[T("organisation")] = organisation;
+        fields[T(Quotation ? "details" : "message")] = details;
+        messageUrl = WebsiteWhatsApp.Link(WebsiteWhatsApp.Message(fields));
+        if (module != null) await module.InvokeVoidAsync("openWhatsApp", messageUrl);
+    }
+    public async ValueTask DisposeAsync()
+    {
+        base.Dispose();
+        if (module != null) { try { await module.DisposeAsync(); } catch (JSDisconnectedException) { } }
+    }
+}

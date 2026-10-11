@@ -31,3 +31,65 @@ color-scheme:light;background:var(--website-background);color:var(--website-text
 .public-website .bg-primary.hover\:text-primary:hover {
     color: var(--website-text);
 }
+
+/* Content replacement surfaces use the existing PublicWebsite palette only. */
+.public-website {
+    --website-content-width: 1440px;
+    --website-content-gap: 1.5rem;
+    --website-content-padding: clamp(1rem, 4vw, 3rem);
+    --website-content-section: clamp(2rem, 5vw, 4rem);
+    --website-content-radius: .75rem;
+    --website-content-control: .75rem;
+    --website-content-header: 5rem;
+}
+.public-website .website-approved-section,
+.public-website .website-approved-footer {
+    max-width: var(--website-content-width);
+    margin-inline: auto;
+    padding: var(--website-content-section) var(--website-content-padding);
+    overflow-wrap: anywhere;
+}
+.public-website .website-approved-section + .website-approved-section,
+.public-website .website-approved-footer { border-block-start: 1px solid var(--website-border); }
+.public-website .website-approved-inner,
+.public-website .website-approved-copy { display: grid; gap: var(--website-content-gap); }
+.public-website .website-approved-with-image { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; }
+.public-website .website-approved-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: var(--website-content-gap); margin-block-start: var(--website-content-gap); }
+.public-website .website-approved-card { display: flex; flex-direction: column; align-items: start; gap: var(--website-content-gap); padding: var(--website-content-gap); background: var(--website-panel); border: 1px solid var(--website-border); border-radius: var(--website-content-radius); min-width: 0; }
+.public-website .website-approved-value { color: var(--website-gold-text); font-size: 1.75rem; line-height: 1.4; font-weight: 700; }
+.public-website .website-approved-eyebrow { color: var(--website-gold-text); font-weight: 600; }
+.public-website .website-approved-visual { margin: 0; width: 100%; }
+.public-website .website-approved-visual img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: var(--website-content-radius); }
+.public-website .website-approved-visual figcaption { color: var(--website-muted); font-size: .8rem; padding-block-start: var(--website-content-control); }
+.public-website .website-approved-actions,
+.public-website .website-approved-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--website-content-gap); margin-block-start: var(--website-content-gap); }
+.public-website .website-approved-button { display: inline-flex; align-items: center; justify-content: center; padding: var(--website-content-control) var(--website-content-gap); border-radius: var(--website-content-radius); background: var(--website-gold); color: var(--website-text); border: 1px solid var(--website-gold-text); font-weight: 600; }
+.public-website .website-approved-button:hover { background: rgb(var(--website-gold-hover-rgb)); }
+.public-website .website-approved-secondary { background: var(--website-panel); }
+.public-website .website-approved-filters button { padding: var(--website-content-control); border: 1px solid var(--website-border); border-radius: var(--website-content-radius); }
+.public-website .website-approved-filters button[aria-pressed=true] { background: var(--website-gold); }
+.public-website .website-approved-form { display: grid; gap: var(--website-content-control); max-width: 48rem; margin-block-start: var(--website-content-gap); }
+.public-website .website-approved-form input:not([type=checkbox]),
+.public-website .website-approved-form select,
+.public-website .website-approved-form textarea { width: 100%; padding: var(--website-content-control); background: var(--website-background); border: 1px solid var(--website-border); border-radius: var(--website-content-radius); }
+.public-website .website-approved-form fieldset { border: 1px solid var(--website-border); padding: var(--website-content-gap); border-radius: var(--website-content-radius); }
+.public-website .website-approved-check { display: flex; align-items: center; gap: var(--website-content-control); margin-block: var(--website-content-control); }
+.public-website .website-approved-form a,
+.public-website .website-approved-contact a { text-decoration: underline; color: var(--website-gold-text); }
+.public-website .website-approved-contact { display: grid; gap: var(--website-content-control); font-style: normal; margin-block-start: var(--website-content-gap); }
+.public-website .website-approved-footer address { font-style: normal; }
+.public-website .website-approved-card summary { cursor: pointer; font-weight: 600; }
+.public-website .website-approved-card details p { margin-block-start: var(--website-content-gap); }
+.public-website .website-header { position: fixed; inset-block-start: 0; inset-inline: 0; z-index: 50; background: var(--website-background); border-block-end: 1px solid var(--website-border); }
+.public-website .website-approved-header { max-width: var(--website-content-width); margin-inline: auto; padding-inline: var(--website-content-padding); height: var(--website-content-header); display: flex; align-items: center; justify-content: space-between; gap: var(--website-content-gap); }
+.public-website .website-approved-brand { display: flex; align-items: center; gap: var(--website-content-control); }
+.public-website .website-approved-brand span { display: grid; }
+.public-website .website-approved-brand small { color: var(--website-muted); }
+.public-website .website-approved-desktop-nav { display: flex; align-items: center; gap: var(--website-content-control); }
+.public-website .website-approved-desktop-nav [aria-current=page] { color: var(--website-gold-text); font-weight: 700; }
+.public-website .website-approved-header .website-approved-actions { margin-block-start: 0; flex-wrap: nowrap; }
+@media(max-width:1279px) { .public-website .website-approved-desktop-nav { display: none; } }
+@media(max-width:767px) {
+    .public-website .website-approved-with-image { grid-template-columns: minmax(0, 1fr); }
+    .public-website .website-approved-form fieldset { padding: var(--website-content-control); }
+}

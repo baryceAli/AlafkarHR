@@ -11,10 +11,12 @@
 <div class="public-website bg-background font-body-md text-body-md text-on-surface antialiased" lang="@Content.Language" dir="@Content.Direction" data-enhance-nav="false">
 <a class="website-skip-link" href="#website-main" data-pw-fields="WebsiteLayout.skip">@Content.Text("WebsiteLayout.skip")</a>
 <WebsiteHeader />
-<main id="website-main" class="w-full pt-20 bg-background min-h-screen">@Body</main>
+<main id="website-main" class="w-full pt-20 bg-background min-h-screen">@if (contentReady) { @Body }</main>
 <WebsiteFooter />
 </div>
 @code {
+    // Resolve the publication before instantiating route content and deciding its HTTP status.
+    private bool contentReady;
     private IJSObjectReference? module;
     private DotNetObjectReference<WebsiteLayout>? reference;
     private readonly System.Text.StringBuilder previewBuffer = new();
@@ -25,11 +27,12 @@
         try { var published = await WebsiteService.PublishedAsync(); PublishedCache.Remember(published); Content.Set(published); }
         catch (Exception e) { if (PublishedCache.LastSuccessful() is { } last) Content.Set(last); Logger.LogError(e, "Unable to load published PublicWebsite content."); }
         Content.SetPublicOrigin(await origin);
+        contentReady = true;
     }
     private void Update() => _ = InvokeAsync(StateHasChanged);
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!firstRender) return;
+        if (!contentReady || module != null) return;
         var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query);
         if (!query.TryGetValue("websiteEditor", out var session) || !Guid.TryParseExact(session, "N", out _)) return;
         Content.PreviewSession = session;

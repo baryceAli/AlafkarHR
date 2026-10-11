@@ -12,18 +12,20 @@ public sealed class WebsitePublishedCache
 
 public sealed class WebsiteContentState(NavigationManager navigation)
 {
-    public WebsiteSnapshot Snapshot { get; private set; } = WebsiteContentCatalog.Manifest.CreateSnapshot();
+    public WebsiteSnapshot Snapshot { get; private set; } = WebsiteContentCompatibility.UnpublishedDefaults();
     public event Action? Changed;
     public bool English => new Uri(navigation.Uri).AbsolutePath.Equals("/en", StringComparison.OrdinalIgnoreCase) || new Uri(navigation.Uri).AbsolutePath.StartsWith("/en/", StringComparison.OrdinalIgnoreCase);
     public string Language => English ? "en" : "ar";
     public string Direction => English ? "ltr" : "rtl";
     public string? PreviewSession { get; set; }
+    public bool PreviewRequested => PreviewSession != null ||
+        (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(new Uri(navigation.Uri).Query).TryGetValue("websiteEditor", out var session) && Guid.TryParseExact(session, "N", out _));
     public bool IsEditing { get; set; } = true;
     public string? PublicOrigin { get; private set; }
     public void SetPublicOrigin(string origin) { PublicOrigin = origin; Changed?.Invoke(); }
     public int PackageCategory { get; private set; }
     public void SetPackageCategory(int category) { PackageCategory = category; Changed?.Invoke(); }
-    public void Set(WebsiteSnapshot snapshot) { Snapshot = snapshot; Changed?.Invoke(); }
+    public void Set(WebsiteSnapshot snapshot) { Snapshot = WebsiteContentCompatibility.Adapt(snapshot); Changed?.Invoke(); }
     public WebsiteValue Value(string key, WebsiteCollectionItem? item = null) => item != null && item.Fields.TryGetValue(key, out var v) ? v : Snapshot.Fields.GetValueOrDefault(key) ?? new();
     public string Text(string key, WebsiteCollectionItem? item = null) { var v = Value(key, item); return English ? v.En : v.Ar; }
     public string Media(string key, WebsiteCollectionItem? item = null)
