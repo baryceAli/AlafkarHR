@@ -15,7 +15,9 @@
         @if (Has("image"))
         {
             <figure class="website-approved-visual">
+                <WebsiteImageEffect Kind="@SectionImageEffect">
                 <img src="@Content.Media(Key("image"))" alt="@Text("alt")" loading="@(Layout == "hero" ? "eager" : "lazy")" data-pw-fields="@($"{Key("image")},{Key("alt")}")" />
+                </WebsiteImageEffect>
                 <figcaption data-pw-fields="ApprovedVisual.note">@Content.Text("ApprovedVisual.note")</figcaption>
             </figure>
         }
@@ -51,7 +53,9 @@
                     @if (ItemText(item, "image").Length > 0 || Content.Value(prefix + ".image", item).MediaId.HasValue)
                     {
                         <figure class="website-approved-visual">
+                            <WebsiteImageEffect Kind="@CollectionImageEffect">
                             <img src="@Content.Media(prefix + ".image", item)" alt="@ItemText(item, "alt")" loading="lazy" data-pw-fields="@(prefix + ".image," + prefix + ".alt")" />
+                            </WebsiteImageEffect>
                             <figcaption data-pw-fields="ApprovedVisual.note">@Content.Text("ApprovedVisual.note")</figcaption>
                         </figure>
                     }
@@ -90,6 +94,9 @@
 @code {
     [Parameter] public string Section { get; set; } = "";
     private string filter = "";
+    private bool StillImages => Section is "ApprovedEntities" or "ApprovedLocation" or "ApprovedResources" or "ApprovedReports";
+    private string SectionImageEffect => StillImages ? "still" : Layout == "hero" ? "hero" : "section";
+    private string CollectionImageEffect => StillImages ? "still" : "card";
     private string Layout => WebsiteContentCatalog.Manifest.SectionLayouts.GetValueOrDefault(Section, "cards");
     private string Key(string suffix) => Section + "." + suffix;
     private string Text(string suffix) => Content.Text(Key(suffix));
