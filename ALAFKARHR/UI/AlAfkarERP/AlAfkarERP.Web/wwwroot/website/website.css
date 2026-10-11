@@ -93,3 +93,124 @@ color-scheme:light;background:var(--website-background);color:var(--website-text
     .public-website .website-approved-with-image { grid-template-columns: minmax(0, 1fr); }
     .public-website .website-approved-form fieldset { padding: var(--website-content-control); }
 }
+/* Opt-in photographic effects, isolated from ERP and storefront surfaces. */
+.public-website {
+    --website-image-ease: cubic-bezier(.22, 1, .36, 1);
+    --website-image-reveal-duration: 800ms;
+    --website-image-hero-duration: 1100ms;
+    --website-image-tilt-duration: 700ms;
+    --website-image-reveal-distance: 16px;
+    --website-image-radius: clamp(18px, 3.4vw, 34px);
+    --website-image-offset: clamp(6px, 1.2vw, 14px);
+    --website-image-shadow: 0 30px 50px -28px rgb(var(--website-text-rgb) / .35);
+    --website-image-perspective: 1100px;
+    --website-image-rotate-x: 7deg;
+    --website-image-rotate-y: -9deg;
+    --website-image-depth: 6px;
+    --website-image-zoom: 1.05;
+}
+.public-website .website-image-effect { width: 100%; min-width: 0; }
+.public-website [data-image-effect]:not([data-image-effect="still"]) {
+    --image-pointer-x: 0;
+    --image-pointer-y: 0;
+    transition: opacity var(--website-image-reveal-duration) var(--website-image-ease),
+        translate var(--website-image-reveal-duration) var(--website-image-ease),
+        scale var(--website-image-hero-duration) var(--website-image-ease);
+}
+.public-website [data-image-effect].is-image-pending:not(.is-image-visible) {
+    opacity: 0;
+    translate: 0 var(--website-image-reveal-distance);
+}
+.public-website [data-image-effect="hero"].is-image-pending:not(.is-image-visible) { scale: .9; }
+.public-website [data-image-effect="hero"] { transition-duration: var(--website-image-hero-duration); }
+.public-website .website-image-tilt { position: relative; isolation: isolate; }
+.public-website .website-image-clip { position: relative; }
+.public-website :is([data-image-effect="hero"], [data-image-effect="section"]) .website-image-tilt {
+    /* Reserve space inside the original column so backing shapes cannot overflow mobile grids. */
+    margin: var(--website-image-offset);
+    border-radius: var(--website-image-radius);
+    box-shadow: var(--website-image-shadow);
+}
+.public-website :is([data-image-effect="hero"], [data-image-effect="section"]) .website-image-clip {
+    overflow: hidden;
+    border-radius: inherit;
+}
+.public-website :is([data-image-effect="hero"], [data-image-effect="section"]) .website-image-tilt::before,
+.public-website :is([data-image-effect="hero"], [data-image-effect="section"]) .website-image-tilt::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: -1;
+    border-radius: inherit;
+}
+.public-website :is([data-image-effect="hero"], [data-image-effect="section"]) .website-image-tilt::before {
+    inset-inline-start: calc(-1 * var(--website-image-offset));
+    inset-block-end: calc(-1 * var(--website-image-offset));
+    width: 68%; height: 68%;
+    background: var(--website-gold);
+}
+.public-website :is([data-image-effect="hero"], [data-image-effect="section"]) .website-image-tilt::after {
+    inset-inline-end: calc(-.7 * var(--website-image-offset));
+    inset-block-start: calc(-.7 * var(--website-image-offset));
+    width: 38%; height: 38%;
+    background: rgb(var(--website-surface-highest-rgb));
+}
+.public-website .website-approved-visual [data-image-effect="card"] .website-image-clip {
+    overflow: hidden;
+    border-radius: var(--website-content-radius);
+}
+.public-website .website-approved-visual [data-image-effect="card"] img {
+    transition: transform var(--website-image-reveal-duration) var(--website-image-ease);
+}
+@media (hover: hover) and (pointer: fine) {
+    .public-website [data-image-effect="hero"] .website-image-tilt {
+        transform: perspective(var(--website-image-perspective))
+            rotateY(calc(var(--image-pointer-x) * var(--website-image-rotate-y)))
+            rotateX(calc(var(--image-pointer-y) * var(--website-image-rotate-x)));
+        transition: transform var(--website-image-tilt-duration) var(--website-image-ease);
+    }
+    .public-website [data-image-effect="hero"] .website-image-clip {
+        translate: calc(var(--image-pointer-x) * var(--website-image-depth)) calc(var(--image-pointer-y) * var(--website-image-depth));
+        transition: translate var(--website-image-tilt-duration) var(--website-image-ease);
+    }
+    .public-website [data-image-effect="hero"] .website-image-tilt::before {
+        translate: calc(var(--image-pointer-x) * var(--website-image-depth) * -1) calc(var(--image-pointer-y) * var(--website-image-depth) * -1);
+        transition: translate var(--website-image-tilt-duration) var(--website-image-ease);
+    }
+    .public-website .website-approved-card:is(:hover, :focus-within) [data-image-effect="card"] img {
+        transform: scale(var(--website-image-zoom));
+    }
+}
+.public-website [data-image-effect="hero"].is-image-visible.is-image-ready img {
+    animation: website-image-settle var(--website-image-hero-duration) var(--website-image-ease);
+}
+.public-website [data-image-effect="hero"].is-image-visible {
+    animation: website-image-enter var(--website-image-hero-duration) var(--website-image-ease);
+}
+@keyframes website-image-enter {
+    from { opacity: 0; scale: .9; }
+    to { opacity: 1; scale: 1; }
+}
+@keyframes website-image-settle {
+    from { opacity: 0; transform: scale(1.05); }
+    to { transform: scale(1); }
+}
+/* Static frames remain useful when scripting is unavailable or motion is disabled. */
+@media (prefers-reduced-motion: reduce) {
+    .public-website [data-image-effect],
+    .public-website [data-image-effect] *,
+    .public-website [data-image-effect] ::before,
+    .public-website [data-image-effect] ::after {
+        animation: none !important; transition: none !important;
+        transform: none !important; translate: none !important; scale: none !important;
+    }
+    .public-website [data-image-effect].is-image-pending { opacity: 1; }
+}
+.website-edit-preview .public-website [data-image-effect],
+.website-edit-preview .public-website [data-image-effect] *,
+.website-edit-preview .public-website [data-image-effect] ::before,
+.website-edit-preview .public-website [data-image-effect] ::after {
+    animation: none !important; transition: none !important;
+    transform: none !important; translate: none !important; scale: none !important;
+}
+.website-edit-preview .public-website [data-image-effect].is-image-pending { opacity: 1; }
