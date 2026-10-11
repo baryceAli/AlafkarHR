@@ -46,6 +46,9 @@ public class CreateRoleHanlder(RoleManager<ApplicationRole> roleManager)
         if (role is not null && role.CompanyId != companyId)
             throw new BadRequestException("Role does not belong to the selected company.");
 
+        if (role is not null && CompanyRoleTemplates.IsPublicWebsiteTemplate(role.TemplateKey))
+            throw new BadRequestException("Managed Alafkar Public Website roles cannot be modified. Create a custom role instead.");
+
         var duplicateDisplayName = await roleManager.Roles
             .AnyAsync(r => r.CompanyId == companyId
                 && r.DisplayName != null

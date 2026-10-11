@@ -9,8 +9,11 @@ public class GetRolesHandler(RoleManager<ApplicationRole> roleManager)
 {
     public async Task<GetRolesResult> Handle(GetRolesQuery request, CancellationToken cancellationToken)
     {
-        var rolesDb= await roleManager.Roles.ToListAsync(cancellationToken);
-        var roles= rolesDb.Where(r => r.CompanyId==request.companyId).ToList();
+        await CompanyRoleTemplates.EnsurePublicWebsiteRolesAsync(roleManager, request.companyId);
+
+        var roles = await roleManager.Roles
+            .Where(r => r.CompanyId == request.companyId)
+            .ToListAsync(cancellationToken);
         List<RoleDto> rolesResult = new List<RoleDto>();
         foreach (var role in roles)
         {
@@ -18,7 +21,8 @@ public class GetRolesHandler(RoleManager<ApplicationRole> roleManager)
             {
                 RoleName = role.Name ?? string.Empty,
                 DisplayName = string.IsNullOrWhiteSpace(role.DisplayName) ? role.Name ?? string.Empty : role.DisplayName,
-                CompanyId = role.CompanyId
+                CompanyId = role.CompanyId,
+                TemplateKey = role.TemplateKey
             });
         }
 

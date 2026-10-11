@@ -51,6 +51,10 @@
         </Actions>
     </PageHeader>
 
+    <div class="alert alert-info">
+        @Text("Alafkar Public Website roles grant content access only within the website owner company. Configuration also allows its authorized parent administrator. After role changes, users must refresh their session or sign in again.", "تمنح أدوار موقع الأفكار العام الوصول إلى المحتوى داخل الشركة المالكة للموقع فقط. وتُتاح التهيئة أيضاً لمسؤول الشركة الأم المخوّل. بعد تغيير الأدوار، يجب على المستخدمين تحديث الجلسة أو تسجيل الدخول مجدداً.")
+    </div>
+
     @if (editingRow is not null)
     {
         <AppCard CssClass="mb-3 allow-overflow">

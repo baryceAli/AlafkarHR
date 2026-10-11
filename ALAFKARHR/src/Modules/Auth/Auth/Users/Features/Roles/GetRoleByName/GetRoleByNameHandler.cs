@@ -17,7 +17,7 @@ public class GetRoleByNameHandler(RoleManager<ApplicationRole> roleManager)
 
         var claims = await roleManager.GetClaimsAsync(role);
         List<string> permissions = [];
-        foreach(var claim in claims)
+        foreach(var claim in claims.Where(c => c.Type == CompanyRoleTemplates.ManagedClaimType))
         {
             permissions.Add(claim.Value);
         }
@@ -27,6 +27,7 @@ public class GetRoleByNameHandler(RoleManager<ApplicationRole> roleManager)
             RoleName = role.Name ?? string.Empty,
             DisplayName = string.IsNullOrWhiteSpace(role.DisplayName) ? role.Name ?? string.Empty : role.DisplayName,
             CompanyId = role.CompanyId,
+            TemplateKey = role.TemplateKey,
             Permissions = permissions
         });
     }

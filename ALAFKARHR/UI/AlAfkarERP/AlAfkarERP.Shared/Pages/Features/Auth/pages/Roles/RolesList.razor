@@ -35,6 +35,10 @@
         </Actions>
     </PageHeader>
 
+    <div class="alert alert-info">
+        @SharedDataService.SelectViewLang("Assign Alafkar Public Website roles from Manage user roles. Content access requires the website owner company; configuration also allows its authorized parent administrator. Users must refresh their session or sign in again after role changes.", "عيّن أدوار موقع الأفكار العام من إدارة صلاحيات المستخدمين. يتطلب الوصول إلى المحتوى الانتماء إلى الشركة المالكة للموقع؛ وتُتاح التهيئة أيضاً لمسؤول الشركة الأم المخوّل. يجب على المستخدمين تحديث الجلسة أو تسجيل الدخول مجدداً بعد تغيير الأدوار.")
+    </div>
+
     <AppCard Title='@SharedDataService.SelectViewLang("Roles", "الأدوار")'>
         <div class="erp-table-toolbar">
             <div></div>
@@ -53,15 +57,22 @@
                     @foreach (var role in roles)
                     {
                         <tr>
-                            <td class="fw-semibold">@RoleDisplayName(role)</td>
+                            <td class="fw-semibold">
+                                @RoleDisplayName(role)
+                                @if (IsManagedWebsiteRole(role))
+                                {
+                                    <span class="text-muted small">@SharedDataService.SelectViewLang("Managed · Read-only", "مُدار · للقراءة فقط")</span>
+                                }
+                            </td>
                             <td class="text-end">
                                 <button @onclick='() => { NavigationManager.NavigateTo($"/Auth/Role/Form/{Uri.EscapeDataString(role.RoleName)}"); }'
                                         class="btn btn-outline-warning btn-sm erp-row-action"
-                                        title='@SharedDataService.SelectViewLang("Edit", "تعديل")'>
-                                    <i class="bi bi-pencil-square"></i>
+                                        title='@(IsManagedWebsiteRole(role) ? SharedDataService.SelectViewLang("View permissions", "عرض الصلاحيات") : SharedDataService.SelectViewLang("Edit", "تعديل"))'>
+                                    <i class='@(IsManagedWebsiteRole(role) ? "bi bi-eye" : "bi bi-pencil-square")'></i>
                                 </button>
                                 @* <button @onclick='() => { NavigationManager.NavigateTo($"/Auth/Role/AddUser/{role.RoleName}"); }' class="btn btn-warning">Add User</button> *@
                                 <button class="btn btn-outline-danger btn-sm erp-row-action"
+                                        disabled="@IsManagedWebsiteRole(role)"
                                         title='@SharedDataService.SelectViewLang("Delete", "حذف")'>
                                     <i class="bi bi-trash"></i>
                                 </button>
@@ -121,4 +132,8 @@
 
     private static string RoleDisplayName(RoleDto role)
         => string.IsNullOrWhiteSpace(role.DisplayName) ? role.RoleName : role.DisplayName;
+
+    private static bool IsManagedWebsiteRole(RoleDto role) => role.TemplateKey is
+        "public-website-viewer" or "public-website-editor" or
+        "public-website-publisher" or "public-website-administrator";
 }
