@@ -1,0 +1,16 @@
+<section class="d2-section">
+    <div class="d2-container">
+        <div class="d2-cta d2-dark">
+            <span class="d2-eyebrow">من الفكرة إلى الأثر</span>
+            <h2>@Title</h2>
+            <p>@Design2Content.ClosingText</p>
+            <div class="d2-actions">
+                <a target="_top" class="d2-button" href="/design-2/request-proposal">اطلب عرض سعر <span aria-hidden="true">↗</span></a>
+                <a class="d2-button d2-button-outline" href="@WebsiteWhatsApp.Link("أرغب في الاستفسار عن تنفيذ مشروع في مكة والمشاعر")" target="_blank" rel="noopener noreferrer">واتساب <bdi>058 000 70 40</bdi> <span aria-hidden="true">↗</span></a>
+            </div>
+        </div>
+    </div>
+</section>
+@code {
+    [Parameter] public string Title { get; set; } = Design2Content.ClosingTitle;
+}

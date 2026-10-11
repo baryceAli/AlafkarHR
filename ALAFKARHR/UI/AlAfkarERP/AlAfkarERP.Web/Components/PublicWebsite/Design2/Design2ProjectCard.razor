@@ -1,0 +1,17 @@
+<article class="d2-project-card" data-d2-motion="card">
+    <div class="d2-project-image">
+        @if (Project.Image != null)
+        {
+            <img src="@Design2Content.Image(Project.Image)" alt="@Project.Alt" width="512" height="279" loading="lazy" /><span class="d2-image-label">صورة توضيحية</span>
+        }
+        else
+        {
+            <div class="d2-project-icon"><Design2Icon Name="@(Project.Icon ?? "menu_book")" /></div>
+        }
+        <span class="d2-project-category">@Project.Category</span>
+    </div>
+    <div class="d2-project-copy"><small>@Project.Location</small><h3>@Project.Title</h3><p>@Project.Text</p>@if (Project.Figure != null) { <strong class="d2-project-figure">@Project.Figure</strong> }</div>
+</article>
+@code {
+    [Parameter, EditorRequired] public Design2Content.Project Project { get; set; } = default!;
+}

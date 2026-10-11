@@ -1,0 +1,13 @@
+@* Reuse the existing reconnect behavior with Arabic preview-only presentation. *@
+<script type="module" src="@Assets["Components/Layout/ReconnectModal.razor.js"]"></script>
+<dialog id="components-reconnect-modal" class="d2-site d2-reconnect" lang="ar" dir="rtl" data-nosnippet aria-label="حالة الاتصال">
+    <div class="d2-reconnect-content">
+        <p class="components-reconnect-first-attempt-visible">جارٍ إعادة الاتصال…</p>
+        <p class="components-reconnect-repeated-attempt-visible">تعذر الاتصال. نحاول مجددًا خلال <span id="components-seconds-to-next-attempt"></span> ثانية.</p>
+        <p class="components-reconnect-failed-visible">تعذر إعادة الاتصال. حاول مجددًا أو أعد تحميل الصفحة.</p>
+        <button id="components-reconnect-button" class="d2-button components-reconnect-failed-visible">حاول مجددًا</button>
+        <p class="components-pause-visible">توقفت الجلسة مؤقتًا.</p>
+        <button id="components-resume-button" class="d2-button components-pause-visible">متابعة</button>
+        <p class="components-resume-failed-visible">تعذرت المتابعة. أعد تحميل الصفحة.</p>
+    </div>
+</dialog>

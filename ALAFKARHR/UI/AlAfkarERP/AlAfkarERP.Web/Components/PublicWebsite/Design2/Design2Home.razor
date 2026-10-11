@@ -1,0 +1,45 @@
+<section class="d2-hero d2-home-hero">
+    <div class="d2-container d2-split">
+        <div>
+            <Design2Heading Hero Eyebrow="من الفكرة إلى الأثر" Title="@Design2Content.HomeHeroTitle" Text="@Design2Content.HomeHeroText" />
+            <div class="d2-actions"><a target="_top" class="d2-button" href="/design-2/request-proposal">اطلب عرض سعر <span aria-hidden="true">↗</span></a><a target="_top" class="d2-button d2-button-light" href="/design-2/services">تعرّف على خدماتنا <span aria-hidden="true">←</span></a></div>
+            <div class="d2-hero-trust"><Design2Icon Name="verified_user" /><p>شريك تنفيذ للجمعيات والأوقاف<br /><strong>في مكة المكرمة والمشاعر المقدسة</strong></p></div>
+        </div>
+        <div class="d2-hero-art" data-d2-motion="hero">
+            <img src="@Design2Content.HeroImage" alt="صورة توضيحية لخدمات الإعاشة والنقل" width="512" height="279" fetchpriority="high" />
+            <div class="d2-art-caption"><Design2Icon Name="local_shipping" CssClass="d2-icon" /><div><strong>من التوريد إلى التسليم</strong><small>بنية تشغيلية تحت إدارتنا المباشرة</small></div></div>
+            <div class="d2-floating-stat"><strong>9</strong><span>سنوات في مواسم<br />رمضان والحج</span></div><span class="d2-image-label">صورة توضيحية</span>
+        </div>
+    </div>
+</section>
+<section class="d2-metric-band"><div class="d2-container"><Design2Metrics /></div></section>
+<section class="d2-section" id="about">
+    <div class="d2-container">
+        <div class="d2-split">
+            <div class="d2-story-visual d2-dark"><span class="d2-eyebrow">الأفكار الناجحة التجارية</span><h2>@Design2Content.Slogan</h2><div class="d2-mini-metrics"><div><strong>10</strong><span>شاحنات مبردة</span></div><div><strong>4</strong><span>مستودعات</span></div><div><strong>4</strong><span>ثلاجات كبيرة</span></div></div></div>
+            <div><Design2Heading Eyebrow="من نحن باختصار" Title="@Design2Content.HomeAboutTitle" Text="@Design2Content.HomeAboutText" /><a target="_top" class="d2-text-link" href="/design-2/about">اقرأ قصتنا <span aria-hidden="true">←</span></a></div>
+        </div>
+        <div class="d2-section-action"><Design2Cards Items="Design2Content.HomeValues" Columns="d2-grid-4" /></div>
+    </div>
+</section>
+<section class="d2-section d2-tinted" id="services">
+    <div class="d2-container">
+        <Design2Heading Centered Eyebrow="خدماتنا" Title="@Design2Content.HomeServicesTitle" Text="@Design2Content.HomeServicesText" />
+        <div class="d2-grid d2-grid-3">
+            @foreach (var service in Design2Content.Services)
+            {
+                var copy = Design2Content.ServiceCopies[service.Id];
+                <article class="d2-card d2-service-card" data-d2-motion="card"><Design2Icon Name="@service.Icon" CssClass="d2-icon" /><h3>@copy.HomeTitle</h3><p>@copy.Summary</p>
+                    @if (service.Id == "infrastructure") { <a target="_top" class="d2-text-link" href="/infrastructure">البنية التشغيلية · الموقع الحالي ↗</a> }
+                    else { <a target="_top" class="d2-text-link" href="@("/design-2/services#" + service.Id)">تعرّف على خدماتنا <span aria-hidden="true">←</span></a> }
+                </article>
+            }
+        </div>
+    </div>
+</section>
+<section class="d2-section" id="workflow"><div class="d2-container"><Design2Heading Centered Eyebrow="كيف نعمل" Title="@Design2Content.WorkflowTitle" /><Design2Workflow /></div></section>
+<section class="d2-section d2-dark" id="why-alafkar"><div class="d2-container d2-narrow"><Design2Heading Centered Eyebrow="لماذا الأفكار الناجحة" Title="@Design2Content.ReasonsTitle" /><ul class="d2-check-list">@foreach (var reason in Design2Content.Reasons) { <li><span aria-hidden="true">✓</span>@reason</li> }</ul></div></section>
+<section class="d2-section d2-tinted" id="projects"><div class="d2-container"><div class="d2-section-top"><Design2Heading Eyebrow="من الميدان" Title="@Design2Content.FeaturedProjectsTitle" /><a target="_top" class="d2-text-link" href="/design-2/projects">شاهد كل المشاريع <span aria-hidden="true">←</span></a></div><div class="d2-grid d2-grid-3">@foreach (var project in Design2Content.HomeProjects) { <Design2ProjectCard Project="project" /> }</div><p class="d2-image-notice">@Design2Content.ImageNotice</p></div></section>
+<section class="d2-section" id="partners"><div class="d2-container"><Design2Heading Centered Eyebrow="الشركاء" Title="@Design2Content.PartnersTitle" Text="@Design2Content.PartnersText" /><Design2Cards Items="Design2Content.Audiences" /><div class="d2-centered d2-section-action"><a target="_top" class="d2-text-link" href="/design-2/partners">شركاء النجاح <span aria-hidden="true">←</span></a></div></div></section>
+<section class="d2-section d2-tinted" id="faq"><div class="d2-container d2-narrow"><Design2Heading Centered Title="الأسئلة الشائعة" /><Design2Faq Items="Design2Content.HomeFaqs" /></div></section>
+<Design2CallToAction />

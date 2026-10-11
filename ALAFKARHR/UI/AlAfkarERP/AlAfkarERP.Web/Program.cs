@@ -494,6 +494,18 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/website-not-found", createScopeForStatusCodePages: true);
+// The removable design comparison is never part of the public crawl surface.
+app.Use(async (context, next) =>
+{
+    if (AlAfkarERP.Web.Components.PublicWebsite.Design2.Design2Content.IsPreview(context.Request.Path.Value))
+    {
+        context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
+        // Keep an unknown preview URL in its own 404 layout instead of re-executing the current website.
+        if (context.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>() is { } statusPages)
+            statusPages.Enabled = false;
+    }
+    await next(context);
+});
 app.UseHttpsRedirection();
 
 app.UseAntiforgery();
