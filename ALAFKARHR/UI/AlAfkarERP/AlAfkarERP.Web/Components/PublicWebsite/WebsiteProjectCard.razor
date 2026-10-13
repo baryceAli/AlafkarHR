@@ -10,7 +10,7 @@
         }
         <span class="pw-project-category">@Project.Category</span>
     </div>
-    <div class="pw-project-copy"><small>@Project.Location</small><h3>@Project.Title</h3><p>@Project.Text</p>@if (Project.Figure != null) { <strong class="pw-project-figure">@Project.Figure</strong> }</div>
+    <div class="pw-project-copy">@if (!string.IsNullOrWhiteSpace(Project.Location)) { <small>@Project.Location</small> }<h3>@Project.Title</h3><p>@Project.Text</p>@if (Project.Figure != null) { <strong class="pw-project-figure">@Project.Figure</strong> }</div>
 </article>
 @code {
     [Parameter, EditorRequired] public WebsiteContent.Project Project { get; set; } = default!;
