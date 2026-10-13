@@ -10,6 +10,12 @@
         <div class="pw-grid pw-grid-3 pw-timeline">@for (var i = 0; i < WebsiteContent.Story.Length; i++) { var step = WebsiteContent.Story[i]; <article class="pw-card" data-pw-motion="card"><span class="pw-step">@((i + 1).ToString("00"))</span><h3>@step.Title</h3><p>@step.Text</p></article> }</div>
     </div>
 </section>
+<section class="pw-section pw-tinted" id="business-lines">
+    <div class="pw-container">
+        <WebsiteHeading Centered Title="أنشطتنا التجارية" Text="تندرج تحت شركة الأفكار الناجحة الأنشطة التجارية التالية:" />
+        <WebsiteCards Items="WebsiteContent.BusinessLines" Columns="pw-grid-3" />
+    </div>
+</section>
 <section class="pw-section pw-dark">
     <div class="pw-container pw-split">
         <div><WebsiteHeading Title="كلمة المؤسس" /><p class="pw-signature">@WebsiteContent.Founder<small>@WebsiteContent.FounderRole</small></p></div>

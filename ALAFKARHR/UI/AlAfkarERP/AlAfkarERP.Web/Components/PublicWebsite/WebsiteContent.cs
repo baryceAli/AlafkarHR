@@ -80,6 +80,14 @@ public static class WebsiteContent
     public static readonly Metric[] ProjectMetrics =
     [new("+48 مليون", "وجبة"), new("+20 مليون", "عبوة ماء"), new("+180 ألف", "مشروع"), new("+200", "جهة خيرية ووقفية")];
     public sealed record Item(string Title, string Text, string Icon);
+    public static readonly Item[] BusinessLines =
+    [
+        new("مغسلة العوالي", "نشاط خدمات الغسيل تحت شركة الأفكار الناجحة.", "local_laundry_service"),
+        new("مغاسل رغوة الالية", "نشاط المغاسل الآلية تحت شركة الأفكار الناجحة.", "local_laundry_service"),
+        new("العقارات", "4 عمائر وشقتان: شقة مخدومة وشقة سياحية.", "apartment"),
+        new("محل ورد - كلوف روز", "محل ورد ضمن الأنشطة التجارية للشركة.", "local_florist"),
+        new("قاعة النجاح", "قاعة ضمن الأنشطة التجارية للشركة.", "event_hall")
+    ];
     public static readonly Item[] HomeValues =
     [
         new("خدمة ضيوف الرحمن", "شرف قبل أن تكون عملًا، ونتعامل مع كل وجبة على أنها أمانة.", "volunteer_activism"),
