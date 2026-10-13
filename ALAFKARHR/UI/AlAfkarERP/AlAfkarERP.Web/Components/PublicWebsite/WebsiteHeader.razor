@@ -1,9 +1,9 @@
 @inject NavigationManager Navigation
 <header class="pw-header">
     <div class="pw-header-inner pw-container">
-        <a class="pw-brand" href="/" aria-label="الأفكار الناجحة — الرئيسية">
+        <a class="pw-brand" href="/" aria-label="@(WebsiteContent.Brand + " — الرئيسية")">
             <span class="pw-brand-mark" aria-hidden="true"><img src="/_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" alt="" width="32" height="32" /></span>
-            <span><strong>الأفكار الناجحة</strong><small>أفكار نابضة.. حلول ناجحة</small></span>
+            <span><strong>@WebsiteContent.Brand</strong><small>أفكار نابضة.. حلول ناجحة</small></span>
         </a>
         <nav class="pw-desktop-nav" aria-label="التنقل الرئيسي">
             @foreach (var entry in WebsiteContent.Pages.Where(p => p.Key != "request-proposal"))

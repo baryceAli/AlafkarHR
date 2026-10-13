@@ -29,7 +29,7 @@
     private string Organization => JsonSerializer.Serialize(new Dictionary<string, object>
     {
         ["@context"] = "https://schema.org", ["@type"] = "Organization",
-        ["name"] = "شركة الأفكار الناجحة التجارية", ["url"] = origin + "/",
+        ["name"] = WebsiteContent.Brand, ["url"] = origin + "/",
         ["email"] = WebsiteContent.Email, ["telephone"] = WebsiteWhatsApp.Phone,
         ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["streetAddress"] = WebsiteContent.Address, ["addressLocality"] = "مكة المكرمة", ["addressCountry"] = "SA" }
     });

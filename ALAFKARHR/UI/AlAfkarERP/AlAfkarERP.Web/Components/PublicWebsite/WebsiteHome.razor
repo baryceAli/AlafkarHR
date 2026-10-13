@@ -16,7 +16,7 @@
 <section class="pw-section" id="about">
     <div class="pw-container">
         <div class="pw-split">
-            <div class="pw-story-visual pw-dark"><span class="pw-eyebrow">الأفكار الناجحة التجارية</span><h2>@WebsiteContent.Slogan</h2><div class="pw-mini-metrics"><div><strong>10</strong><span>شاحنات مبردة</span></div><div><strong>4</strong><span>مستودعات</span></div><div><strong>4</strong><span>ثلاجات كبيرة</span></div></div></div>
+            <div class="pw-story-visual pw-dark"><span class="pw-eyebrow">@WebsiteContent.Brand</span><h2>@WebsiteContent.Slogan</h2><div class="pw-mini-metrics"><div><strong>10</strong><span>شاحنات مبردة</span></div><div><strong>4</strong><span>مستودعات</span></div><div><strong>4</strong><span>ثلاجات كبيرة</span></div></div></div>
             <div><WebsiteHeading Eyebrow="من نحن باختصار" Title="@WebsiteContent.HomeAboutTitle" Text="@WebsiteContent.HomeAboutText" /><a class="pw-text-link" href="/about">اقرأ قصتنا <span aria-hidden="true">←</span></a></div>
         </div>
         <div class="pw-section-action"><WebsiteCards Items="WebsiteContent.HomeValues" Columns="pw-grid-4" /></div>
@@ -38,7 +38,7 @@
     </div>
 </section>
 <section class="pw-section" id="workflow"><div class="pw-container"><WebsiteHeading Centered Eyebrow="كيف نعمل" Title="@WebsiteContent.WorkflowTitle" /><WebsiteWorkflow /></div></section>
-<section class="pw-section pw-dark" id="why-alafkar"><div class="pw-container pw-narrow"><WebsiteHeading Centered Eyebrow="لماذا الأفكار الناجحة" Title="@WebsiteContent.ReasonsTitle" /><ul class="pw-check-list">@foreach (var reason in WebsiteContent.Reasons) { <li><span aria-hidden="true">✓</span>@reason</li> }</ul></div></section>
+<section class="pw-section pw-dark" id="why-alafkar"><div class="pw-container pw-narrow"><WebsiteHeading Centered Eyebrow="@($"لماذا {WebsiteContent.Brand}")" Title="@WebsiteContent.ReasonsTitle" /><ul class="pw-check-list">@foreach (var reason in WebsiteContent.Reasons) { <li><span aria-hidden="true">✓</span>@reason</li> }</ul></div></section>
 <section class="pw-section pw-tinted" id="projects"><div class="pw-container"><div class="pw-section-top"><WebsiteHeading Eyebrow="من الميدان" Title="@WebsiteContent.FeaturedProjectsTitle" /><a class="pw-text-link" href="/projects">شاهد كل المشاريع <span aria-hidden="true">←</span></a></div><div class="pw-grid pw-grid-3">@foreach (var project in WebsiteContent.HomeProjects) { <WebsiteProjectCard Project="project" /> }</div></div></section>
 <section class="pw-section" id="partners"><div class="pw-container"><WebsiteHeading Centered Eyebrow="الشركاء" Title="@WebsiteContent.PartnersTitle" Text="@WebsiteContent.PartnersText" /><WebsiteCards Items="WebsiteContent.Audiences" /><div class="pw-centered pw-section-action"><a class="pw-text-link" href="/partners">شركاء النجاح <span aria-hidden="true">←</span></a></div></div></section>
 <section class="pw-section pw-tinted" id="faq"><div class="pw-container pw-narrow"><WebsiteHeading Centered Title="الأسئلة الشائعة" /><WebsiteFaq Items="WebsiteContent.HomeFaqs" /></div></section>
