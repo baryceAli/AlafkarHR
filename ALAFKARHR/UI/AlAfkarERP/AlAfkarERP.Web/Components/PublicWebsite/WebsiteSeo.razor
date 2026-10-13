@@ -1,53 +1,36 @@
-@inject IConfiguration Configuration
-<PageTitle>@Title</PageTitle>
+@using System.Text.Json
+@inject WebsiteRuntimeSettings Runtime
+<PageTitle>@Page.Title</PageTitle>
 <HeadContent>
- <meta name="description" content="@Description" />
- <link rel="canonical" href="@Canonical" />
- <link rel="alternate" hreflang="ar" href="@(Origin + Path)" />
- <link rel="alternate" hreflang="en" href="@(Origin + Content.LocalizeEnglish(Path))" />
- <link rel="alternate" hreflang="x-default" href="@(Origin + Path)" />
- <meta property="og:type" content="website" />
- <meta property="og:locale" content="@(Content.English ? "en_US" : "ar_SA")" />
- <meta property="og:site_name" content="@Brand" />
- <meta property="og:title" content="@FullTitle" />
- <meta property="og:description" content="@Description" />
- <meta property="og:url" content="@Canonical" />
- <meta property="og:image" content="@Preview" />
- <meta property="og:image:alt" content="@Content.Text("ApprovedHero.alt")" />
- <meta name="twitter:card" content="summary_large_image" />
- <meta name="twitter:title" content="@FullTitle" />
- <meta name="twitter:description" content="@Description" />
- <meta name="twitter:image" content="@Preview" />
- @if (NoIndex || Content.PreviewRequested || Path is "/privacy-policy" or "/terms-and-conditions" or "/website-not-found") { <meta name="robots" content="noindex,follow" /> }
- <script type="application/ld+json">@((MarkupString)Schema)</script>
+    <meta name="description" content="@Page.Description" />
+    <link rel="canonical" href="@(origin + Page.Url)" />
+    <meta property="og:locale" content="ar_SA" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="@WebsiteContent.Brand" />
+    <meta property="og:title" content="@Page.Title" />
+    <meta property="og:description" content="@Page.Description" />
+    <meta property="og:url" content="@(origin + Page.Url)" />
+    <meta property="og:image" content="@(origin + WebsiteContent.HeroImage)" />
+    <meta property="og:image:alt" content="صورة توضيحية لخدمات الإعاشة والنقل" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="@Page.Title" />
+    <meta name="twitter:description" content="@Page.Description" />
+    <meta name="twitter:image" content="@(origin + WebsiteContent.HeroImage)" />
+    <meta name="twitter:image:alt" content="صورة توضيحية لخدمات الإعاشة والنقل" />
+    @if (Page.Key.Length == 0)
+    {
+        <script type="application/ld+json">@((MarkupString)Organization)</script>
+    }
 </HeadContent>
 @code {
- [Parameter] public string Title { get; set; } = "";
- [Parameter] public string Description { get; set; } = "";
- [Parameter] public string Path { get; set; } = "/";
- [Parameter] public bool NoIndex { get; set; }
- private string Origin => Content.PublicOrigin ?? WebsiteRoutes.Origin(Configuration);
- private string Canonical => Origin + (Content.English ? Content.LocalizeEnglish(Path) : Path);
- private string Brand => Content.Text("WebsiteHeader.f004");
- private string FullTitle => Title;
- private string Preview { get { var image = Content.Media("ApprovedHero.image"); return image.StartsWith("/") ? Origin + image : image; } }
- private string Schema
- {
-  get
-  {
-   var organisation = new Dictionary<string, object> {
-    ["@type"] = "Organization", ["@id"] = Origin + "/#organization", ["name"] = Content.Text("WebsiteFooter.f001"),
-    ["url"] = Origin, ["telephone"] = WebsiteWhatsApp.Phone, ["email"] = WebsiteWhatsApp.Email,
-    ["address"] = new Dictionary<string, object> { ["@type"] = "PostalAddress", ["streetAddress"] = Content.Text("ApprovedContact.address"), ["addressLocality"] = "Makkah", ["addressCountry"] = "SA" }
-   };
-   var graph = new List<object> { new Dictionary<string, object> {
-    ["@type"] = "WebPage", ["name"] = FullTitle, ["description"] = Description, ["url"] = Canonical, ["inLanguage"] = Content.Language
-   } };
-   if (Path == "/") graph.Add(organisation);
-   if (!NoIndex && WebsiteServicePages.Sections.TryGetValue(Path, out var section))
-    graph.Add(new Dictionary<string, object> { ["@type"] = "Service", ["name"] = Content.Text(section + ".title"), ["description"] = Description,
-     ["url"] = Canonical, ["provider"] = organisation, ["areaServed"] = "Makkah and the holy sites" });
-   return System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object> { ["@context"] = "https://schema.org", ["@graph"] = graph });
-  }
- }
+    [Parameter, EditorRequired] public WebsiteContent.Page Page { get; set; } = default!;
+    private string origin = "";
+    protected override async Task OnInitializedAsync() => origin = await Runtime.OriginAsync();
+    private string Organization => JsonSerializer.Serialize(new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org", ["@type"] = "Organization",
+        ["name"] = "شركة الأفكار الناجحة التجارية", ["url"] = origin + "/",
+        ["email"] = WebsiteContent.Email, ["telephone"] = WebsiteWhatsApp.Phone,
+        ["address"] = new Dictionary<string, string> { ["@type"] = "PostalAddress", ["streetAddress"] = WebsiteContent.Address, ["addressLocality"] = "مكة المكرمة", ["addressCountry"] = "SA" }
+    });
 }

@@ -1,0 +1,136 @@
+@using Microsoft.AspNetCore.WebUtilities
+@using System.Net.Mail
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+<form class="pw-form pw-proposal-form" novalidate @onsubmit="Continue" @onsubmit:preventDefault="true">
+    <label for="pw-proposal-name">@WebsiteContent.ProposalNameLabel <span>*</span></label>
+    <input id="pw-proposal-name" @bind="name" autocomplete="organization" placeholder="@WebsiteContent.ProposalNameHint" required maxlength="200" aria-invalid="@Invalid("name")" aria-describedby="@ErrorId("name")" />
+    @if (errors.TryGetValue("name", out var nameError)) { <p id="pw-proposal-name-error" class="pw-form-error">@nameError</p> }
+
+    <label for="pw-proposal-entity">@WebsiteContent.ProposalEntityLabel <span>*</span></label>
+    <select id="pw-proposal-entity" @bind="entity" required aria-invalid="@Invalid("entity")" aria-describedby="@ErrorId("entity")">
+        <option value="">اختر نوع الجهة</option>
+        @foreach (var option in WebsiteContent.ProposalEntityTypes) { <option value="@option">@option</option> }
+    </select>
+    @if (errors.TryGetValue("entity", out var entityError)) { <p id="pw-proposal-entity-error" class="pw-form-error">@entityError</p> }
+
+    <fieldset class="pw-service-options" aria-required="true" aria-invalid="@Invalid("services")" aria-describedby="@(errors.ContainsKey("services") ? "pw-proposal-services-hint pw-proposal-services-error" : "pw-proposal-services-hint")">
+        <legend>@WebsiteContent.ProposalServicesLabel <span>*</span></legend>
+        <p id="pw-proposal-services-hint">@WebsiteContent.ProposalServicesHint</p>
+        @foreach (var option in WebsiteContent.ProposalServices)
+        {
+            <label class="pw-service-option" for="@("pw-proposal-service-" + option.Key)"><input id="@("pw-proposal-service-" + option.Key)" type="checkbox" checked="@selected.Contains(option.Key)" @onchange="e => SelectService(option.Key, e.Value is true)" />@option.Label</label>
+        }
+    </fieldset>
+    @if (errors.TryGetValue("services", out var servicesError)) { <p id="pw-proposal-services-error" class="pw-form-error">@servicesError</p> }
+
+    <div class="pw-form-row">
+        <div><label for="pw-proposal-quantity">@WebsiteContent.ProposalQuantityLabel <span>*</span></label>
+            <input id="pw-proposal-quantity" @bind="quantity" placeholder="@WebsiteContent.ProposalQuantityHint" required maxlength="200" aria-invalid="@Invalid("quantity")" aria-describedby="@ErrorId("quantity")" />
+            @if (errors.TryGetValue("quantity", out var quantityError)) { <p id="pw-proposal-quantity-error" class="pw-form-error">@quantityError</p> }
+        </div>
+        <div><label for="pw-proposal-timing">@WebsiteContent.ProposalTimingLabel <small>(اختياري)</small></label>
+            <input id="pw-proposal-timing" @bind="timing" placeholder="@WebsiteContent.ProposalTimingHint" maxlength="200" aria-invalid="@Invalid("timing")" aria-describedby="@ErrorId("timing")" />
+            @if (errors.TryGetValue("timing", out var timingError)) { <p id="pw-proposal-timing-error" class="pw-form-error">@timingError</p> }
+        </div>
+    </div>
+    <div class="pw-form-row">
+        <div><label for="pw-proposal-phone">الجوال <span>*</span></label>
+            <input id="pw-proposal-phone" @bind="phone" type="tel" autocomplete="tel" inputmode="tel" dir="ltr" placeholder="0500000000" required minlength="9" maxlength="20" aria-invalid="@Invalid("phone")" aria-describedby="@ErrorId("phone")" />
+            @if (errors.TryGetValue("phone", out var phoneError)) { <p id="pw-proposal-phone-error" class="pw-form-error">@phoneError</p> }
+        </div>
+        <div><label for="pw-proposal-email">البريد الإلكتروني <small>(اختياري)</small></label>
+            <input id="pw-proposal-email" @bind="email" type="email" autocomplete="email" inputmode="email" dir="ltr" maxlength="254" aria-invalid="@Invalid("email")" aria-describedby="@ErrorId("email")" />
+            @if (errors.TryGetValue("email", out var emailError)) { <p id="pw-proposal-email-error" class="pw-form-error">@emailError</p> }
+        </div>
+    </div>
+    <label for="pw-proposal-details">@WebsiteContent.ProposalDetailsLabel <small>(اختياري)</small></label>
+    <textarea id="pw-proposal-details" @bind="details" placeholder="@WebsiteContent.ProposalDetailsHint" rows="5" maxlength="2000" aria-invalid="@Invalid("details")" aria-describedby="@ErrorId("details")"></textarea>
+    @if (errors.TryGetValue("details", out var detailsError)) { <p id="pw-proposal-details-error" class="pw-form-error">@detailsError</p> }
+    <p id="pw-proposal-notice" class="pw-form-notice"><WebsiteIcon Name="info" />يفتح هذا النموذج الواتساب بطلبك. لا يصل الطلب إلى الفريق حتى ترسله هناك.</p>
+    @if (errors.Count > 0)
+    {
+        <div class="pw-form-error" role="alert"><p>يرجى تصحيح الحقول التالية قبل المتابعة عبر الواتساب:</p><ul>@foreach (var error in errors.Values) { <li>@error</li> }</ul></div>
+    }
+    <button class="pw-button" type="submit" disabled="@(!interactive)" aria-describedby="pw-proposal-notice">متابعة عبر الواتساب <span aria-hidden="true">↗</span></button>
+    @if (messageUrl != null)
+    {
+        <div class="pw-form-handoff"><p role="status">طلبك جاهز. أكمل إرساله في الواتساب. إذا لم تُفتح النافذة، استخدم الرابط التالي.</p><a class="pw-text-link" href="@messageUrl" target="_blank" rel="noopener noreferrer">افتح طلبك في الواتساب ↗</a></div>
+    }
+</form>
+@code {
+    private string name = "", entity = "", quantity = "", timing = "", phone = "", email = "", details = "";
+    private readonly HashSet<string> selected = [];
+    private readonly Dictionary<string, string> errors = [];
+    private bool interactive;
+    private string? messageUrl;
+    private IJSObjectReference? module;
+    private string? Invalid(string field) => errors.ContainsKey(field) ? "true" : null;
+    private string? ErrorId(string field) => errors.ContainsKey(field) ? $"pw-proposal-{field}-error" : null;
+    protected override void OnInitialized()
+    {
+        var query = QueryHelpers.ParseQuery(new Uri(Navigation.Uri).Query);
+        if (query.TryGetValue("service", out var value))
+        {
+            var key = WebsiteWhatsApp.ServiceKey(value.ToString());
+            if (key != null && WebsiteContent.ProposalServices.Any(s => s.Key == key)) selected.Add(key);
+        }
+    }
+    private void SelectService(string key, bool value)
+    {
+        if (value) selected.Add(key); else selected.Remove(key);
+    }
+    private static string NormalizeDigits(string value) => new(value.Select(c => c is >= '\u0660' and <= '\u0669' ? (char)('0' + c - '\u0660') : c is >= '\u06f0' and <= '\u06f9' ? (char)('0' + c - '\u06f0') : c).ToArray());
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try { module = await JS.InvokeAsync<IJSObjectReference>("import", "/website/whatsapp.js"); }
+        catch (JSException) { /* The explicit handoff link works without the optional popup. */ }
+        interactive = true;
+        StateHasChanged();
+    }
+    private async Task Continue()
+    {
+        phone = NormalizeDigits(phone);
+        quantity = NormalizeDigits(quantity);
+        email = email.Trim();
+        errors.Clear();
+        messageUrl = null;
+        if (string.IsNullOrWhiteSpace(name)) errors["name"] = "يرجى كتابة الاسم أو اسم الجهة.";
+        else if (name.Length > 200) errors["name"] = "يجب ألا يتجاوز الاسم أو اسم الجهة ٢٠٠ حرف.";
+        if (!WebsiteContent.ProposalEntityTypes.Contains(entity)) errors["entity"] = "يرجى اختيار نوع الجهة من الخيارات المتاحة.";
+        if (selected.Count == 0 || selected.Any(key => !WebsiteContent.ProposalServices.Any(s => s.Key == key))) errors["services"] = "يرجى اختيار خدمة واحدة على الأقل من الخدمات المتاحة.";
+        if (string.IsNullOrWhiteSpace(quantity)) errors["quantity"] = "يرجى كتابة الكمية التقريبية.";
+        else if (quantity.Length > 200) errors["quantity"] = "يجب ألا تتجاوز الكمية التقريبية ٢٠٠ حرف.";
+        if (timing.Length > 200) errors["timing"] = "يجب ألا يتجاوز موعد التنفيذ ٢٠٠ حرف.";
+        if (string.IsNullOrWhiteSpace(phone)) errors["phone"] = "يرجى إدخال رقم الجوال.";
+        else if (phone.Length > 20 || phone.Count(char.IsAsciiDigit) < 9 ||
+            phone.Any(c => !char.IsAsciiDigit(c) && c is not ('+' or ' ' or '-' or '(' or ')')))
+            errors["phone"] = "يرجى إدخال رقم جوال صحيح يحتوي على ٩ أرقام على الأقل ولا يتجاوز ٢٠ محرفًا.";
+        if (email.Length > 254) errors["email"] = "يجب ألا يتجاوز البريد الإلكتروني ٢٥٤ محرفًا.";
+        else if (email.Length > 0 && (!MailAddress.TryCreate(email, out var address) || address.Address != email)) errors["email"] = "يرجى إدخال بريد إلكتروني صحيح أو ترك الحقل فارغًا.";
+        if (details.Length > 2000) errors["details"] = "يجب ألا تتجاوز التفاصيل الإضافية ٢٠٠٠ حرف.";
+        if (errors.Count > 0) return;
+        messageUrl = WebsiteWhatsApp.Link(WebsiteWhatsApp.Message(new Dictionary<string, string>
+        {
+            ["الطلب"] = "طلب عرض سعر",
+            [WebsiteContent.ProposalNameLabel] = name,
+            [WebsiteContent.ProposalEntityLabel] = entity,
+            [WebsiteContent.ProposalServicesLabel] = string.Join("، ", WebsiteContent.ProposalServices.Where(s => selected.Contains(s.Key)).Select(s => s.Label)),
+            [WebsiteContent.ProposalQuantityLabel] = quantity,
+            [WebsiteContent.ProposalTimingLabel] = timing,
+            ["الجوال"] = phone, ["البريد الإلكتروني"] = email,
+            [WebsiteContent.ProposalDetailsLabel] = details
+        }));
+        if (module != null)
+        {
+            try { await module.InvokeVoidAsync("openWhatsApp", messageUrl); }
+            catch (JSException) { /* Keep the explicit fallback link available. */ }
+        }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        if (module != null) { try { await module.DisposeAsync(); } catch (JSDisconnectedException) { } }
+    }
+}

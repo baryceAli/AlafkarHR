@@ -1,9 +1,0 @@
-<div class="website-image-effect" data-image-effect="@Kind">
-    <div class="website-image-tilt">
-        <div class="website-image-clip">@ChildContent</div>
-    </div>
-</div>
-@code {
-    [Parameter] public string Kind { get; set; } = "section";
-    [Parameter] public RenderFragment? ChildContent { get; set; }
-}

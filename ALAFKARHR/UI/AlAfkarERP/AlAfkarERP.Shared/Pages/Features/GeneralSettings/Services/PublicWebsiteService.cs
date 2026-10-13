@@ -6,12 +6,6 @@ using SharedWithUI.GeneralSettings.Dtos;
 
 namespace AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services;
 
-public interface IWebsitePreviewSessions
-{
-    void Register(string id, string accessToken, IEnumerable<Guid> mediaIds);
-    void Remove(string id);
-}
-
 public sealed class PublicWebsiteService(HttpClient http, ITokenService tokens, ApiConfig config) : BaseApiService(http, tokens, config)
 {
     private readonly string path = $"api/{config.Version}/publicwebsite";

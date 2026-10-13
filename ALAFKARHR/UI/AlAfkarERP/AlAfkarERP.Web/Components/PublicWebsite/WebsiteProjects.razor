@@ -1,0 +1,23 @@
+<section class="pw-hero"><div class="pw-container pw-narrow"><WebsiteHeading Hero Centered Title="مشاريعنا" Text="@WebsiteContent.ProjectsText" /><div class="pw-actions pw-centered"><a class="pw-button" href="/projects#projects-grid">اكتشف مشاريعنا <span aria-hidden="true">↓</span></a><a class="pw-text-link" href="/contact">تحدث معنا <span aria-hidden="true">←</span></a></div></div></section>
+<section class="pw-section pw-dark pw-impact-band"><div class="pw-container"><WebsiteHeading Centered Eyebrow="حصاد الأثر" Title="خبرة المواسم بالأرقام" /><WebsiteMetrics Items="WebsiteContent.ProjectMetrics" /></div></section>
+<section class="pw-section pw-tinted" id="projects-grid">
+    <div class="pw-container">
+        <WebsiteHeading Eyebrow="من الميدان" Title="مشاريعنا" />
+        <div class="pw-filters" role="group" aria-label="تصفية المشاريع حسب الخدمة">
+            @foreach (var category in WebsiteContent.ProjectCategories)
+            {
+                <button type="button" aria-pressed="@(selected == category ? "true" : "false")" @onclick="() => selected = category">@category</button>
+            }
+        </div>
+        <p class="pw-filter-status" role="status" aria-live="polite">@Filtered.Count() مشاريع · @selected</p>
+        <div class="pw-grid pw-grid-3">@foreach (var project in Filtered) { <WebsiteProjectCard Project="project" @key="project.Title" /> }</div>
+    </div>
+</section>
+<section class="pw-section"><div class="pw-container pw-split"><WebsiteHeading Title="موقعنا" Text="@WebsiteContent.Introduction" /><div class="pw-location-panel"><WebsiteIcon Name="location_on" CssClass="pw-location-icon" /><h3>المقر</h3><p>@WebsiteContent.Address</p><a class="pw-text-link" href="/services#infrastructure">البنية التشغيلية</a></div></div></section>
+<section class="pw-section pw-tinted"><div class="pw-container"><WebsiteHeading Centered Title="التوثيق والتقارير" Text="@WebsiteContent.Reasons[0]" /><WebsiteCards Items="WebsiteContent.Reports" /></div></section>
+<section class="pw-section pw-dark"><div class="pw-container pw-narrow"><WebsiteHeading Centered Title="@WebsiteContent.PartnersTitle" Text="@WebsiteContent.PartnersText" /><div class="pw-actions pw-centered"><a class="pw-button" href="/partners">شركاء النجاح <span aria-hidden="true">←</span></a></div></div></section>
+<WebsiteCallToAction />
+@code {
+    private string selected = "الكل";
+    private IEnumerable<WebsiteContent.Project> Filtered => WebsiteContent.Projects.Where(p => selected == "الكل" || p.Category == selected);
+}

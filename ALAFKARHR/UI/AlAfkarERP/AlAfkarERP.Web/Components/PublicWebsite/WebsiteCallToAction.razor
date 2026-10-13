@@ -1,0 +1,16 @@
+<section class="pw-section">
+    <div class="pw-container">
+        <div class="pw-cta pw-dark">
+            <span class="pw-eyebrow">من الفكرة إلى الأثر</span>
+            <h2>@Title</h2>
+            <p>@WebsiteContent.ClosingText</p>
+            <div class="pw-actions">
+                <a class="pw-button" href="/request-proposal">اطلب عرض سعر <span aria-hidden="true">↗</span></a>
+                <a class="pw-button pw-button-outline" href="@WebsiteWhatsApp.Link("أرغب في الاستفسار عن تنفيذ مشروع في مكة والمشاعر")" target="_blank" rel="noopener noreferrer">واتساب <bdi>058 000 70 40</bdi> <span aria-hidden="true">↗</span></a>
+            </div>
+        </div>
+    </div>
+</section>
+@code {
+    [Parameter] public string Title { get; set; } = WebsiteContent.ClosingTitle;
+}

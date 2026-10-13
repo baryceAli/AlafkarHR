@@ -1,0 +1,7 @@
+<div class="pw-grid pw-grid-3 pw-workflow">
+    @for (var i = 0; i < WebsiteContent.Workflow.Length; i++)
+    {
+        var step = WebsiteContent.Workflow[i];
+        <article class="pw-card" data-pw-motion="card"><span class="pw-step">@((i + 1).ToString("00"))</span><h3>@step.Title</h3><p>@step.Text</p></article>
+    }
+</div>

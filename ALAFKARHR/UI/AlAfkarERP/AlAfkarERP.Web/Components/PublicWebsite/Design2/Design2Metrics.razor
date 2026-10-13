@@ -1,9 +1,0 @@
-<div class="d2-metrics">
-    @foreach (var metric in Items)
-    {
-        <div><strong>@metric.Value</strong><span>@metric.Label</span></div>
-    }
-</div>
-@code {
-    [Parameter] public IEnumerable<Design2Content.Metric> Items { get; set; } = Design2Content.Metrics;
-}

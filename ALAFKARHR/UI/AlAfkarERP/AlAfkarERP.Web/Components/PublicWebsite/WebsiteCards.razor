@@ -1,0 +1,13 @@
+<div class="pw-grid @Columns">
+    @foreach (var item in Items)
+    {
+        <article class="pw-card" data-pw-motion="card">
+            <WebsiteIcon Name="@item.Icon" CssClass="pw-icon" />
+            <h3>@item.Title</h3><p>@item.Text</p>
+        </article>
+    }
+</div>
+@code {
+    [Parameter, EditorRequired] public IEnumerable<WebsiteContent.Item> Items { get; set; } = [];
+    [Parameter] public string Columns { get; set; } = "pw-grid-3";
+}

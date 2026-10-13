@@ -1,0 +1,9 @@
+<div class="pw-metrics">
+    @foreach (var metric in Items)
+    {
+        <div><strong>@metric.Value</strong><span>@metric.Label</span></div>
+    }
+</div>
+@code {
+    [Parameter] public IEnumerable<WebsiteContent.Metric> Items { get; set; } = WebsiteContent.Metrics;
+}

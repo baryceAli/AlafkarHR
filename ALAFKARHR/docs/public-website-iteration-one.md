@@ -1,3 +1,5 @@
+> Historical implementation record. The former presentation and editor workflow below have been superseded by the selected static Arabic website. CMS data remains preserved, but publishing does not update the website. See [current workflow](../UI/AlAfkarERP/AlAfkarERP.Web/Components/PublicWebsite/README.md).
+
 # Public company website — iteration one
 
 Branch: `codex/public-company-website`.

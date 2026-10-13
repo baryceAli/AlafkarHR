@@ -1,0 +1,17 @@
+<article class="pw-project-card" data-pw-motion="card">
+    <div class="pw-project-image">
+        @if (Project.Image != null)
+        {
+            <img src="@WebsiteContent.Image(Project.Image)" alt="@Project.Alt" width="512" height="279" loading="lazy" />
+        }
+        else
+        {
+            <div class="pw-project-icon"><WebsiteIcon Name="@(Project.Icon ?? "menu_book")" /></div>
+        }
+        <span class="pw-project-category">@Project.Category</span>
+    </div>
+    <div class="pw-project-copy"><small>@Project.Location</small><h3>@Project.Title</h3><p>@Project.Text</p>@if (Project.Figure != null) { <strong class="pw-project-figure">@Project.Figure</strong> }</div>
+</article>
+@code {
+    [Parameter, EditorRequired] public WebsiteContent.Project Project { get; set; } = default!;
+}

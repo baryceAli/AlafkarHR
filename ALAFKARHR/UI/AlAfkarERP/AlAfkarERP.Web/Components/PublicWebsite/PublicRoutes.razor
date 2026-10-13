@@ -1,3 +1,11 @@
+@inject NavigationManager Navigation
 <Router AppAssembly="typeof(PublicRoutes).Assembly" NotFoundPage="typeof(WebsiteNotFound)">
- <Found Context="routeData"><RouteView RouteData="routeData" DefaultLayout="typeof(WebsiteLayout)" /><FocusOnNavigate RouteData="routeData" Selector="h1" /></Found>
+    <Found Context="routeData">
+        <RouteView @key="Pathname" RouteData="routeData" DefaultLayout="typeof(WebsiteLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
 </Router>
+@code {
+    // Remount on page changes; query/fragment navigation keeps form values intact.
+    private string Pathname => new Uri(Navigation.Uri).AbsolutePath;
+}

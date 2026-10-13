@@ -1,3 +1,5 @@
+> Historical implementation record. The former presentation and editor workflow below have been superseded by the selected static Arabic website. CMS data remains preserved, but publishing does not update the website. See [current workflow](../UI/AlAfkarERP/AlAfkarERP.Web/Components/PublicWebsite/README.md).
+
 # Alafkar Public Website content replacement
 
 The replacement uses AlAfkar_Website_Content.docx and the corrections approved in the implementation conversation. Arabic and English are maintained together. ERP, login and /store are outside this change.

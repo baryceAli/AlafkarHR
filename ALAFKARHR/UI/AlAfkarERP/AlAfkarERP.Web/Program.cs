@@ -52,11 +52,7 @@ builder.Services.AddScoped<SearchModalService>();
 
 
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.AddScoped<AlAfkarERP.Web.Components.PublicWebsite.WebsiteContentState>();
-builder.Services.AddSingleton<AlAfkarERP.Web.Components.PublicWebsite.WebsitePublishedCache>();
 builder.Services.AddSingleton<AlAfkarERP.Web.Components.PublicWebsite.WebsiteRuntimeSettings>();
-builder.Services.AddSingleton<AlAfkarERP.Web.Components.PublicWebsite.WebsitePreviewSessions>();
-builder.Services.AddSingleton<IWebsitePreviewSessions>(sp => sp.GetRequiredService<AlAfkarERP.Web.Components.PublicWebsite.WebsitePreviewSessions>());
 builder.Services.AddHttpClient<PublicWebsiteService>(client => { client.BaseAddress = new Uri(apiConfig.BaseURL); client.Timeout = TimeSpan.FromMinutes(10); });
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 
@@ -494,15 +490,26 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseStatusCodePagesWithReExecute("/website-not-found", createScopeForStatusCodePages: true);
-// The removable design comparison is never part of the public crawl surface.
+// Route migration runs inside the existing status-page handler, before component rendering.
 app.Use(async (context, next) =>
 {
-    if (AlAfkarERP.Web.Components.PublicWebsite.Design2.Design2Content.IsPreview(context.Request.Path.Value))
+    var migration = AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Resolve(context.Request.Path.Value);
+    if (migration.Status is 404 or 410)
     {
         context.Response.Headers["X-Robots-Tag"] = "noindex, nofollow";
-        // Keep an unknown preview URL in its own 404 layout instead of re-executing the current website.
-        if (context.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>() is { } statusPages)
-            statusPages.Enabled = false;
+        context.Response.StatusCode = migration.Status;
+        return;
+    }
+    if (migration.Destination is { } destination)
+    {
+        context.Response.Redirect(AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.WithQuery(destination, context.Request.Query), permanent: true);
+        return;
+    }
+    if (AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Contains(context.Request.Path.Value, StringComparer.OrdinalIgnoreCase)
+        && AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.HasEditorParameters(context.Request.Query))
+    {
+        context.Response.Redirect(AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.WithQuery(context.Request.Path.Value!, context.Request.Query), permanent: true);
+        return;
     }
     await next(context);
 });
@@ -517,17 +524,10 @@ AlAfkarERP.Web.Components.PublicWebsite.WebsiteMediaProxy.Map(app, apiConfig);
 // The crawl surface is deliberately limited to static public website routes.
 app.MapGet("/robots.txt", async (AlAfkarERP.Web.Components.PublicWebsite.WebsiteRuntimeSettings runtime, HttpContext context) => Results.Text(
     "User-agent: *\nAllow: /$\n" + string.Join("", AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p != "/").Select(p => $"Allow: {p}$\n")) +
-    "Allow: /en$\n" + string.Join("", AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p != "/").Select(p => $"Allow: /en{p}$\n")) +
     "Allow: /website/\nAllow: /_framework/\nDisallow: /\nSitemap: " + (await runtime.OriginAsync(context.RequestAborted)) + "/sitemap.xml\n", "text/plain"));
-app.MapGet("/sitemap.xml", async (AlAfkarERP.Web.Components.PublicWebsite.WebsiteRuntimeSettings runtime, AlAfkarERP.Shared.Pages.Features.GeneralSettings.Services.PublicWebsiteService website, HttpContext context) => {
+app.MapGet("/sitemap.xml", async (AlAfkarERP.Web.Components.PublicWebsite.WebsiteRuntimeSettings runtime, HttpContext context) => {
     var origin = await runtime.OriginAsync(context.RequestAborted);
-    SharedWithUI.GeneralSettings.Dtos.WebsiteSnapshot published;
-    try { published = SharedWithUI.GeneralSettings.Dtos.WebsiteContentCompatibility.Adapt(await website.PublishedAsync(context.RequestAborted)); }
-    catch (Exception e) when (e is HttpRequestException or OperationCanceledException or System.Text.Json.JsonException)
-    { return Results.StatusCode(StatusCodes.Status503ServiceUnavailable); }
-    var paths = AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths.Where(p => p is not ("/privacy-policy" or "/terms-and-conditions"))
-        .Where(p => SharedWithUI.GeneralSettings.Dtos.WebsiteServicePages.IsVisible(published, p))
-        .SelectMany(p => new[] { p, p == "/" ? "/en" : "/en" + p });
+    var paths = AlAfkarERP.Web.Components.PublicWebsite.WebsiteRoutes.Paths;
     var document = new System.Xml.Linq.XDocument(new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("urlset", "http://www.sitemaps.org/schemas/sitemap/0.9"),
         paths.Select(p => new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("url", "http://www.sitemaps.org/schemas/sitemap/0.9"),
             new System.Xml.Linq.XElement(System.Xml.Linq.XName.Get("loc", "http://www.sitemaps.org/schemas/sitemap/0.9"), origin + p)))));
