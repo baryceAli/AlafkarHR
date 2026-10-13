@@ -1,0 +1,45 @@
+<section class="pw-hero pw-home-hero">
+    <div class="pw-container pw-split">
+        <div>
+            <WebsiteHeading Hero Eyebrow="من الفكرة إلى الأثر" Title="@WebsiteContent.HomeHeroTitle" Text="@WebsiteContent.HomeHeroText" />
+            <div class="pw-actions"><a class="pw-button" href="/request-proposal">اطلب عرض سعر <span aria-hidden="true">↗</span></a><a class="pw-button pw-button-light" href="/services">تعرّف على خدماتنا <span aria-hidden="true">←</span></a></div>
+            <div class="pw-hero-trust"><WebsiteIcon Name="verified_user" /><p>شريك تنفيذ للجمعيات والأوقاف<br /><strong>في مكة المكرمة والمشاعر المقدسة</strong></p></div>
+        </div>
+        <div class="pw-hero-art" data-pw-motion="hero">
+            <div class="pw-hero-image"><img src="@WebsiteContent.HeroImage" alt="صورة توضيحية لخدمات الإعاشة والنقل" width="512" height="279" fetchpriority="high" /></div>
+            <div class="pw-art-caption"><WebsiteIcon Name="local_shipping" CssClass="pw-icon" /><div><strong>من التوريد إلى التسليم</strong><small>بنية تشغيلية تحت إدارتنا المباشرة</small></div></div>
+            <div class="pw-floating-stat"><strong>9</strong><span>سنوات في مواسم<br />رمضان والحج</span></div>
+        </div>
+    </div>
+</section>
+<section class="pw-metric-band"><div class="pw-container"><WebsiteMetrics /></div></section>
+<section class="pw-section" id="about">
+    <div class="pw-container">
+        <div class="pw-split">
+            <div class="pw-story-visual pw-dark"><span class="pw-eyebrow">الأفكار الناجحة التجارية</span><h2>@WebsiteContent.Slogan</h2><div class="pw-mini-metrics"><div><strong>10</strong><span>شاحنات مبردة</span></div><div><strong>4</strong><span>مستودعات</span></div><div><strong>4</strong><span>ثلاجات كبيرة</span></div></div></div>
+            <div><WebsiteHeading Eyebrow="من نحن باختصار" Title="@WebsiteContent.HomeAboutTitle" Text="@WebsiteContent.HomeAboutText" /><a class="pw-text-link" href="/about">اقرأ قصتنا <span aria-hidden="true">←</span></a></div>
+        </div>
+        <div class="pw-section-action"><WebsiteCards Items="WebsiteContent.HomeValues" Columns="pw-grid-4" /></div>
+    </div>
+</section>
+<section class="pw-section pw-tinted" id="services">
+    <div class="pw-container">
+        <WebsiteHeading Centered Eyebrow="خدماتنا" Title="@WebsiteContent.HomeServicesTitle" Text="@WebsiteContent.HomeServicesText" />
+        <div class="pw-grid pw-grid-3">
+            @foreach (var service in WebsiteContent.Services)
+            {
+                var copy = WebsiteContent.ServiceCopies[service.Id];
+                <article class="pw-card pw-service-card" data-pw-motion="card"><WebsiteIcon Name="@service.Icon" CssClass="pw-icon" /><h3>@copy.HomeTitle</h3><p>@copy.Summary</p>
+                    @if (service.Id == "infrastructure") { <a class="pw-text-link" href="/services#infrastructure">البنية التشغيلية</a> }
+                    else { <a class="pw-text-link" href="@("/services#" + service.Id)">تعرّف على خدماتنا <span aria-hidden="true">←</span></a> }
+                </article>
+            }
+        </div>
+    </div>
+</section>
+<section class="pw-section" id="workflow"><div class="pw-container"><WebsiteHeading Centered Eyebrow="كيف نعمل" Title="@WebsiteContent.WorkflowTitle" /><WebsiteWorkflow /></div></section>
+<section class="pw-section pw-dark" id="why-alafkar"><div class="pw-container pw-narrow"><WebsiteHeading Centered Eyebrow="لماذا الأفكار الناجحة" Title="@WebsiteContent.ReasonsTitle" /><ul class="pw-check-list">@foreach (var reason in WebsiteContent.Reasons) { <li><span aria-hidden="true">✓</span>@reason</li> }</ul></div></section>
+<section class="pw-section pw-tinted" id="projects"><div class="pw-container"><div class="pw-section-top"><WebsiteHeading Eyebrow="من الميدان" Title="@WebsiteContent.FeaturedProjectsTitle" /><a class="pw-text-link" href="/projects">شاهد كل المشاريع <span aria-hidden="true">←</span></a></div><div class="pw-grid pw-grid-3">@foreach (var project in WebsiteContent.HomeProjects) { <WebsiteProjectCard Project="project" /> }</div></div></section>
+<section class="pw-section" id="partners"><div class="pw-container"><WebsiteHeading Centered Eyebrow="الشركاء" Title="@WebsiteContent.PartnersTitle" Text="@WebsiteContent.PartnersText" /><WebsiteCards Items="WebsiteContent.Audiences" /><div class="pw-centered pw-section-action"><a class="pw-text-link" href="/partners">شركاء النجاح <span aria-hidden="true">←</span></a></div></div></section>
+<section class="pw-section pw-tinted" id="faq"><div class="pw-container pw-narrow"><WebsiteHeading Centered Title="الأسئلة الشائعة" /><WebsiteFaq Items="WebsiteContent.HomeFaqs" /></div></section>
+<WebsiteCallToAction />

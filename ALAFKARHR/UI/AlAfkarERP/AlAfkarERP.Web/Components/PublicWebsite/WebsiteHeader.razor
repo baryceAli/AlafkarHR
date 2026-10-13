@@ -1,60 +1,30 @@
-<header class="website-header">
-    <div class="website-header-inner website-approved-header">
-        <a class="website-approved-brand" href="@Content.Link("WebsiteHeader.f001")" data-pw-fields="WebsiteHeader.f001">
-            @if (Content.Value("WebsiteHeader.logo").MediaId.HasValue)
-            { <img src="@Content.Media("WebsiteHeader.logo")" alt="@Content.Text("WebsiteHeader.logoAlt")" data-pw-fields="WebsiteHeader.logo,WebsiteHeader.logoAlt" /> }
-            <span><strong data-pw-fields="WebsiteHeader.f004">@Content.Text("WebsiteHeader.f004")</strong><small data-pw-fields="WebsiteHeader.f005">@Content.Text("WebsiteHeader.f005")</small></span>
+@inject NavigationManager Navigation
+<header class="pw-header">
+    <div class="pw-header-inner pw-container">
+        <a class="pw-brand" href="/" aria-label="الأفكار الناجحة — الرئيسية">
+            <span class="pw-brand-mark" aria-hidden="true"><img src="/_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" alt="" width="32" height="32" /></span>
+            <span><strong>الأفكار الناجحة</strong><small>أفكار نابضة.. حلول ناجحة</small></span>
         </a>
-        <nav class="website-approved-desktop-nav" aria-label="@Content.Text("WebsiteHeader.f006")">
-            @foreach (var (link, label) in Links)
+        <nav class="pw-desktop-nav" aria-label="التنقل الرئيسي">
+            @foreach (var entry in WebsiteContent.Pages.Where(p => p.Key != "request-proposal"))
             {
-                @if (Show(link))
-                { <a href="@Content.Link(link)" aria-current="@Current(Content.Text(link))" data-pw-fields="@(link + "," + label)">@Content.Text(label)</a> }
+                <a href="@entry.Url" aria-current="@Current(entry)">@entry.Label</a>
             }
         </nav>
-        <div class="website-approved-actions website-header-actions">
-            <a class="website-language-switch" href="@LanguageUrl">@(Content.English ? "العربية" : "English")</a>
-            <a class="website-approved-button" href="@Content.Link("WebsiteHeader.f025")" data-pw-fields="WebsiteHeader.f025,WebsiteHeader.f026">@Content.Text("WebsiteHeader.f026")</a>
-        </div>
-        <details class="website-mobile-nav">
-            <summary data-pw-fields="WebsiteHeader.f027">@Content.Text("WebsiteHeader.f027")</summary>
-            <nav aria-label="@Content.Text("WebsiteHeader.f028")">
-                @foreach (var (link, label) in Links)
+        <a class="pw-button pw-header-cta" href="/request-proposal" aria-current="@ProposalCurrent">اطلب عرض سعر <span aria-hidden="true">↗</span></a>
+        <details class="pw-mobile-nav">
+            <summary aria-label="قائمة التنقل"><WebsiteIcon Name="menu" /><span>القائمة</span></summary>
+            <nav aria-label="التنقل على الجوال">
+                @foreach (var entry in WebsiteContent.Pages.Where(p => p.Key != "request-proposal"))
                 {
-                    @if (Show(link))
-                    { <a href="@Content.Link(link)" aria-current="@Current(Content.Text(link))" data-pw-fields="@(link + "," + label)">@Content.Text(label)</a> }
+                    <a href="@entry.Url" aria-current="@Current(entry)">@entry.Label</a>
                 }
-                <a href="@Content.Link("WebsiteHeader.f025")" data-pw-fields="WebsiteHeader.f025,WebsiteHeader.f026">@Content.Text("WebsiteHeader.f026")</a>
-                <a href="@Content.Link("WebsiteHeader.f023")" data-pw-fields="WebsiteHeader.f023,WebsiteHeader.f024">@Content.Text("WebsiteHeader.f024")</a>
-                <a class="website-language-switch" href="@LanguageUrl">@(Content.English ? "العربية" : "English")</a>
+                <a href="/request-proposal" aria-current="@ProposalCurrent">اطلب عرض سعر</a>
             </nav>
         </details>
     </div>
 </header>
-@inject NavigationManager Navigation
 @code {
-    private static readonly (string Link, string Label)[] Links =
-    [("WebsiteHeader.f007", "WebsiteHeader.f008"), ("WebsiteHeader.f009", "WebsiteHeader.f010"),
-     ("WebsiteHeader.f011", "WebsiteHeader.f012"), ("WebsiteHeader.f013", "WebsiteHeader.f014"),
-     ("WebsiteHeader.f015", "WebsiteHeader.f016"), ("WebsiteHeader.f017", "WebsiteHeader.f018"),
-     ("WebsiteHeader.f019", "WebsiteHeader.f020"), ("WebsiteHeader.f021", "WebsiteHeader.f022")];
-    private string LanguageUrl
-    {
-        get
-        {
-            var uri = new Uri(Navigation.Uri);
-            return (Content.English ? WebsiteRoutes.ArabicPath(uri.AbsolutePath) : Content.LocalizeEnglish(uri.AbsolutePath)) + uri.Query + uri.Fragment;
-        }
-    }
-    private bool Show(string link) => link != "WebsiteHeader.f017" ||
-        (Content.Snapshot.Pages.GetValueOrDefault("/projects")?.Any(x => x.Key == "ApprovedResources" && x.Visible) == true &&
-        (Content.PreviewSession != null || new[] { "MediaCenter.profile", "MediaCenter.press", "MediaCenter.report", "MediaCenter.kit", "MediaCenter.audio" }.Any(x => Content.Value(x).MediaId.HasValue)));
-    private string? Current(string path)
-    {
-        var uri = new Uri(Navigation.Uri);
-        var current = WebsiteRoutes.ArabicPath(uri.AbsolutePath);
-        if (current.StartsWith("/services/", StringComparison.Ordinal)) current = "/services";
-        if (path.Contains('#')) return current + uri.Fragment == path ? "page" : null;
-        return current == path && !(current == "/projects" && uri.Fragment.Length > 0) ? "page" : null;
-    }
+    private string? ProposalCurrent => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals(WebsiteContent.ProposalUrl, StringComparison.OrdinalIgnoreCase) ? "page" : null;
+    private string? Current(WebsiteContent.Page page) => new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/').Equals(page.Url.TrimEnd('/'), StringComparison.OrdinalIgnoreCase) ? "page" : null;
 }

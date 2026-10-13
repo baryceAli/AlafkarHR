@@ -1,0 +1,32 @@
+<section class="pw-hero"><div class="pw-container pw-narrow"><WebsiteHeading Hero Centered Title="خدماتنا" Text="@WebsiteContent.ServicesText" /></div></section>
+<div class="pw-container"><nav class="pw-service-tabs" aria-label="انتقل إلى الخدمة">@foreach (var service in WebsiteContent.Services) { <a href="@("/services#" + service.Id)"><WebsiteIcon Name="@service.Icon" />@service.Title</a> }</nav></div>
+<section class="pw-section">
+    <div class="pw-container pw-service-list">
+        @foreach (var service in WebsiteContent.Services.Where(s => s.Id != "infrastructure"))
+        {
+            var copy = WebsiteContent.ServiceCopies[service.Id];
+            <article class="pw-service-detail" id="@service.Id">
+                <div class="pw-service-copy">
+                    <WebsiteIcon Name="@service.Icon" CssClass="pw-icon" /><h2>@service.Title</h2><p>@service.Text</p>
+                    <ul class="pw-check-list">@foreach (var item in service.Includes) { <li><span aria-hidden="true">✓</span>@item</li> }</ul>
+                    @if (copy.Achievement != null) { <p class="pw-service-achievement">@copy.Achievement</p> }
+                    @if (copy.Audience != null) { <h3>لمن هذه الخدمة</h3><p>@copy.Audience</p> }
+                    <div class="pw-actions"><a class="pw-button" href="@("/request-proposal?service=" + service.Id)">@copy.Action <span aria-hidden="true">↗</span></a></div>
+                </div>
+                <figure class="pw-service-visual" data-pw-motion="image"><div class="pw-motion-image-clip"><img src="@WebsiteContent.Image(service.Image)" alt="@service.Alt" width="512" height="279" loading="lazy" /></div></figure>
+            </article>
+        }
+    </div>
+</section>
+<section class="pw-section pw-tinted"><div class="pw-container"><WebsiteHeading Centered Title="خدمات مساندة" Text="@WebsiteContent.SupportingServicesText" /><WebsiteCards Items="WebsiteContent.SupportingServices" Columns="pw-grid-4" /></div></section>
+<section class="pw-section" id="infrastructure">
+    <div class="pw-container">
+        @{ var infrastructure = WebsiteContent.Services.Single(s => s.Id == "infrastructure"); }
+        <WebsiteHeading Centered Title="بنيتنا التشغيلية" Text="@infrastructure.Text" />
+        <WebsiteCards Items="WebsiteContent.Infrastructure" Columns="pw-grid-4" />
+        <div class="pw-section-action"><WebsiteHeading Title="الجودة والسلامة الغذائية" Text="@WebsiteContent.FoodSafetyText" /></div>
+        <div class="pw-section-action"><WebsiteHeading Title="التوثيق والتقارير" /><WebsiteCards Items="WebsiteContent.Reports" /></div>
+    </div>
+</section>
+<section class="pw-section pw-tinted"><div class="pw-container pw-narrow"><WebsiteHeading Centered Title="الأسئلة الشائعة عن الخدمات" /><WebsiteFaq Items="WebsiteContent.ServiceFaqs" /></div></section>
+<WebsiteCallToAction />

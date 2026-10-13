@@ -1,9 +1,0 @@
-<div class="d2-faq">
-    @foreach (var faq in Items)
-    {
-        <details><summary>@faq.Question<span aria-hidden="true">+</span></summary><p>@faq.Answer</p></details>
-    }
-</div>
-@code {
-    [Parameter] public IEnumerable<Design2Content.Faq> Items { get; set; } = Design2Content.Faqs;
-}

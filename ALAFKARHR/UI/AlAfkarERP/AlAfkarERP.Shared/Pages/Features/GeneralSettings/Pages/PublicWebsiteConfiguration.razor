@@ -13,7 +13,7 @@
 @inject ApiConfig ApiConfig
 
 <div class="erp-page" dir="@SharedDataService.PageDirection">
-    <PageHeader Title="@T("Public Website Configuration", "تهيئة الموقع العام")" Subtitle="@T("Set up ownership, media storage and the public address before editing the website.", "هيئ الشركة المالكة وتخزين الوسائط والعنوان العام قبل تحرير الموقع.")" Icon="bi-sliders">
+    <PageHeader Title="@T("Public Website Configuration", "تهيئة الموقع العام")" Subtitle="@T("Manage ownership, retained media storage and the public address.", "إدارة الشركة المالكة وتخزين الوسائط المحفوظة والعنوان العام.")" Icon="bi-sliders">
         <Actions>
             @if (configuration?.Activated == true && Can(PermissionList.PublicWebsitePermissions.View))
             { <a class="btn btn-outline-primary" href="/PublicWebsite/ControlPanel">@T("Open control panel", "فتح لوحة التحكم")</a> }
@@ -100,7 +100,7 @@
                     </div>
                 }
             }
-            <p class="text-muted small mt-3">@T("Editors need Content.View; editing, uploads and publishing require their separate content permissions. Configuration permissions do not grant content access. Refresh login after role changes.", "يحتاج المحرر إلى Content.View، وللتعديل والرفع والنشر صلاحيات محتوى مستقلة. لا تمنح صلاحيات التهيئة وصولاً للمحتوى. جدد تسجيل الدخول بعد تغيير الصلاحيات.")</p>
+            <p class="text-muted small mt-3">@T("The static website is maintained in code. Saved CMS content and its permissions remain preserved; publishing CMS content does not update the website. Refresh login after role changes.", "يُدار الموقع الثابت من الشفرة البرمجية. يبقى محتوى نظام إدارة المحتوى وصلاحياته محفوظًا؛ ولا يؤدي نشره إلى تحديث الموقع. جدد تسجيل الدخول بعد تغيير الصلاحيات.")</p>
             @if (configuration.UpdatedAt.HasValue) { <p class="text-muted small">@T("Last updated", "آخر تحديث"): @configuration.UpdatedAt.Value.AddHours(3).ToString("yyyy-MM-dd HH:mm") (UTC+03:00) · @configuration.UpdatedBy</p> }
         </AppCard>
     }

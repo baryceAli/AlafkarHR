@@ -1,30 +1,17 @@
 @using AlAfkarERP.Web.Components.PublicWebsite
-@using AlAfkarERP.Web.Components.PublicWebsite.Design2
 <!DOCTYPE html>
-<html lang="@(IsWebsite && !IsEnglishWebsite ? "ar" : "en")" dir="@(IsWebsite && !IsEnglishWebsite ? "rtl" : "ltr")">
+<html lang="@(IsWebsite ? "ar" : "en")" dir="@(IsWebsite ? "rtl" : "ltr")">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    @if (IsDesign2 || HttpContext?.Request.Query.ContainsKey("websiteEditor") == true)
-    {
-        <meta name="robots" content="noindex,nofollow" />
-        <meta name="referrer" content="no-referrer" />
-    }
     <base href="/" />
     <ResourcePreloader />
-    @if (IsDesign2)
+    @if (IsWebsite)
     {
         <link rel="icon" href="/_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" />
         <link rel="stylesheet" href="/website/fonts.css" />
-        <link rel="stylesheet" href="/website/design-2/design-2.css" />
-    }
-    else if (IsWebsite)
-    {
-        <link rel="icon" href="/_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" />
-        <link rel="stylesheet" href="/website/fonts.css" />
-        <link rel="stylesheet" href="/website/website.css" />
-        <link rel="stylesheet" href="/website/content-editor.css" />
+        <link rel="stylesheet" href="@Assets["website/website.css"]" />
     }
     else
     {
@@ -46,11 +33,7 @@
 </head>
 
 <body>
-    @if (IsDesign2)
-    {
-        <Design2Routes @rendermode="InteractiveServer" />
-    }
-    else if (IsWebsite)
+    @if (IsWebsite)
     {
         <PublicRoutes @rendermode="InteractiveServer" />
     }
@@ -59,9 +42,9 @@
         <script src="_content/AlAfkarERP.Shared/theme.js"></script>
         <Routes @rendermode="InteractiveServer" />
     }
-    @if (IsDesign2)
+    @if (IsWebsite)
     {
-        <Design2Reconnect />
+        <WebsiteReconnect />
     }
     else
     {
@@ -87,7 +70,5 @@
 
 @code {
  [CascadingParameter] public HttpContext? HttpContext { get; set; }
- private bool IsDesign2 => PublicWebsite.Design2.Design2Content.IsPreview(HttpContext?.Request.Path.Value);
- private bool IsWebsite => IsDesign2 || PublicWebsite.WebsiteRoutes.IsPublic(HttpContext?.Request.Path.Value);
- private bool IsEnglishWebsite => HttpContext?.Request.Path.Value?.Equals("/en", StringComparison.OrdinalIgnoreCase) == true || HttpContext?.Request.Path.Value?.StartsWith("/en/", StringComparison.OrdinalIgnoreCase) == true;
+ private bool IsWebsite => PublicWebsite.WebsiteRoutes.IsPublic(HttpContext?.Request.Path.Value);
 }

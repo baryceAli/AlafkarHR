@@ -1,41 +1,29 @@
-<footer class="website-approved-footer">
-    <div class="website-approved-grid">
-        <div class="website-approved-copy">
-            <h2 data-pw-fields="WebsiteFooter.f001">@Content.Text("WebsiteFooter.f001")</h2>
-            <p data-pw-fields="WebsiteFooter.f002">@Content.Text("WebsiteFooter.f002")</p>
-            <p data-pw-fields="WebsiteFooter.f003">@Content.Text("WebsiteFooter.f003")</p>
-            @if (Content.Value("MediaCenter.profile").MediaId.HasValue)
-            { <a href="@Content.Media("MediaCenter.profile")" download data-pw-fields="MediaCenter.profile,LandingHero.f012">@Content.Text("LandingHero.f012")</a> }
+<footer class="pw-footer">
+    <div class="pw-container">
+        <div class="pw-footer-grid">
+            <div>
+                <a class="pw-brand" href="/"><span class="pw-brand-mark" aria-hidden="true"><img src="/_content/AlAfkarERP.Shared/images/logo/afkarfavicon.ico" alt="" width="32" height="32" /></span><span><strong>الأفكار الناجحة</strong><small>@WebsiteContent.Slogan</small></span></a>
+                <p>@WebsiteContent.FooterText</p>
+            </div>
+            <nav aria-label="روابط الموقع">
+                <h2>روابط سريعة</h2>
+                @foreach (var entry in WebsiteContent.Pages.Skip(1)) { <a href="@entry.Url">@entry.Label</a> }
+            </nav>
+            <nav aria-label="خدماتنا">
+                <h2>خدماتنا</h2>
+                @foreach (var service in WebsiteContent.Services.Take(5)) { <a href="@service.Url">@WebsiteContent.ServiceCopies[service.Id].HomeTitle</a> }
+                <a href="/services#infrastructure">البنية التشغيلية</a>
+            </nav>
+            <div>
+                <h2>تواصل</h2>
+                <a target="_top" href="tel:+966580007040" dir="ltr">058 000 70 40</a>
+                <a target="_top" href="mailto:info@al-afkar.sa">@WebsiteContent.Email</a>
+                <p>@WebsiteContent.Address</p>
+            </div>
         </div>
-        <nav class="website-approved-copy" aria-label="@Content.Text("WebsiteFooter.quickLinks")" data-pw-fields="WebsiteFooter.quickLinks">
-            <h2>@Content.Text("WebsiteFooter.quickLinks")</h2>
-            @foreach (var (path, label) in Links)
-            { <a href="@Content.Localize(path)" data-pw-fields="@label">@Content.Text(label)</a> }
-        </nav>
-        <nav class="website-approved-copy" aria-label="@Content.Text("WebsiteHeader.f012")">
-            <h2 data-pw-fields="WebsiteHeader.f012">@Content.Text("WebsiteHeader.f012")</h2>
-            @foreach (var (path, section) in WebsiteServicePages.Sections)
-            {
-                @if (WebsiteServicePages.IsVisible(Content.Snapshot, path))
-                { <a href="@Content.Localize(path)" data-pw-fields="@(section + ".title")">@Content.Text(section + ".title")</a> }
-            }
-        </nav>
-        <address class="website-approved-copy">
-            <h2 data-pw-fields="WebsiteHeader.f022">@Content.Text("WebsiteHeader.f022")</h2>
-            <a href="tel:+966580007040" dir="ltr" data-pw-fields="ApprovedContact.phone">@Content.Text("ApprovedContact.phone")</a>
-            <a href="mailto:info@alafkarsa.com" dir="ltr" data-pw-fields="ApprovedContact.email">@Content.Text("ApprovedContact.email")</a>
-            <a href="https://wa.me/966580007040" data-pw-fields="WebsiteHeader.f024">@Content.Text("WebsiteHeader.f024")</a>
-            <p data-pw-fields="ApprovedContact.address">@Content.Text("ApprovedContact.address")</p>
-        </address>
-    </div>
-    <div class="website-approved-actions">
-        <p data-pw-fields="WebsiteFooter.f037">@Content.Text("WebsiteFooter.f037")</p>
-        <a href="@Content.Link("WebsiteFooter.f038")" data-pw-fields="WebsiteFooter.f038,WebsiteFooter.f039">@Content.Text("WebsiteFooter.f039")</a>
-        <a href="@Content.Link("WebsiteFooter.f040")" data-pw-fields="WebsiteFooter.f040,WebsiteFooter.f041">@Content.Text("WebsiteFooter.f041")</a>
+        <div class="pw-footer-bottom">
+            <small>@WebsiteContent.Copyright</small>
+            <button type="button" class="pw-motion-toggle" data-pw-motion-toggle hidden>إيقاف الحركة</button>
+        </div>
     </div>
 </footer>
-@code {
-    private static readonly (string Path, string Label)[] Links =
-    [("/about", "WebsiteHeader.f010"), ("/services", "WebsiteHeader.f012"), ("/projects", "WebsiteHeader.f014"),
-     ("/infrastructure", "WebsiteHeader.f016"), ("/packages", "WebsiteHeader.f020"), ("/contact", "WebsiteHeader.f022")];
-}

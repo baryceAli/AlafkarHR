@@ -1,0 +1,36 @@
+<section class="pw-hero">
+    <div class="pw-container pw-split">
+        <div><WebsiteHeading Hero Eyebrow="تسع سنوات في خدمة ضيوف الرحمن" Title="من نحن" Text="@WebsiteContent.Introduction" /><div class="pw-actions"><a class="pw-button" href="/about#story">تعرّف على قصتنا <span aria-hidden="true">↓</span></a><a class="pw-text-link" href="/contact">تواصل معنا <span aria-hidden="true">←</span></a></div></div>
+        <figure class="pw-feature-image" data-pw-motion="image"><img src="@WebsiteContent.Image("iftar.webp")" alt="صورة توضيحية لخدمات إفطار الصائم" width="512" height="279" fetchpriority="high" /><figcaption>من الفكرة إلى الأثر</figcaption></figure>
+    </div>
+</section>
+<section class="pw-section" id="story">
+    <div class="pw-container">
+        <WebsiteHeading Centered Title="@WebsiteContent.StoryTitle" />
+        <div class="pw-grid pw-grid-3 pw-timeline">@for (var i = 0; i < WebsiteContent.Story.Length; i++) { var step = WebsiteContent.Story[i]; <article class="pw-card" data-pw-motion="card"><span class="pw-step">@((i + 1).ToString("00"))</span><h3>@step.Title</h3><p>@step.Text</p></article> }</div>
+    </div>
+</section>
+<section class="pw-section pw-dark">
+    <div class="pw-container pw-split">
+        <div><WebsiteHeading Title="كلمة المؤسس" /><p class="pw-signature">@WebsiteContent.Founder<small>@WebsiteContent.FounderRole</small></p></div>
+        <blockquote class="pw-quote"><span class="pw-quote-mark" aria-hidden="true">“</span>@foreach (var paragraph in WebsiteContent.FounderStatement) { <p>@paragraph</p> }</blockquote>
+    </div>
+</section>
+<section class="pw-section">
+    <div class="pw-container">
+        <WebsiteHeading Centered Title="الرؤية والرسالة" />
+        <div class="pw-grid pw-grid-2">
+            <article class="pw-card pw-vision" data-pw-motion="card"><WebsiteIcon Name="visibility" CssClass="pw-icon" /><h3>رؤيتنا</h3><p>@WebsiteContent.Vision</p></article>
+            <article class="pw-card" data-pw-motion="card"><WebsiteIcon Name="flag" CssClass="pw-icon" /><h3>رسالتنا</h3><p>@WebsiteContent.Mission</p></article>
+        </div>
+    </div>
+</section>
+<section class="pw-section pw-tinted"><div class="pw-container"><WebsiteHeading Centered Title="قيمنا" /><WebsiteCards Items="WebsiteContent.Values" Columns="pw-grid-4" /></div></section>
+<section class="pw-section pw-tinted">
+    <div class="pw-container pw-split">
+        <div><WebsiteHeading Title="فريقنا" Text="@WebsiteContent.TeamText" /></div>
+        <div class="pw-team-numbers"><div class="pw-card" data-pw-motion="card"><strong>40</strong><span>موظفًا دائمًا</span></div><div class="pw-card pw-dark" data-pw-motion="card"><strong>800</strong><span>كادر في رمضان</span></div><div class="pw-card" data-pw-motion="card"><strong>600</strong><span>كادر في الحج</span></div></div>
+    </div>
+</section>
+<section class="pw-section"><div class="pw-container"><WebsiteHeading Centered Title="من نخدم" /><WebsiteCards Items="WebsiteContent.Audiences" /></div></section>
+<WebsiteCallToAction />

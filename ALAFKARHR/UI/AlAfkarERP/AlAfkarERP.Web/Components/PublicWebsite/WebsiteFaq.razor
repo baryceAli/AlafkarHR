@@ -1,0 +1,9 @@
+<div class="pw-faq">
+    @foreach (var faq in Items)
+    {
+        <details><summary>@faq.Question<span aria-hidden="true">+</span></summary><p>@faq.Answer</p></details>
+    }
+</div>
+@code {
+    [Parameter] public IEnumerable<WebsiteContent.Faq> Items { get; set; } = WebsiteContent.Faqs;
+}
