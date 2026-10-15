@@ -61,7 +61,7 @@ require('.pw-hero-image { overflow: hidden; border-radius:' in css and '.pw-hero
 require('Assets["website/website.css"]' in app, "stylesheet bypasses asset resolver")
 require('"/" + Assets["website/motion.js"]' in layout, "module import must resolve from the origin root")
 
-canonical = {"/", "/about", "/services", "/projects", "/partners", "/contact", "/request-proposal"}
+canonical = {"/", "/about", "/activities", "/services", "/projects", "/partners", "/contact", "/request-proposal"}
 require(set(re.findall(r'@page "([^"]+)"', pages["WebsitePage.razor"])) == canonical,
         "canonical page coverage changed")
 require('data-enhance-nav="false"' not in layout, "layout still disables public navigation")
@@ -70,7 +70,8 @@ for name, text in pages.items():
         require('target="_top"' in text, "error exits must request a new HTTP response")
         continue
     for tag in re.findall(r"<a\b[^>]*>", text):
-        require(not ('target="_top"' in tag and re.search(r'href="(?:/|@)', tag)),
+        erp_login = name == "WebsiteHeader.razor" and 'href="/login"' in tag
+        require(not ('target="_top"' in tag and re.search(r'href="(?:/|@)', tag)) or erp_login,
                 f"forced internal document navigation in {name}: {tag}")
 require('new Uri(Navigation.Uri).AbsolutePath' in router and '@key="Pathname"' in router,
         "router must key page/layout lifetime by pathname")
@@ -107,5 +108,5 @@ require('const reconnectDelay = 3000;' in reconnect and 'clearTimeout(timer)' in
 require("removeEventListener('pagehide', detach)" in reconnect
         and "removeEventListener('components-reconnect-state-changed', handleState)" in reconnect,
         "reconnect lifecycle cleanup missing")
-print("PASS: motion dataset/HTML/CSS contract, mobile image/clipping contract, resolved assets, seven-page navigation, "
+print("PASS: motion dataset/HTML/CSS contract, mobile image/clipping contract, resolved assets, eight-page navigation, "
       "pathname lifetime, mobile-menu cleanup, quotation preselection and isolated reconnect markup/lifecycle.")

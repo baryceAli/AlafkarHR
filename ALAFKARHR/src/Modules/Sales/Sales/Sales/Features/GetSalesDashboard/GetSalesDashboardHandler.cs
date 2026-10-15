@@ -60,8 +60,24 @@ public class GetSalesDashboardHandler(SalesOrderDbContext dbContext)
                 .ToListAsync(cancellationToken),
             TopProducts = await query
                 .SelectMany(x => x.Lines)
+                // Expand the calculated line amount into mapped fields for SQL aggregation.
+                .Select(x => new
+                {
+                    x.ProductSkuId,
+                    x.ProductNameEng,
+                    x.ProductName,
+                    x.Quantity,
+                    x.TaxRate,
+                    NetAmount = (x.Quantity * x.UnitPrice) - ((x.Quantity * x.UnitPrice) * x.DiscountRate / 100m)
+                })
                 .GroupBy(x => new { x.ProductSkuId, x.ProductNameEng, x.ProductName })
-                .Select(x => new SalesDashboardBreakdownDto { Id = x.Key.ProductSkuId, Name = x.Key.ProductNameEng ?? x.Key.ProductName, Value = x.Sum(l => l.TotalAmount), Quantity = x.Sum(l => l.Quantity) })
+                .Select(x => new SalesDashboardBreakdownDto
+                {
+                    Id = x.Key.ProductSkuId,
+                    Name = x.Key.ProductNameEng ?? x.Key.ProductName,
+                    Value = x.Sum(l => l.NetAmount + (l.NetAmount * l.TaxRate / 100m)),
+                    Quantity = x.Sum(l => l.Quantity)
+                })
                 .OrderByDescending(x => x.Value)
                 .Take(5)
                 .ToListAsync(cancellationToken),

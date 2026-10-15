@@ -133,6 +133,8 @@ body:has(.pw-site) { margin: 0; }
 .pw-desktop-nav a[aria-current=page] { font-weight: 600; }
 .pw-header-cta { padding-inline: var(--pw-space-lg); min-block-size: 2.75rem; font-size: .875rem; }
 .pw-header-cta small { display: none; }
+.pw-header-login { display: inline-grid; place-items: center; flex: 0 0 2.75rem; inline-size: 2.75rem; block-size: 2.75rem; border: 1px solid var(--pw-border); border-radius: var(--pw-pill); background: var(--pw-surface); color: var(--pw-ink); }
+.pw-header-login:hover { background: var(--pw-soft); color: var(--pw-amber-deep); }
 .pw-mobile-nav { display: none; position: relative; }
 .pw-mobile-nav summary { display: flex; align-items: center; gap: var(--pw-space-sm); padding: var(--pw-space-sm) var(--pw-space-md); border-radius: var(--pw-pill); background: var(--pw-soft); font-size: .875rem; list-style: none; }
 .pw-mobile-nav summary::-webkit-details-marker { display: none; }
@@ -300,10 +302,12 @@ body:has(.pw-site) { margin: 0; }
 .pw-reconnect.components-reconnect-paused .components-pause-visible,
 .pw-reconnect.components-reconnect-resume-failed .components-resume-failed-visible { display: block; }
 @media (min-width: 1500px) { .pw-site { --pw-gutter: 5rem; } }
-@media (max-width: 1199px) {
+@media (max-width: 1279px) {
     .pw-desktop-nav { display: none; }
     .pw-mobile-nav { display: block; }
     .pw-header-cta { margin-inline-start: auto; }
+}
+@media (max-width: 1199px) {
     .pw-split { gap: var(--pw-space-xl); }
     .pw-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .pw-hero-image > img { block-size: 28rem; }
@@ -329,8 +333,11 @@ body:has(.pw-site) { margin: 0; }
 @media (max-width: 560px) {
     .pw-site { --pw-gutter: 1rem; }
     .pw-header { padding-block: var(--pw-space-sm); }
-    .pw-header-inner { padding-inline: var(--pw-space-md); min-block-size: 4.5rem; }
+    .pw-header-inner { padding-inline: var(--pw-space-sm); gap: var(--pw-space-sm); min-block-size: 4.5rem; }
     .pw-header-cta { display: none; }
+    .pw-header-login { margin-inline-start: auto; }
+    .pw-mobile-nav { flex-shrink: 0; }
+    .pw-mobile-nav summary { padding-inline: var(--pw-space-sm); }
     .pw-brand strong { font-size: .9375rem; }
     .pw-brand small { font-size: .625rem; }
     .pw-grid-2, .pw-grid-3, .pw-grid-4, .pw-form-row { grid-template-columns: 1fr; }

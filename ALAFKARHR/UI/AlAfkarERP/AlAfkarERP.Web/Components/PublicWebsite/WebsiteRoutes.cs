@@ -4,7 +4,7 @@ namespace AlAfkarERP.Web.Components.PublicWebsite;
 
 public static class WebsiteRoutes
 {
-    public static readonly string[] Paths = ["/", "/about", "/services", "/projects", "/partners", "/contact", "/request-proposal"];
+    public static readonly string[] Paths = ["/", "/about", "/activities", "/services", "/projects", "/partners", "/contact", "/request-proposal"];
     private static readonly Dictionary<string, string> ServiceRedirects = new(StringComparer.OrdinalIgnoreCase)
     {
         ["/services/iftar-haram"] = "/services#iftar",
