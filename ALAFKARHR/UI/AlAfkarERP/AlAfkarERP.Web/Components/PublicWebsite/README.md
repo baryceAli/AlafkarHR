@@ -1,6 +1,8 @@
 # Alafkar Public Website / PublicWebsite
 
-The selected institutional design (formerly design 2) is now the sole public presentation. Seven Arabic pages use static document-approved content, local SVG icons/fonts, responsive layouts, motion and explicit WhatsApp handoffs. This code change does not deploy the website.
+The selected institutional design (formerly design 2) is now the sole public presentation. Eight Arabic pages use static document-approved content, local SVG icons/fonts, responsive layouts, motion and explicit WhatsApp handoffs. This code change does not deploy the website.
+
+The activities page displays the five business lines previously shown on About, preserving their content, icons and order. About retains the company profile download. Activities appears immediately after About in the shared header/mobile/footer navigation.
 
 ## Canonical routes and migration
 
@@ -8,6 +10,7 @@ The selected institutional design (formerly design 2) is now the sole public pre
 |---|---|---|---|
 | Home | `/` | `/design-2` | `/en` |
 | About | `/about` | `/design-2/about` | `/en/about` |
+| Activities (أنشطتنا) | `/activities` | `/design-2/activities` | `/en/activities` |
 | Services | `/services` | `/design-2/services` | `/en/services` |
 | Projects | `/projects` | `/design-2/projects` | `/en/projects` |
 | Partners | `/partners` | `/design-2/partners` | `/en/partners` |
@@ -54,7 +57,7 @@ Approved Arabic copy and page-specific collections are centralized in `WebsiteCo
 | Request proposal | صفحة طلب عرض سعر | Document quotation copy/fields, multi-service selection, explicit Arabic validation and WhatsApp handoff. Housing and the unconfirmed delivery/response-time message are omitted. |
 | Contact/footer | صفحة تواصل معنا؛ للجهات؛ تذييل الموقع | Exact contact facts and introduction, documented footer summary/slogan/copyright, canonical navigation and infrastructure link. |
 
-Intentional exceptions: pending housing, prices, certifications, hours, cart/summer quantities, minimum quantities, branding capability, and the 19-entity Hajj figure remain unpublished. The meals branding inclusion conflicts with its unanswered FAQ and is withheld. News requires dates/photos; media downloads require real files, so neither is fabricated. Source image captions describing actual field/team photos are not published as claims about the bundled images. Visible illustrative labels/notices have been removed; accurate alternative text, image metadata and internal asset provenance remain. Projects metadata says “بالأرقام” rather than promising actual project photographs. The contact form retains Arabic validation, its numeric phone example, and explicit WhatsApp handoff rather than the source's unverified delivery-success message. Only the seven approved pages are published. Unsupported standalone pages are redirected, retired or withheld as listed below.
+Intentional exceptions: pending housing, prices, certifications, hours, cart/summer quantities, minimum quantities, branding capability, and the 19-entity Hajj figure remain unpublished. The meals branding inclusion conflicts with its unanswered FAQ and is withheld. News requires dates/photos; media downloads require real files, so neither is fabricated. Source image captions describing actual field/team photos are not published as claims about the bundled images. Visible illustrative labels/notices have been removed; accurate alternative text, image metadata and internal asset provenance remain. Projects metadata says “بالأرقام” rather than promising actual project photographs. The contact form retains Arabic validation, its numeric phone example, and explicit WhatsApp handoff rather than the source's unverified delivery-success message. Only the eight approved pages are published. Unsupported standalone pages are redirected, retired or withheld as listed below.
 
 ## Forms and interactions
 
@@ -66,10 +69,10 @@ Quotation accepts multiple approved services; `?service=<key>` preselects once o
 
 Run focused checks with `python UI/AlAfkarERP/AlAfkarERP.Web/Components/PublicWebsite/verify-static.py`, then `git diff --check` and the web build. The script checks camel-case dataset names against the HTML/CSS contract, asset resolver use, canonical navigation, pathname keys and listener/observer cleanup. Shared/Web builds are required when those projects change. Use `AlAfkarERP.Web/artifacts/design-2-build/` as isolated output when normal DLLs are locked. Browser execution remains pending until explicitly requested with **Run and verify visually**.
 
-- Load all seven canonical pages on desktop/mobile: Arabic title, one H1, RTL, correct content length, no preview/comparison wording, no horizontal overflow, clipped captions or layout shifts. Check header active state, six desktop links, proposal CTA, footer links and skip link.
+- Load all eight canonical pages on desktop/mobile: Arabic title, one H1, RTL, correct content length, no preview/comparison wording, no horizontal overflow, clipped captions or layout shifts. Check header active state, seven desktop links, proposal CTA, footer links and skip link.
 - Follow every navigation/quotation/section link. Confirm service tabs and legacy detail redirects land at all six matching service anchors; query-preserving quotation links preselect the expected service. Unknown/housing service queries stay unselected.
 - Check HTTP 301 mappings in both tables, trailing slash/case normalization, campaign/repeated query preservation, obsolete editor-parameter removal and no loops. Check all six retired Arabic/English URLs return 410 with retirement wording after hydration. Housing and unknown Arabic/English/preview URLs return 404. ERP/login/store routes keep their shells.
-- Check rendered canonical/OG/Twitter URLs match configured runtime origin; homepage Organization facts match the document. Sitemap has exactly seven Arabic URLs even without CMS publication availability; robots excludes noncanonical content; errors remain noindex. No English alternates.
+- Check rendered canonical/OG/Twitter URLs match configured runtime origin; homepage Organization facts match the document. Sitemap has exactly eight Arabic URLs even without CMS publication availability; robots excludes noncanonical content; errors remain noindex. No English alternates.
 - Check seven project cards, each category/count including Qur'an and summer water, filtering, SVG/image fallbacks, category labels, five homepage FAQs and service FAQs. Unconfirmed values and unavailable profile downloads remain absent.
 - Tab through links, filters, FAQ summaries and fields: visible focus stays on interactive controls; page-load/navigation H1 focus has no outline; skip link works. Check errors announced and associated, native checkbox fieldset/legend, no English browser-validation popups.
 - Contact: missing/whitespace name, invalid/Arabic/Persian phone and empty/overlong message. Quotation: empty/whitespace required fields, no entity/services, malformed phone/email, all length limits, optional omissions, multiple services/quantities and digit normalization.
@@ -80,14 +83,14 @@ Run focused checks with `python UI/AlAfkarERP/AlAfkarERP.Web/Components/PublicWe
 
 ## Recorded implementation checks
 
-- Focused static checks passed: seven explicit routes and matching page definitions; canonical internal links/anchors; unchanged approved Arabic content literals and form logic; 29 SVG mappings; retained focus rules; no obsolete presentation/preview dependencies; static sitemap and permission-gated notice.
+- Focused static checks passed: eight explicit routes and matching page definitions; canonical internal links/anchors; unchanged approved Arabic content literals and form logic; 29 SVG mappings; retained focus rules; no obsolete presentation/preview dependencies; static sitemap and permission-gated notice.
 - All six selected-image SHA-256 hashes match provenance records. All 50 original non-preview media/font files remain byte-for-byte identical. ERP resource branches in App remain unchanged.
 - `git diff --check` passed. Shared build succeeded with zero errors (304 warnings in existing unrelated shared UI code); final Web build succeeded with zero warnings/errors. Both used the existing isolated output folder.
 - No application or browser was run. HTTP status/redirect behavior, rendered SEO and visual/interactive checklist items await an explicitly requested runtime verification. No deployment was performed.
 
 ## Motion and navigation regression checklist
 
-- Directly load each of the seven pages, then use desktop/mobile navigation through every page and browser Back/Forward. Confirm normal navigation completes without a page reload or a connecting/reconnecting flash; active navigation, Arabic title/description/canonical metadata and content update correctly.
+- Directly load each of the eight pages, then use desktop/mobile navigation through every page and browser Back/Forward. Confirm normal navigation completes without a page reload or a connecting/reconnecting flash; active navigation, Arabic title/description/canonical metadata and content update correctly.
 - Check service anchors and the skip link with pointer/keyboard. Select a same-page link on mobile and confirm the menu closes immediately. H1 focus has no decorative outline, and interactive controls retain visible keyboard focus.
 - Scroll each page and hover hero/images/cards on a fine-pointer device. Confirm reveals, tilt, floating accents and highlights resume on newly visited pages and filtered project cards. Touch devices have no sticky hover; reduced motion and the session toggle work across navigation.
 - Navigate rapidly while motion loads, then filter projects repeatedly. Confirm old observers/listeners/frames are removed, there are no duplicate motion effects, and content stays visible if JavaScript/observers fail.
@@ -112,7 +115,7 @@ Checks:
 
 Manual checks, pending **Run and verify visually**:
 
-- Direct load, refresh, navigate and use Back/Forward across all seven pages on desktop/mobile. Healthy loading must show no reconnect dialog; motion, forms and keyboard focus remain usable.
+- Direct load, refresh, navigate and use Back/Forward across all eight pages on desktop/mobile. Healthy loading must show no reconnect dialog; motion, forms and keyboard focus remain usable.
 - Recover before three seconds: no dialog or backdrop appears. Persist beyond three seconds: one Arabic dialog appears. Repeated retry events must not reset the deadline. Recovery after display closes it immediately.
 - Force failure, pause and resume failure: their matching Arabic text/actions appear immediately; retry/resume recover or reload as before. Test automatic retry on visibility restoration and unload during a pending timer/recovery.
 - Verify the published page loads only the fingerprinted public reconnect module; ERP still loads its original handler. Check no duplicate event handling or stale-resource failures.
@@ -141,7 +144,7 @@ The mobile harness simulates viewport observations, media queries, loaded/lazy i
 
 Manual mobile checks, pending **Run and verify visually**:
 
-- Scroll the homepage, About, Services and Projects on mobile: each eligible image gently settles from 1.04 to 1 once. Initially visible photos may animate without disappearing; slow/lazy images animate after loading while visible. Scroll away/back: no replay. Check all seven pages for unaffected interactions.
+- Scroll the homepage, About, Services and Projects on mobile: each eligible image gently settles from 1.04 to 1 once. Initially visible photos may animate without disappearing; slow/lazy images animate after loading while visible. Scroll away/back: no replay. Check all eight pages for unaffected interactions.
 - Filter projects and revisit pages: new photos receive the effect; Qur'an SVG/icon cards do not. No touch drag, sticky hover or continuous image zoom is introduced.
 - Check rounded cropping, readable captions/category labels, hero floating accents and the statistic badge; no horizontal overflow, layout shifts or clipping of overlays. Rotate the device and check portrait/landscape image sizing.
 - Toggle motion and change OS reduced-motion settings during playback: animation stops at the normal image size and seen photos never restart. Background/restore the browser tab: current playback pauses/resumes; newly visible images wait until the tab is visible.
@@ -157,6 +160,6 @@ Visible illustrative badges, generic service captions, About/Partners caption qu
 
 Manual checks, pending **Run and verify visually**:
 
-- Review all seven pages on desktop/mobile: no visible “صورة توضيحية” labels or explanatory image notices; remaining captions have balanced spacing and no empty caption strips.
+- Review all eight pages on desktop/mobile: no visible “صورة توضيحية” labels or explanatory image notices; remaining captions have balanced spacing and no empty caption strips.
 - Filter projects through every category: all photograph cards retain category badges; the Qur’an icon fallback remains intact.
 - Check About/Partners captions, rounded image clipping, hero accents, desktop hover and mobile image entrances. Keyboard navigation, forms and reduced-motion controls remain usable.

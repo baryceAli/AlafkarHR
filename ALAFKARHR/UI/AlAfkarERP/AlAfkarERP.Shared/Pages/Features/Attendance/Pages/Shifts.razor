@@ -80,25 +80,25 @@
                 <input class="form-control" type="number" min="0" @bind="model.BreakMinutes" />
             </label>
             <label>
-                @Text("Break mode", "ÙˆØ¶Ø¹ Ø§Ù„Ø§Ø³ØªØ±Ø§Ø­Ø©")
+                @Text("Break mode", "وضع الاستراحة")
                 <select class="form-select" @bind="model.BreakMode">
-                    <option value="@AttendanceBreakMode.Flexible">@Text("Flexible", "Ù…Ø±Ù†")</option>
-                    <option value="@AttendanceBreakMode.Strict">@Text("Strict", "Ù…Ø­Ø¯Ø¯")</option>
+                    <option value="@AttendanceBreakMode.Flexible">@Text("Flexible", "مرن")</option>
+                    <option value="@AttendanceBreakMode.Strict">@Text("Strict", "محدد")</option>
                 </select>
             </label>
             <label>
-                @Text("Break start (local)", "Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„Ø§Ø³ØªØ±Ø§Ø­Ø© (Ø§Ù„Ù…Ø­Ù„ÙŠ)")
+                @Text("Break start (local)", "بداية الاستراحة (المحلي)")
                 <input class="form-control" type="time" @bind="breakStartTime" disabled="@(model.BreakMode != AttendanceBreakMode.Strict || model.BreakMinutes <= 0)" />
             </label>
             <label>
-                @Text("Break end (local)", "Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ø§Ø³ØªØ±Ø§Ø­Ø© (Ø§Ù„Ù…Ø­Ù„ÙŠ)")
+                @Text("Break end (local)", "نهاية الاستراحة (المحلي)")
                 <input class="form-control" type="time" @bind="breakEndTime" disabled="@(model.BreakMode != AttendanceBreakMode.Strict || model.BreakMinutes <= 0)" />
             </label>
             <label>
-                @Text("Paid break", "Ø§Ø³ØªØ±Ø§Ø­Ø© Ù…Ø¯ÙÙˆØ¹Ø©")
+                @Text("Paid break", "استراحة مدفوعة")
                 <select class="form-select" @bind="model.IsBreakPaid" disabled="@(model.BreakMinutes <= 0)">
-                    <option value="true">@Text("Yes", "Ù†Ø¹Ù…")</option>
-                    <option value="false">@Text("No", "Ù„Ø§")</option>
+                    <option value="true">@Text("Yes", "نعم")</option>
+                    <option value="false">@Text("No", "لا")</option>
                 </select>
             </label>
         </div>

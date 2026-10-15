@@ -1,0 +1,2299 @@
+{
+  "files_scanned": 2013,
+  "spans_repaired": 994,
+  "files": [
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/Attendance/Pages/Shifts.razor",
+      "routes": [
+        "/Attendance/Shifts"
+      ],
+      "spans_repaired": 14,
+      "changes": [
+        {
+          "line": 83,
+          "original": "                @Text(\"Break mode\", \"ÙˆØ¶Ø¹ Ø§Ù„Ø§Ø³ØªØ±Ø§Ø­Ø©\")",
+          "corrected": "                @Text(\"Break mode\", \"وضع الاستراحة\")"
+        },
+        {
+          "line": 85,
+          "original": "                    <option value=\"@AttendanceBreakMode.Flexible\">@Text(\"Flexible\", \"Ù…Ø±Ù†\")</option>",
+          "corrected": "                    <option value=\"@AttendanceBreakMode.Flexible\">@Text(\"Flexible\", \"مرن\")</option>"
+        },
+        {
+          "line": 86,
+          "original": "                    <option value=\"@AttendanceBreakMode.Strict\">@Text(\"Strict\", \"Ù…Ø­Ø¯Ø¯\")</option>",
+          "corrected": "                    <option value=\"@AttendanceBreakMode.Strict\">@Text(\"Strict\", \"محدد\")</option>"
+        },
+        {
+          "line": 90,
+          "original": "                @Text(\"Break start (local)\", \"Ø¨Ø¯Ø§ÙŠØ© Ø§Ù„Ø§Ø³ØªØ±Ø§Ø­Ø© (Ø§Ù„Ù…Ø­Ù„ÙŠ)\")",
+          "corrected": "                @Text(\"Break start (local)\", \"بداية الاستراحة (المحلي)\")"
+        },
+        {
+          "line": 94,
+          "original": "                @Text(\"Break end (local)\", \"Ù†Ù‡Ø§ÙŠØ© Ø§Ù„Ø§Ø³ØªØ±Ø§Ø­Ø© (Ø§Ù„Ù…Ø­Ù„ÙŠ)\")",
+          "corrected": "                @Text(\"Break end (local)\", \"نهاية الاستراحة (المحلي)\")"
+        },
+        {
+          "line": 98,
+          "original": "                @Text(\"Paid break\", \"Ø§Ø³ØªØ±Ø§Ø­Ø© Ù…Ø¯ÙÙˆØ¹Ø©\")",
+          "corrected": "                @Text(\"Paid break\", \"استراحة مدفوعة\")"
+        },
+        {
+          "line": 100,
+          "original": "                    <option value=\"true\">@Text(\"Yes\", \"Ù†Ø¹Ù…\")</option>",
+          "corrected": "                    <option value=\"true\">@Text(\"Yes\", \"نعم\")</option>"
+        },
+        {
+          "line": 101,
+          "original": "                    <option value=\"false\">@Text(\"No\", \"Ù„Ø§\")</option>",
+          "corrected": "                    <option value=\"false\">@Text(\"No\", \"لا\")</option>"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/Catalog/Pages/ProductList.razor",
+      "routes": [
+        "/Catalog/Product/List"
+      ],
+      "spans_repaired": 186,
+      "changes": [
+        {
+          "line": 38,
+          "original": "        <span>@SharedDataService.SelectViewLang(\"You don't have permissions to view this page\", \"Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©\")</span>",
+          "corrected": "        <span>@SharedDataService.SelectViewLang(\"You don't have permissions to view this page\", \"ليس لديك الصلاحية لعرض هذه الصفحة\")</span>"
+        },
+        {
+          "line": 44,
+          "original": "    <PageHeader Title=\"@SharedDataService.SelectViewLang(\"Products Management\", \"Ø§Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª\")\"",
+          "corrected": "    <PageHeader Title=\"@SharedDataService.SelectViewLang(\"Products Management\", \"ادارة المنتجات\")\""
+        },
+        {
+          "line": 45,
+          "original": "                Subtitle=\"@SharedDataService.SelectViewLang(\"Maintain catalog products and open their SKU setup.\", \"Ø¥Ø¯Ø§Ø±Ø© Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬ ÙˆÙØªØ­ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø®Ø²Ù†ÙŠØ©.\")\"",
+          "corrected": "                Subtitle=\"@SharedDataService.SelectViewLang(\"Maintain catalog products and open their SKU setup.\", \"إدارة منتجات الكتالوج وفتح إعدادات المنتجات المخزنية.\")\""
+        },
+        {
+          "line": 46,
+          "original": "                Overline=\"@SharedDataService.SelectViewLang(\"Catalog\", \"Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬\")\"",
+          "corrected": "                Overline=\"@SharedDataService.SelectViewLang(\"Catalog\", \"الكتالوج\")\""
+        },
+        {
+          "line": 52,
+          "original": "                <i class=\"bi bi-plus-lg\"></i> @(SharedDataService.Language == \"Ar\" ? \"Ø¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙŠØ¯\" : \"Create New\")",
+          "corrected": "                <i class=\"bi bi-plus-lg\"></i> @(SharedDataService.Language == \"Ar\" ? \"إضافة جديد\" : \"Create New\")"
+        },
+        {
+          "line": 57,
+          "original": "    <AppCard Title=\"@SharedDataService.SelectViewLang(\"Products\", \"Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª\")\"",
+          "corrected": "    <AppCard Title=\"@SharedDataService.SelectViewLang(\"Products\", \"المنتجات\")\""
+        },
+        {
+          "line": 58,
+          "original": "             Subtitle=\"@SharedDataService.SelectViewLang(\"Search, sort, edit, and manage product SKUs.\", \"Ø§Ø¨Ø­Ø« ÙˆØ±ØªØ¨ ÙˆØ¹Ø¯Ù„ ÙˆØ£Ø¯Ø± Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª Ø§Ù„Ù…Ø®Ø²Ù†ÙŠØ©.\")\"",
+          "corrected": "             Subtitle=\"@SharedDataService.SelectViewLang(\"Search, sort, edit, and manage product SKUs.\", \"ابحث ورتب وعدل وأدر المنتجات المخزنية.\")\""
+        },
+        {
+          "line": 65,
+          "original": "                       placeholder=\"@SharedDataService.SelectViewLang(\"Search products...\", \"Ø§Ø¨Ø­Ø« ÙÙŠ Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª...\")\"",
+          "corrected": "                       placeholder=\"@SharedDataService.SelectViewLang(\"Search products...\", \"ابحث في المنتجات...\")\""
+        },
+        {
+          "line": 72,
+          "original": "                    <span class=\"form-check-label\">@SharedDataService.SelectViewLang(\"Include inactive\", \"ØªØ¶Ù…ÙŠÙ† ØºÙŠØ± Ø§Ù„Ù†Ø´Ø·\")</span>",
+          "corrected": "                    <span class=\"form-check-label\">@SharedDataService.SelectViewLang(\"Include inactive\", \"تضمين غير النشط\")</span>"
+        },
+        {
+          "line": 75,
+          "original": "                <select class=\"form-select\" @onchange=\"OnPageSizeChanged\" aria-label=\"@SharedDataService.SelectViewLang(\"Page size\", \"Ø­Ø¬Ù… Ø§Ù„ØµÙØ­Ø©\")\">",
+          "corrected": "                <select class=\"form-select\" @onchange=\"OnPageSizeChanged\" aria-label=\"@SharedDataService.SelectViewLang(\"Page size\", \"حجم الصفحة\")\">"
+        },
+        {
+          "line": 87,
+          "original": "        <EmptyState Title=\"@SharedDataService.SelectViewLang(\"No products yet\", \"Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†ØªØ¬Ø§Øª Ø¨Ø¹Ø¯\")\"",
+          "corrected": "        <EmptyState Title=\"@SharedDataService.SelectViewLang(\"No products yet\", \"لا توجد منتجات بعد\")\""
+        },
+        {
+          "line": 88,
+          "original": "                    Message=\"@SharedDataService.SelectViewLang(\"Create the first product to start building the catalog.\", \"Ø£Ù†Ø´Ø¦ Ø£ÙˆÙ„ Ù…Ù†ØªØ¬ Ù„Ø¨Ø¯Ø¡ Ø¨Ù†Ø§Ø¡ Ø§Ù„ÙƒØªØ§Ù„ÙˆØ¬.\")\"",
+          "corrected": "                    Message=\"@SharedDataService.SelectViewLang(\"Create the first product to start building the catalog.\", \"أنشئ أول منتج لبدء بناء الكتالوج.\")\""
+        },
+        {
+          "line": 95,
+          "original": "                        @SharedDataService.SelectViewLang(\"Create New\", \"Ø¥Ø¶Ø§ÙØ© Ø¬Ø¯ÙŠØ¯\")",
+          "corrected": "                        @SharedDataService.SelectViewLang(\"Create New\", \"إضافة جديد\")"
+        },
+        {
+          "line": 103,
+          "original": "        <EmptyState Title=\"@SharedDataService.SelectViewLang(\"No matching products\", \"Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ù†ØªØ¬Ø§Øª Ù…Ø·Ø§Ø¨Ù‚Ø©\")\"",
+          "corrected": "        <EmptyState Title=\"@SharedDataService.SelectViewLang(\"No matching products\", \"لا توجد منتجات مطابقة\")\""
+        },
+        {
+          "line": 104,
+          "original": "                    Message=\"@SharedDataService.SelectViewLang(\"Try a different product, unit, or category search.\", \"Ø¬Ø±Ø¨ Ø§Ù„Ø¨Ø­Ø« Ø¹Ù† Ù…Ù†ØªØ¬ Ø£Ùˆ ÙˆØ­Ø¯Ø© Ø£Ùˆ ØµÙ†Ù Ù…Ø®ØªÙ„Ù.\")\"",
+          "corrected": "                    Message=\"@SharedDataService.SelectViewLang(\"Try a different product, unit, or category search.\", \"جرب البحث عن منتج أو وحدة أو صنف مختلف.\")\""
+        },
+        {
+          "line": 115,
+          "original": "                    @SharedDataService.SelectViewLang(\"Name\", \"Ø§Ù„Ø§Ø³Ù…\")",
+          "corrected": "                    @SharedDataService.SelectViewLang(\"Name\", \"الاسم\")"
+        },
+        {
+          "line": 117,
+          "original": "                <th @onclick=\"() => Sort(nameof(ProductDto.NameEng))\">@SharedDataService.SelectViewLang(\"NameEng\", \"Ø§Ù„Ø§Ø³Ù… Ø¨Ø§Ù„Ø§Ù†Ø¬Ù„ÙŠØ²ÙŠØ©\")</th>",
+          "corrected": "                <th @onclick=\"() => Sort(nameof(ProductDto.NameEng))\">@SharedDataService.SelectViewLang(\"NameEng\", \"الاسم بالانجليزية\")</th>"
+        },
+        {
+          "line": 118,
+          "original": "                <th @onclick=\"() => Sort(nameof(ProductDto.CategoryName))\">@SharedDataService.SelectViewLang(\"category\", \"Ø§Ù„ØµÙ†Ù\")</th>",
+          "corrected": "                <th @onclick=\"() => Sort(nameof(ProductDto.CategoryName))\">@SharedDataService.SelectViewLang(\"category\", \"الصنف\")</th>"
+        },
+        {
+          "line": 119,
+          "original": "                <th>@SharedDataService.SelectViewLang(\"Type\", \"Ø§Ù„Ù†ÙˆØ¹\")</th>",
+          "corrected": "                <th>@SharedDataService.SelectViewLang(\"Type\", \"النوع\")</th>"
+        },
+        {
+          "line": 120,
+          "original": "                <th>@SharedDataService.SelectViewLang(\"Commercial\", \"ØªØ¬Ø§Ø±ÙŠ\")</th>",
+          "corrected": "                <th>@SharedDataService.SelectViewLang(\"Commercial\", \"تجاري\")</th>"
+        },
+        {
+          "line": 121,
+          "original": "                <th>@SharedDataService.SelectViewLang(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</th>",
+          "corrected": "                <th>@SharedDataService.SelectViewLang(\"Status\", \"الحالة\")</th>"
+        },
+        {
+          "line": 122,
+          "original": "                @* <th @onclick=\"() => Sort(nameof(ProductDto.UnitName))\">@SharedDataService.SelectViewLang(\"Unit\", \"Ø§Ù„ÙˆØ­Ø¯Ø©\")</th> *@",
+          "corrected": "                @* <th @onclick=\"() => Sort(nameof(ProductDto.UnitName))\">@SharedDataService.SelectViewLang(\"Unit\", \"الوحدة\")</th> *@"
+        },
+        {
+          "line": 123,
+          "original": "                <th class=\"text-end\">@SharedDataService.SelectViewLang(\"Actions\", \"Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª\")</th>",
+          "corrected": "                <th class=\"text-end\">@SharedDataService.SelectViewLang(\"Actions\", \"الإجراءات\")</th>"
+        },
+        {
+          "line": 143,
+          "original": "                                        <label for=\"inputFirstName\" class=\"col-sm-2 col-form-label\">@SharedDataService.SelectViewLang(\"Name\", \"Ø§Ù„Ø§Ø³Ù…\")</label>",
+          "corrected": "                                        <label for=\"inputFirstName\" class=\"col-sm-2 col-form-label\">@SharedDataService.SelectViewLang(\"Name\", \"الاسم\")</label>"
+        },
+        {
+          "line": 151,
+          "original": "                                        <label for=\"inputFirstName\" class=\"col-sm-2 col-form-label\">@SharedDataService.SelectViewLang(\"Name (En)\", \"Ø§Ù„Ø§Ø³Ù… (Ø§Ù†Ø¬Ù„ÙŠØ²ÙŠ)\")</label>",
+          "corrected": "                                        <label for=\"inputFirstName\" class=\"col-sm-2 col-form-label\">@SharedDataService.SelectViewLang(\"Name (En)\", \"الاسم (انجليزي)\")</label>"
+        },
+        {
+          "line": 161,
+          "original": "                                            @SharedDataService.SelectViewLang(\"Category\", \"Ø§Ù„ØµÙ†Ù\")",
+          "corrected": "                                            @SharedDataService.SelectViewLang(\"Category\", \"الصنف\")"
+        },
+        {
+          "line": 167,
+          "original": "                                                                   PlaceHolder=\"@(SharedDataService.SelectViewLang(\"search a category\",\"Ø§Ø¨Ø­Ø« Ø¹Ù† ØµÙ†Ù\"))\"",
+          "corrected": "                                                                   PlaceHolder=\"@(SharedDataService.SelectViewLang(\"search a category\",\"ابحث عن صنف\"))\""
+        },
+        {
+          "line": 175,
+          "original": "                                            @SharedDataService.SelectViewLang(\"Product Type\", \"Ù†ÙˆØ¹ Ø§Ù„Ù…Ù†ØªØ¬\")",
+          "corrected": "                                            @SharedDataService.SelectViewLang(\"Product Type\", \"نوع المنتج\")"
+        },
+        {
+          "line": 188,
+          "original": "                                        <div class=\"fw-semibold mb-3\">@SharedDataService.SelectViewLang(\"Odoo Commercial Metadata\", \"Ø¨ÙŠØ§Ù†Ø§Øª Ø£ÙˆØ¯Ùˆ Ø§Ù„ØªØ¬Ø§Ø±ÙŠØ©\")</div>",
+          "corrected": "                                        <div class=\"fw-semibold mb-3\">@SharedDataService.SelectViewLang(\"Odoo Commercial Metadata\", \"بيانات أودو التجارية\")</div>"
+        },
+        {
+          "line": 191,
+          "original": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Sales Description\", \"ÙˆØµÙ Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")</label>",
+          "corrected": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Sales Description\", \"وصف المبيعات\")</label>"
+        },
+        {
+          "line": 195,
+          "original": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Purchase Description\", \"ÙˆØµÙ Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª\")</label>",
+          "corrected": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Purchase Description\", \"وصف المشتريات\")</label>"
+        },
+        {
+          "line": 199,
+          "original": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Customer Tax %\", \"Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ø¹Ù…ÙŠÙ„ %\")</label>",
+          "corrected": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Customer Tax %\", \"ضريبة العميل %\")</label>"
+        },
+        {
+          "line": 203,
+          "original": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Vendor Tax %\", \"Ø¶Ø±ÙŠØ¨Ø© Ø§Ù„Ù…ÙˆØ±Ø¯ %\")</label>",
+          "corrected": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Vendor Tax %\", \"ضريبة المورد %\")</label>"
+        },
+        {
+          "line": 207,
+          "original": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Costing Policy\", \"Ø³ÙŠØ§Ø³Ø© Ø§Ù„ØªÙƒÙ„ÙØ©\")</label>",
+          "corrected": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Costing Policy\", \"سياسة التكلفة\")</label>"
+        },
+        {
+          "line": 216,
+          "original": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Image URL\", \"Ø±Ø§Ø¨Ø· Ø§Ù„ØµÙˆØ±Ø©\")</label>",
+          "corrected": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Image URL\", \"رابط الصورة\")</label>"
+        },
+        {
+          "line": 220,
+          "original": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Income Account Id\", \"Ù…Ø¹Ø±Ù Ø­Ø³Ø§Ø¨ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯\")</label>",
+          "corrected": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Income Account Id\", \"معرف حساب الإيراد\")</label>"
+        },
+        {
+          "line": 227,
+          "original": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Expense Account Id\", \"Ù…Ø¹Ø±Ù Ø­Ø³Ø§Ø¨ Ø§Ù„Ù…ØµØ±ÙˆÙ\")</label>",
+          "corrected": "                                                <label class=\"form-label\">@SharedDataService.SelectViewLang(\"Expense Account Id\", \"معرف حساب المصروف\")</label>"
+        },
+        {
+          "line": 237,
+          "original": "                                        <label class=\"col-sm-2 col-form-label\">@SharedDataService.SelectViewLang(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</label>",
+          "corrected": "                                        <label class=\"col-sm-2 col-form-label\">@SharedDataService.SelectViewLang(\"Status\", \"الحالة\")</label>"
+        },
+        {
+          "line": 241,
+          "original": "                                                <span class=\"form-check-label\">@SharedDataService.SelectViewLang(\"Active\", \"Ù†Ø´Ø·\")</span>",
+          "corrected": "                                                <span class=\"form-check-label\">@SharedDataService.SelectViewLang(\"Active\", \"نشط\")</span>"
+        },
+        {
+          "line": 249,
+          "original": "                                        <button type=\"submit\" class=\"btn btn-success btn-sm\"><i class=\"bi bi-check-lg\"></i> @SharedDataService.SelectViewLang(\"Save\", \"Ø­ÙØ¸\")</button>",
+          "corrected": "                                        <button type=\"submit\" class=\"btn btn-success btn-sm\"><i class=\"bi bi-check-lg\"></i> @SharedDataService.SelectViewLang(\"Save\", \"حفظ\")</button>"
+        },
+        {
+          "line": 250,
+          "original": "                                        <button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" @onclick=\"CancelEdit\"><i class=\"bi bi-x-lg\"></i> @SharedDataService.SelectViewLang(\"Cancel\", \"Ø¥Ù„ØºØ§Ø¡\")</button>",
+          "corrected": "                                        <button type=\"button\" class=\"btn btn-outline-secondary btn-sm\" @onclick=\"CancelEdit\"><i class=\"bi bi-x-lg\"></i> @SharedDataService.SelectViewLang(\"Cancel\", \"إلغاء\")</button>"
+        },
+        {
+          "line": 270,
+          "original": "                                 alt=\"@SharedDataService.SelectViewLang(\"Product image\", \"ØµÙˆØ±Ø© Ø§Ù„Ù…Ù†ØªØ¬\")\"",
+          "corrected": "                                 alt=\"@SharedDataService.SelectViewLang(\"Product image\", \"صورة المنتج\")\""
+        },
+        {
+          "line": 278,
+          "original": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"SKUs\", \"ÙˆØ­Ø¯Ø§Øª\")\"",
+          "corrected": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"SKUs\", \"وحدات\")\""
+        },
+        {
+          "line": 283,
+          "original": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Vendor Prices\", \"Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ù…ÙˆØ±Ø¯ÙŠÙ†\")\"",
+          "corrected": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Vendor Prices\", \"أسعار الموردين\")\""
+        },
+        {
+          "line": 288,
+          "original": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Rules\", \"Ù‚ÙˆØ§Ø¹Ø¯\")\"",
+          "corrected": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Rules\", \"قواعد\")\""
+        },
+        {
+          "line": 293,
+          "original": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Sales\", \"Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Sales\", \"مبيعات\")\""
+        },
+        {
+          "line": 298,
+          "original": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Purchases\", \"Ù…Ø´ØªØ±ÙŠØ§Øª\")\"",
+          "corrected": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Purchases\", \"مشتريات\")\""
+        },
+        {
+          "line": 303,
+          "original": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Inventory\", \"Ø§Ù„Ù…Ø®Ø²ÙˆÙ†\")\"",
+          "corrected": "                            <SmartButton Label=\"@SharedDataService.SelectViewLang(\"Inventory\", \"المخزون\")\""
+        },
+        {
+          "line": 307,
+          "original": "                                         Title=\"@SharedDataService.SelectViewLang(\"Inventory drill-down is not available yet.\", \"Ø§Ù„ØªÙ†Ù‚Ù„ Ø¥Ù„Ù‰ Ø§Ù„Ù…Ø®Ø²ÙˆÙ† ØºÙŠØ± Ù…ØªØ§Ø­ Ø­Ø§Ù„ÙŠØ§Ù‹.\")\" />",
+          "corrected": "                                         Title=\"@SharedDataService.SelectViewLang(\"Inventory drill-down is not available yet.\", \"التنقل إلى المخزون غير متاح حالياً.\")\" />"
+        },
+        {
+          "line": 316,
+          "original": "                            <StatusChip Tone=\"info\" Text=\"@($\"{SharedDataService.SelectViewLang(\"Sales Tax\", \"Ø¶Ø±ÙŠØ¨Ø© Ø¨ÙŠØ¹\")} {product.CustomerTaxRate:N2}%\")\" />",
+          "corrected": "                            <StatusChip Tone=\"info\" Text=\"@($\"{SharedDataService.SelectViewLang(\"Sales Tax\", \"ضريبة بيع\")} {product.CustomerTaxRate:N2}%\")\" />"
+        },
+        {
+          "line": 317,
+          "original": "                            <StatusChip Tone=\"warning\" Text=\"@($\"{SharedDataService.SelectViewLang(\"Purchase Tax\", \"Ø¶Ø±ÙŠØ¨Ø© Ø´Ø±Ø§Ø¡\")} {product.VendorTaxRate:N2}%\")\" />",
+          "corrected": "                            <StatusChip Tone=\"warning\" Text=\"@($\"{SharedDataService.SelectViewLang(\"Purchase Tax\", \"ضريبة شراء\")} {product.VendorTaxRate:N2}%\")\" />"
+        },
+        {
+          "line": 352,
+          "original": "            @SharedDataService.SelectViewLang(\"Previous\", \"Ø§Ù„Ø³Ø§Ø¨Ù‚\")",
+          "corrected": "            @SharedDataService.SelectViewLang(\"Previous\", \"السابق\")"
+        },
+        {
+          "line": 355,
+          "original": "        <span class=\"text-muted\">@SharedDataService.SelectViewLang(\"Page\", \"ØµÙØ­Ø©\") @(pageIndex + 1) @SharedDataService.SelectViewLang(\"of\", \"Ù…Ù†\") @TotalPages</span>",
+          "corrected": "        <span class=\"text-muted\">@SharedDataService.SelectViewLang(\"Page\", \"صفحة\") @(pageIndex + 1) @SharedDataService.SelectViewLang(\"of\", \"من\") @TotalPages</span>"
+        },
+        {
+          "line": 360,
+          "original": "            @SharedDataService.SelectViewLang(\"Next\", \"Ø§Ù„ØªØ§Ù„ÙŠ\")",
+          "corrected": "            @SharedDataService.SelectViewLang(\"Next\", \"التالي\")"
+        },
+        {
+          "line": 448,
+          "original": "                Title = SharedDataService.SelectViewLang(\"Create Product\", \"Ø¥Ù†Ø´Ø§Ø¡ Ù…Ù†ØªØ¬\"),",
+          "corrected": "                Title = SharedDataService.SelectViewLang(\"Create Product\", \"إنشاء منتج\"),"
+        },
+        {
+          "line": 450,
+          "original": "                Message = SharedDataService.SelectViewLang(\"Please select product's category and unit\", \"ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„ØµÙ†Ù ÙˆØ§Ù„ÙˆØ­Ø¯Ø©\"),",
+          "corrected": "                Message = SharedDataService.SelectViewLang(\"Please select product's category and unit\", \"يرجى اختيار الصنف والوحدة\"),"
+        },
+        {
+          "line": 471,
+          "original": "                    Message = SharedDataService.SelectViewLang(\"Product has been created successfully\", \"ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù…Ù†ØªØ¬ Ø¨Ù†Ø¬Ø§Ø­\"),",
+          "corrected": "                    Message = SharedDataService.SelectViewLang(\"Product has been created successfully\", \"تم إنشاء المنتج بنجاح\"),"
+        },
+        {
+          "line": 480,
+          "original": "                    Message = SharedDataService.SelectViewLang(\"Error has occured, please try again later\", \"Ø­Ø¯Ø« Ø®Ø·Ø£ØŒ Ø§Ù„Ø±Ø¬Ø§Ø¡ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰\"),",
+          "corrected": "                    Message = SharedDataService.SelectViewLang(\"Error has occured, please try again later\", \"حدث خطأ، الرجاء المحاولة مرة أخرى\"),"
+        },
+        {
+          "line": 495,
+          "original": "                    Message = SharedDataService.SelectViewLang(\"Product has been Edited successfully\", \"ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù…Ù†ØªØ¬ Ø¨Ù†Ø¬Ø§Ø­\"),",
+          "corrected": "                    Message = SharedDataService.SelectViewLang(\"Product has been Edited successfully\", \"تم تعديل المنتج بنجاح\"),"
+        },
+        {
+          "line": 504,
+          "original": "                    Message = SharedDataService.SelectViewLang(\"Error has occured, please try again later\", \"Ø­Ø¯Ø« Ø®Ø·Ø£ØŒ Ø§Ù„Ø±Ø¬Ø§Ø¡ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù…Ø±Ø© Ø£Ø®Ø±Ù‰\"),",
+          "corrected": "                    Message = SharedDataService.SelectViewLang(\"Error has occured, please try again later\", \"حدث خطأ، الرجاء المحاولة مرة أخرى\"),"
+        },
+        {
+          "line": 523,
+          "original": "            Title = SharedDataService.SelectViewLang(\"Confirm Delete\", \"ØªØ£ÙƒÙŠØ¯ Ø¹Ù…Ù„ÙŠØ© Ø§Ù„Ø­Ø°Ù\"),",
+          "corrected": "            Title = SharedDataService.SelectViewLang(\"Confirm Delete\", \"تأكيد عملية الحذف\"),"
+        },
+        {
+          "line": 525,
+          "original": "            $\"Ù‡Ù„ ØªØ±ØºØ¨ ÙØ¹Ù„Ø§ ÙÙŠ Ø­Ø°Ù Ø§Ù„Ù…Ù†ØªØ¬: {product.Name}ØŸ\"),",
+          "corrected": "            $\"هل ترغب فعلا في حذف المنتج: {product.Name}؟\"),"
+        },
+        {
+          "line": 527,
+          "original": "            OkText = SharedDataService.SelectViewLang(\"Yes\", \"Ù†Ø¹Ù…\"),",
+          "corrected": "            OkText = SharedDataService.SelectViewLang(\"Yes\", \"نعم\"),"
+        },
+        {
+          "line": 528,
+          "original": "            CancelText = SharedDataService.SelectViewLang(\"No\", \"Ù„Ø§\"),",
+          "corrected": "            CancelText = SharedDataService.SelectViewLang(\"No\", \"لا\"),"
+        },
+        {
+          "line": 538,
+          "original": "                        Message = SharedDataService.SelectViewLang(\"Deleted successfully\", \"ØªÙ… Ø§Ù„Ø­Ø°Ù Ø¨Ù†Ø¬Ø§Ø­\"),",
+          "corrected": "                        Message = SharedDataService.SelectViewLang(\"Deleted successfully\", \"تم الحذف بنجاح\"),"
+        },
+        {
+          "line": 550,
+          "original": "                        Message = SharedDataService.SelectViewLang(\"Fail to delete the Product\", \"ÙØ´Ù„Øª Ø¹Ù…Ù„ÙŠØ© Ø§Ù„Ø­Ø°Ù\"),",
+          "corrected": "                        Message = SharedDataService.SelectViewLang(\"Fail to delete the Product\", \"فشلت عملية الحذف\"),"
+        },
+        {
+          "line": 686,
+          "original": "        ? SharedDataService.SelectViewLang(\"Active\", \"Ù†Ø´Ø·\")",
+          "corrected": "        ? SharedDataService.SelectViewLang(\"Active\", \"نشط\")"
+        },
+        {
+          "line": 687,
+          "original": "        : SharedDataService.SelectViewLang(\"Inactive\", \"ØºÙŠØ± Ù†Ø´Ø·\");",
+          "corrected": "        : SharedDataService.SelectViewLang(\"Inactive\", \"غير نشط\");"
+        },
+        {
+          "line": 690,
+          "original": "        // ðŸ” Search",
+          "corrected": "        // 🔍 Search"
+        },
+        {
+          "line": 701,
+          "original": "        // ðŸŽ¯ Filter",
+          "corrected": "        // 🎯 Filter"
+        },
+        {
+          "line": 706,
+          "original": "        // ðŸ”ƒ Sorting",
+          "corrected": "        // 🔃 Sorting"
+        },
+        {
+          "line": 709,
+          "original": "    // ðŸ“„ Pagination",
+          "corrected": "    // 📄 Pagination"
+        },
+        {
+          "line": 769,
+          "original": "            CatalogProductType.Service => SharedDataService.SelectViewLang(\"Service\", \"Ø®Ø¯Ù…Ø©\"),",
+          "corrected": "            CatalogProductType.Service => SharedDataService.SelectViewLang(\"Service\", \"خدمة\"),"
+        },
+        {
+          "line": 770,
+          "original": "            CatalogProductType.Combo => SharedDataService.SelectViewLang(\"Combo\", \"Ù…Ø±ÙƒØ¨\"),",
+          "corrected": "            CatalogProductType.Combo => SharedDataService.SelectViewLang(\"Combo\", \"مركب\"),"
+        },
+        {
+          "line": 771,
+          "original": "            _ => SharedDataService.SelectViewLang(\"Goods\", \"Ø¨Ø¶Ø§Ø¦Ø¹\")",
+          "corrected": "            _ => SharedDataService.SelectViewLang(\"Goods\", \"بضائع\")"
+        },
+        {
+          "line": 777,
+          "original": "        ProductCostingPolicy.Average => SharedDataService.SelectViewLang(\"Average Cost\", \"Ù…ØªÙˆØ³Ø· Ø§Ù„ØªÙƒÙ„ÙØ©\"),",
+          "corrected": "        ProductCostingPolicy.Average => SharedDataService.SelectViewLang(\"Average Cost\", \"متوسط التكلفة\"),"
+        },
+        {
+          "line": 778,
+          "original": "        ProductCostingPolicy.Fifo => SharedDataService.SelectViewLang(\"FIFO\", \"Ø§Ù„ÙˆØ§Ø±Ø¯ Ø£ÙˆÙ„Ø§ ØµØ§Ø¯Ø± Ø£ÙˆÙ„Ø§\"),",
+          "corrected": "        ProductCostingPolicy.Fifo => SharedDataService.SelectViewLang(\"FIFO\", \"الوارد أولا صادر أولا\"),"
+        },
+        {
+          "line": 779,
+          "original": "        _ => SharedDataService.SelectViewLang(\"Standard Cost\", \"ØªÙƒÙ„ÙØ© Ù…Ø¹ÙŠØ§Ø±ÙŠØ©\")",
+          "corrected": "        _ => SharedDataService.SelectViewLang(\"Standard Cost\", \"تكلفة معيارية\")"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/OrderIntakeDetail.razor",
+      "routes": [
+        "/Orders/Intakes/{Id:guid}"
+      ],
+      "spans_repaired": 75,
+      "changes": [
+        {
+          "line": 23,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"ليس لديك الصلاحية لعرض هذه الصفحة\")</div>"
+        },
+        {
+          "line": 27,
+          "original": "    <PageHeader Title=\"@(order?.Number ?? Text(\"Order Intake\", \"Ø·Ù„Ø¨ Ø§Ù„Ø¨ÙŠØ¹\"))\"",
+          "corrected": "    <PageHeader Title=\"@(order?.Number ?? Text(\"Order Intake\", \"طلب البيع\"))\""
+        },
+        {
+          "line": 28,
+          "original": "                Subtitle=\"@Text(\"Review line items, payment state, and intake workflow decisions.\", \"Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø£ØµÙ†Ø§Ù ÙˆØ­Ø§Ù„Ø© Ø§Ù„Ø¯ÙØ¹ ÙˆÙ‚Ø±Ø§Ø±Ø§Øª Ø§Ù„Ø·Ù„Ø¨.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Review line items, payment state, and intake workflow decisions.\", \"مراجعة الأصناف وحالة الدفع وقرارات الطلب.\")\""
+        },
+        {
+          "line": 29,
+          "original": "                Overline=\"@Text(\"Order Intake\", \"Ø·Ù„Ø¨ Ø§Ù„Ø¨ÙŠØ¹\")\"",
+          "corrected": "                Overline=\"@Text(\"Order Intake\", \"طلب البيع\")\""
+        },
+        {
+          "line": 33,
+          "original": "                <i class=\"bi bi-arrow-left\"></i> @Text(\"Back\", \"Ø±Ø¬ÙˆØ¹\")",
+          "corrected": "                <i class=\"bi bi-arrow-left\"></i> @Text(\"Back\", \"رجوع\")"
+        },
+        {
+          "line": 42,
+          "original": "            <div class=\"mt-2\">@Text(\"Loading intake...\", \"Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨...\")</div>",
+          "corrected": "            <div class=\"mt-2\">@Text(\"Loading intake...\", \"جاري تحميل الطلب...\")</div>"
+        },
+        {
+          "line": 47,
+          "original": "        <EmptyState Title=\"@Text(\"Order intake not found\", \"Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ø·Ù„Ø¨\")\"",
+          "corrected": "        <EmptyState Title=\"@Text(\"Order intake not found\", \"لم يتم العثور على الطلب\")\""
+        },
+        {
+          "line": 48,
+          "original": "                    Message=\"@Text(\"The requested intake could not be loaded.\", \"ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨.\")\"",
+          "corrected": "                    Message=\"@Text(\"The requested intake could not be loaded.\", \"تعذر تحميل الطلب المطلوب.\")\""
+        },
+        {
+          "line": 55,
+          "original": "                <AppCard Title=\"@Text(\"Lines\", \"Ø§Ù„Ø£ØµÙ†Ø§Ù\")\">",
+          "corrected": "                <AppCard Title=\"@Text(\"Lines\", \"الأصناف\")\">"
+        },
+        {
+          "line": 60,
+          "original": "                                    <th>@Text(\"Item\", \"Ø§Ù„ØµÙ†Ù\")</th>",
+          "corrected": "                                    <th>@Text(\"Item\", \"الصنف\")</th>"
+        },
+        {
+          "line": 61,
+          "original": "                                    <th>@Text(\"SKU\", \"Ø§Ù„Ø±Ù…Ø²\")</th>",
+          "corrected": "                                    <th>@Text(\"SKU\", \"الرمز\")</th>"
+        },
+        {
+          "line": 62,
+          "original": "                                    <th>@Text(\"Qty\", \"Ø§Ù„ÙƒÙ…ÙŠØ©\")</th>",
+          "corrected": "                                    <th>@Text(\"Qty\", \"الكمية\")</th>"
+        },
+        {
+          "line": 63,
+          "original": "                                    <th>@Text(\"Price\", \"Ø§Ù„Ø³Ø¹Ø±\")</th>",
+          "corrected": "                                    <th>@Text(\"Price\", \"السعر\")</th>"
+        },
+        {
+          "line": 64,
+          "original": "                                    <th>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</th>",
+          "corrected": "                                    <th>@Text(\"Total\", \"الإجمالي\")</th>"
+        },
+        {
+          "line": 84,
+          "original": "                <AppCard Title=\"@Text(\"Summary\", \"Ø§Ù„Ù…Ù„Ø®Øµ\")\" CssClass=\"mb-3\">",
+          "corrected": "                <AppCard Title=\"@Text(\"Summary\", \"الملخص\")\" CssClass=\"mb-3\">"
+        },
+        {
+          "line": 85,
+          "original": "                    <div class=\"summary-row\"><span>@Text(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</span><strong>@StatusText(order.Status)</strong></div>",
+          "corrected": "                    <div class=\"summary-row\"><span>@Text(\"Status\", \"الحالة\")</span><strong>@StatusText(order.Status)</strong></div>"
+        },
+        {
+          "line": 86,
+          "original": "                    <div class=\"summary-row\"><span>@Text(\"Customer\", \"Ø§Ù„Ø¹Ù…ÙŠÙ„\")</span><strong>@(order.CustomerName ?? Text(\"Walk-in\", \"Ø¹Ù…ÙŠÙ„ Ù…Ø¨Ø§Ø´Ø±\"))</strong></div>",
+          "corrected": "                    <div class=\"summary-row\"><span>@Text(\"Customer\", \"العميل\")</span><strong>@(order.CustomerName ?? Text(\"Walk-in\", \"عميل مباشر\"))</strong></div>"
+        },
+        {
+          "line": 87,
+          "original": "                    <div class=\"summary-row\"><span>@Text(\"Payment\", \"Ø§Ù„Ø¯ÙØ¹\")</span><strong>@(order.PaymentStatus?.ToString() ?? \"-\")</strong></div>",
+          "corrected": "                    <div class=\"summary-row\"><span>@Text(\"Payment\", \"الدفع\")</span><strong>@(order.PaymentStatus?.ToString() ?? \"-\")</strong></div>"
+        },
+        {
+          "line": 88,
+          "original": "                    <div class=\"summary-row\"><span>@Text(\"Payment method\", \"Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹\")</span><strong>@(order.PaymentMethod?.ToString() ?? \"-\")</strong></div>",
+          "corrected": "                    <div class=\"summary-row\"><span>@Text(\"Payment method\", \"طريقة الدفع\")</span><strong>@(order.PaymentMethod?.ToString() ?? \"-\")</strong></div>"
+        },
+        {
+          "line": 89,
+          "original": "                    <div class=\"summary-row\"><span>@Text(\"Submitted\", \"ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ø±Ø³Ø§Ù„\")</span><strong>@DateText(order.SubmittedAt)</strong></div>",
+          "corrected": "                    <div class=\"summary-row\"><span>@Text(\"Submitted\", \"تاريخ الإرسال\")</span><strong>@DateText(order.SubmittedAt)</strong></div>"
+        },
+        {
+          "line": 90,
+          "original": "                    <div class=\"summary-row summary-total\"><span>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</span><strong>@Money(order.CheckoutTotal)</strong></div>",
+          "corrected": "                    <div class=\"summary-row summary-total\"><span>@Text(\"Total\", \"الإجمالي\")</span><strong>@Money(order.CheckoutTotal)</strong></div>"
+        },
+        {
+          "line": 100,
+          "original": "                    <AppCard Title=\"@Text(\"Decision\", \"Ø§Ù„Ù‚Ø±Ø§Ø±\")\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Decision\", \"القرار\")\">"
+        },
+        {
+          "line": 104,
+          "original": "                                <i class=\"bi bi-check2-circle\"></i> @Text(\"Accept\", \"Ù‚Ø¨ÙˆÙ„\")",
+          "corrected": "                                <i class=\"bi bi-check2-circle\"></i> @Text(\"Accept\", \"قبول\")"
+        },
+        {
+          "line": 109,
+          "original": "                            <label class=\"form-label\">@Text(\"Reject reason\", \"Ø³Ø¨Ø¨ Ø§Ù„Ø±ÙØ¶\")</label>",
+          "corrected": "                            <label class=\"form-label\">@Text(\"Reject reason\", \"سبب الرفض\")</label>"
+        },
+        {
+          "line": 112,
+          "original": "                                <i class=\"bi bi-x-circle\"></i> @Text(\"Reject\", \"Ø±ÙØ¶\")",
+          "corrected": "                                <i class=\"bi bi-x-circle\"></i> @Text(\"Reject\", \"رفض\")"
+        },
+        {
+          "line": 175,
+          "original": "            ToastService.ShowSuccess(Text(\"Order intake accepted.\", \"ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨.\"));",
+          "corrected": "            ToastService.ShowSuccess(Text(\"Order intake accepted.\", \"تم قبول الطلب.\"));"
+        },
+        {
+          "line": 183,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to accept intake.\", \"ØªØ¹Ø°Ø± Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø·Ù„Ø¨.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to accept intake.\", \"تعذر قبول الطلب.\"));"
+        },
+        {
+          "line": 192,
+          "original": "            ToastService.ShowWarning(Text(\"Enter a rejection reason.\", \"Ø£Ø¯Ø®Ù„ Ø³Ø¨Ø¨ Ø§Ù„Ø±ÙØ¶.\"));",
+          "corrected": "            ToastService.ShowWarning(Text(\"Enter a rejection reason.\", \"أدخل سبب الرفض.\"));"
+        },
+        {
+          "line": 200,
+          "original": "            ToastService.ShowSuccess(Text(\"Order intake rejected.\", \"ØªÙ… Ø±ÙØ¶ Ø§Ù„Ø·Ù„Ø¨.\"));",
+          "corrected": "            ToastService.ShowSuccess(Text(\"Order intake rejected.\", \"تم رفض الطلب.\"));"
+        },
+        {
+          "line": 205,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to reject intake.\", \"ØªØ¹Ø°Ø± Ø±ÙØ¶ Ø§Ù„Ø·Ù„Ø¨.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to reject intake.\", \"تعذر رفض الطلب.\"));"
+        },
+        {
+          "line": 212,
+          "original": "        OrderIntakeStatus.Submitted => Text(\"Submitted\", \"Ù…Ø±Ø³Ù„\"),",
+          "corrected": "        OrderIntakeStatus.Submitted => Text(\"Submitted\", \"مرسل\"),"
+        },
+        {
+          "line": 213,
+          "original": "        OrderIntakeStatus.Validated => Text(\"Validated\", \"ØªÙ… Ø§Ù„ØªØ­Ù‚Ù‚\"),",
+          "corrected": "        OrderIntakeStatus.Validated => Text(\"Validated\", \"تم التحقق\"),"
+        },
+        {
+          "line": 214,
+          "original": "        OrderIntakeStatus.Rejected => Text(\"Rejected\", \"Ù…Ø±ÙÙˆØ¶\"),",
+          "corrected": "        OrderIntakeStatus.Rejected => Text(\"Rejected\", \"مرفوض\"),"
+        },
+        {
+          "line": 215,
+          "original": "        OrderIntakeStatus.Accepted => Text(\"Accepted\", \"Ù…Ù‚Ø¨ÙˆÙ„\"),",
+          "corrected": "        OrderIntakeStatus.Accepted => Text(\"Accepted\", \"مقبول\"),"
+        },
+        {
+          "line": 216,
+          "original": "        OrderIntakeStatus.ConvertedToSales => Text(\"Converted\", \"Ù…Ø­ÙˆÙ„ Ù„Ù„Ø¨ÙŠØ¹\"),",
+          "corrected": "        OrderIntakeStatus.ConvertedToSales => Text(\"Converted\", \"محول للبيع\"),"
+        },
+        {
+          "line": 217,
+          "original": "        OrderIntakeStatus.Cancelled => Text(\"Cancelled\", \"Ù…Ù„ØºÙŠ\"),",
+          "corrected": "        OrderIntakeStatus.Cancelled => Text(\"Cancelled\", \"ملغي\"),"
+        },
+        {
+          "line": 218,
+          "original": "        _ => Text(\"Draft\", \"Ù…Ø³ÙˆØ¯Ø©\")",
+          "corrected": "        _ => Text(\"Draft\", \"مسودة\")"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/OrderIntakeList.razor",
+      "routes": [
+        "/Orders/Intakes"
+      ],
+      "spans_repaired": 65,
+      "changes": [
+        {
+          "line": 23,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"ليس لديك الصلاحية لعرض هذه الصفحة\")</div>"
+        },
+        {
+          "line": 27,
+          "original": "    <PageHeader Title=\"@Text(\"Order Intakes\", \"Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¨ÙŠØ¹\")\"",
+          "corrected": "    <PageHeader Title=\"@Text(\"Order Intakes\", \"طلبات البيع\")\""
+        },
+        {
+          "line": 28,
+          "original": "                Subtitle=\"@Text(\"Review submitted cart checkouts before converting them into sales orders.\", \"Ù…Ø±Ø§Ø¬Ø¹Ø© Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ø¯ÙØ¹ Ù‚Ø¨Ù„ ØªØ­ÙˆÙŠÙ„Ù‡Ø§ Ø¥Ù„Ù‰ Ø£ÙˆØ§Ù…Ø± Ø¨ÙŠØ¹.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Review submitted cart checkouts before converting them into sales orders.\", \"مراجعة طلبات الدفع قبل تحويلها إلى أوامر بيع.\")\""
+        },
+        {
+          "line": 29,
+          "original": "                Overline=\"@Text(\"Sales\", \"Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "                Overline=\"@Text(\"Sales\", \"المبيعات\")\""
+        },
+        {
+          "line": 33,
+          "original": "                <i class=\"bi bi-shop-window\"></i> @Text(\"StoreFront POS\", \"Ù†Ù‚Ø·Ø© Ø¨ÙŠØ¹ Ø§Ù„Ù…ØªØ¬Ø±\")",
+          "corrected": "                <i class=\"bi bi-shop-window\"></i> @Text(\"StoreFront POS\", \"نقطة بيع المتجر\")"
+        },
+        {
+          "line": 36,
+          "original": "                <i class=\"bi bi-receipt\"></i> @Text(\"Company POS\", \"Ù†Ù‚Ø·Ø© Ø¨ÙŠØ¹ Ø§Ù„Ø´Ø±ÙƒØ©\")",
+          "corrected": "                <i class=\"bi bi-receipt\"></i> @Text(\"Company POS\", \"نقطة بيع الشركة\")"
+        },
+        {
+          "line": 41,
+          "original": "    <AppCard Title=\"@Text(\"Filters\", \"Ø§Ù„ØªØµÙÙŠØ©\")\" CssClass=\"mb-3\">",
+          "corrected": "    <AppCard Title=\"@Text(\"Filters\", \"التصفية\")\" CssClass=\"mb-3\">"
+        },
+        {
+          "line": 44,
+          "original": "                <label class=\"form-label\">@Text(\"Search\", \"Ø¨Ø­Ø«\")</label>",
+          "corrected": "                <label class=\"form-label\">@Text(\"Search\", \"بحث\")</label>"
+        },
+        {
+          "line": 45,
+          "original": "                <input class=\"form-control\" @bind=\"searchText\" placeholder=\"@Text(\"Number or customer\", \"Ø§Ù„Ø±Ù‚Ù… Ø£Ùˆ Ø§Ù„Ø¹Ù…ÙŠÙ„\")\" />",
+          "corrected": "                <input class=\"form-control\" @bind=\"searchText\" placeholder=\"@Text(\"Number or customer\", \"الرقم أو العميل\")\" />"
+        },
+        {
+          "line": 48,
+          "original": "                <label class=\"form-label\">@Text(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</label>",
+          "corrected": "                <label class=\"form-label\">@Text(\"Status\", \"الحالة\")</label>"
+        },
+        {
+          "line": 50,
+          "original": "                    <option value=\"\">@Text(\"All statuses\", \"ÙƒÙ„ Ø§Ù„Ø­Ø§Ù„Ø§Øª\")</option>",
+          "corrected": "                    <option value=\"\">@Text(\"All statuses\", \"كل الحالات\")</option>"
+        },
+        {
+          "line": 59,
+          "original": "                    <i class=\"bi bi-search\"></i> @Text(\"Apply\", \"ØªØ·Ø¨ÙŠÙ‚\")",
+          "corrected": "                    <i class=\"bi bi-search\"></i> @Text(\"Apply\", \"تطبيق\")"
+        },
+        {
+          "line": 68,
+          "original": "    <AppCard Title=\"@Text(\"Intakes\", \"Ø§Ù„Ø·Ù„Ø¨Ø§Øª\")\">",
+          "corrected": "    <AppCard Title=\"@Text(\"Intakes\", \"الطلبات\")\">"
+        },
+        {
+          "line": 73,
+          "original": "                <div class=\"mt-2\">@Text(\"Loading intakes...\", \"Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø·Ù„Ø¨Ø§Øª...\")</div>",
+          "corrected": "                <div class=\"mt-2\">@Text(\"Loading intakes...\", \"جاري تحميل الطلبات...\")</div>"
+        },
+        {
+          "line": 78,
+          "original": "            <EmptyState Title=\"@Text(\"No order intakes\", \"Ù„Ø§ ØªÙˆØ¬Ø¯ Ø·Ù„Ø¨Ø§Øª\")\"",
+          "corrected": "            <EmptyState Title=\"@Text(\"No order intakes\", \"لا توجد طلبات\")\""
+        },
+        {
+          "line": 79,
+          "original": "                        Message=\"@Text(\"Submitted POS checkouts will appear here.\", \"Ø³ØªØ¸Ù‡Ø± Ø·Ù„Ø¨Ø§Øª Ù†Ù‚Ø·Ø© Ø§Ù„Ø¨ÙŠØ¹ Ù‡Ù†Ø§.\")\"",
+          "corrected": "                        Message=\"@Text(\"Submitted POS checkouts will appear here.\", \"ستظهر طلبات نقطة البيع هنا.\")\""
+        },
+        {
+          "line": 88,
+          "original": "                            <th>@Text(\"Number\", \"Ø§Ù„Ø±Ù‚Ù…\")</th>",
+          "corrected": "                            <th>@Text(\"Number\", \"الرقم\")</th>"
+        },
+        {
+          "line": 89,
+          "original": "                            <th>@Text(\"Customer\", \"Ø§Ù„Ø¹Ù…ÙŠÙ„\")</th>",
+          "corrected": "                            <th>@Text(\"Customer\", \"العميل\")</th>"
+        },
+        {
+          "line": 90,
+          "original": "                            <th>@Text(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</th>",
+          "corrected": "                            <th>@Text(\"Status\", \"الحالة\")</th>"
+        },
+        {
+          "line": 91,
+          "original": "                            <th>@Text(\"Payment\", \"Ø§Ù„Ø¯ÙØ¹\")</th>",
+          "corrected": "                            <th>@Text(\"Payment\", \"الدفع\")</th>"
+        },
+        {
+          "line": 92,
+          "original": "                            <th>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</th>",
+          "corrected": "                            <th>@Text(\"Total\", \"الإجمالي\")</th>"
+        },
+        {
+          "line": 93,
+          "original": "                            <th>@Text(\"Submitted\", \"ØªØ§Ø±ÙŠØ® Ø§Ù„Ø¥Ø±Ø³Ø§Ù„\")</th>",
+          "corrected": "                            <th>@Text(\"Submitted\", \"تاريخ الإرسال\")</th>"
+        },
+        {
+          "line": 102,
+          "original": "                                <td>@(order.CustomerName ?? Text(\"Walk-in\", \"Ø¹Ù…ÙŠÙ„ Ù…Ø¨Ø§Ø´Ø±\"))</td>",
+          "corrected": "                                <td>@(order.CustomerName ?? Text(\"Walk-in\", \"عميل مباشر\"))</td>"
+        },
+        {
+          "line": 119,
+          "original": "                <button class=\"btn btn-outline-secondary\" @onclick=\"PreviousPage\" disabled=\"@(pageIndex == 0 || isLoading)\">@Text(\"Previous\", \"Ø§Ù„Ø³Ø§Ø¨Ù‚\")</button>",
+          "corrected": "                <button class=\"btn btn-outline-secondary\" @onclick=\"PreviousPage\" disabled=\"@(pageIndex == 0 || isLoading)\">@Text(\"Previous\", \"السابق\")</button>"
+        },
+        {
+          "line": 120,
+          "original": "                <span class=\"text-muted\">@Text($\"Page {pageIndex + 1}\", $\"ØµÙØ­Ø© {pageIndex + 1}\")</span>",
+          "corrected": "                <span class=\"text-muted\">@Text($\"Page {pageIndex + 1}\", $\"صفحة {pageIndex + 1}\")</span>"
+        },
+        {
+          "line": 121,
+          "original": "                <button class=\"btn btn-outline-secondary\" @onclick=\"NextPage\" disabled=\"@(!HasNextPage || isLoading)\">@Text(\"Next\", \"Ø§Ù„ØªØ§Ù„ÙŠ\")</button>",
+          "corrected": "                <button class=\"btn btn-outline-secondary\" @onclick=\"NextPage\" disabled=\"@(!HasNextPage || isLoading)\">@Text(\"Next\", \"التالي\")</button>"
+        },
+        {
+          "line": 212,
+          "original": "        OrderIntakeStatus.Submitted => Text(\"Submitted\", \"Ù…Ø±Ø³Ù„\"),",
+          "corrected": "        OrderIntakeStatus.Submitted => Text(\"Submitted\", \"مرسل\"),"
+        },
+        {
+          "line": 213,
+          "original": "        OrderIntakeStatus.Validated => Text(\"Validated\", \"ØªÙ… Ø§Ù„ØªØ­Ù‚Ù‚\"),",
+          "corrected": "        OrderIntakeStatus.Validated => Text(\"Validated\", \"تم التحقق\"),"
+        },
+        {
+          "line": 214,
+          "original": "        OrderIntakeStatus.Rejected => Text(\"Rejected\", \"Ù…Ø±ÙÙˆØ¶\"),",
+          "corrected": "        OrderIntakeStatus.Rejected => Text(\"Rejected\", \"مرفوض\"),"
+        },
+        {
+          "line": 215,
+          "original": "        OrderIntakeStatus.Accepted => Text(\"Accepted\", \"Ù…Ù‚Ø¨ÙˆÙ„\"),",
+          "corrected": "        OrderIntakeStatus.Accepted => Text(\"Accepted\", \"مقبول\"),"
+        },
+        {
+          "line": 216,
+          "original": "        OrderIntakeStatus.ConvertedToSales => Text(\"Converted\", \"Ù…Ø­ÙˆÙ„ Ù„Ù„Ø¨ÙŠØ¹\"),",
+          "corrected": "        OrderIntakeStatus.ConvertedToSales => Text(\"Converted\", \"محول للبيع\"),"
+        },
+        {
+          "line": 217,
+          "original": "        OrderIntakeStatus.Cancelled => Text(\"Cancelled\", \"Ù…Ù„ØºÙŠ\"),",
+          "corrected": "        OrderIntakeStatus.Cancelled => Text(\"Cancelled\", \"ملغي\"),"
+        },
+        {
+          "line": 218,
+          "original": "        _ => Text(\"Draft\", \"Ù…Ø³ÙˆØ¯Ø©\")",
+          "corrected": "        _ => Text(\"Draft\", \"مسودة\")"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/SalesDashboard.razor",
+      "routes": [
+        "/Sales/Dashboard"
+      ],
+      "spans_repaired": 38,
+      "changes": [
+        {
+          "line": 23,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"ليس لديك الصلاحية لعرض هذه الصفحة\")</div>"
+        },
+        {
+          "line": 28,
+          "original": "    <PageHeader Title=\"@Text(\"Sales Dashboard\", \"Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "    <PageHeader Title=\"@Text(\"Sales Dashboard\", \"لوحة المبيعات\")\""
+        },
+        {
+          "line": 29,
+          "original": "                Subtitle=\"@Text(\"Monitor sales order volume and open/completed value.\", \"Ù…ØªØ§Ø¨Ø¹Ø© Ø­Ø¬Ù… Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹ ÙˆÙ‚ÙŠÙ…ØªÙ‡Ø§.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Monitor sales order volume and open/completed value.\", \"متابعة حجم أوامر البيع وقيمتها.\")\""
+        },
+        {
+          "line": 30,
+          "original": "                Overline=\"@Text(\"Sales\", \"Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "                Overline=\"@Text(\"Sales\", \"المبيعات\")\""
+        },
+        {
+          "line": 34,
+          "original": "                <i class=\"bi bi-list-check\"></i> @Text(\"Sales Orders\", \"Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹\")",
+          "corrected": "                <i class=\"bi bi-list-check\"></i> @Text(\"Sales Orders\", \"أوامر البيع\")"
+        },
+        {
+          "line": 43,
+          "original": "            <div class=\"mt-2\">@Text(\"Loading dashboard...\", \"Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù„ÙˆØ­Ø©...\")</div>",
+          "corrected": "            <div class=\"mt-2\">@Text(\"Loading dashboard...\", \"جاري تحميل اللوحة...\")</div>"
+        },
+        {
+          "line": 49,
+          "original": "        <EmptyState Title=\"@Text(\"No dashboard data\", \"Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª\")\"",
+          "corrected": "        <EmptyState Title=\"@Text(\"No dashboard data\", \"لا توجد بيانات\")\""
+        },
+        {
+          "line": 50,
+          "original": "                    Message=\"@Text(\"Sales dashboard data is not available right now.\", \"Ø¨ÙŠØ§Ù†Ø§Øª Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª ØºÙŠØ± Ù…ØªØ§Ø­Ø© Ø­Ø§Ù„ÙŠØ§.\")\"",
+          "corrected": "                    Message=\"@Text(\"Sales dashboard data is not available right now.\", \"بيانات لوحة المبيعات غير متاحة حاليا.\")\""
+        },
+        {
+          "line": 56,
+          "original": "            <div class=\"col-md-3\"><StatsCard Title=\"@Text(\"Draft\", \"Ù…Ø³ÙˆØ¯Ø©\")\" Value=\"@dashboard.DraftOrders.ToString()\" Icon=\"bi-pencil-square\" /></div>",
+          "corrected": "            <div class=\"col-md-3\"><StatsCard Title=\"@Text(\"Draft\", \"مسودة\")\" Value=\"@dashboard.DraftOrders.ToString()\" Icon=\"bi-pencil-square\" /></div>"
+        },
+        {
+          "line": 57,
+          "original": "            <div class=\"col-md-3\"><StatsCard Title=\"@Text(\"Confirmed\", \"Ù…Ø¤ÙƒØ¯Ø©\")\" Value=\"@dashboard.ConfirmedOrders.ToString()\" Icon=\"bi-check2-circle\" /></div>",
+          "corrected": "            <div class=\"col-md-3\"><StatsCard Title=\"@Text(\"Confirmed\", \"مؤكدة\")\" Value=\"@dashboard.ConfirmedOrders.ToString()\" Icon=\"bi-check2-circle\" /></div>"
+        },
+        {
+          "line": 58,
+          "original": "            <div class=\"col-md-3\"><StatsCard Title=\"@Text(\"Delivered\", \"Ù…Ø³Ù„Ù…Ø©\")\" Value=\"@dashboard.DeliveredOrders.ToString()\" Icon=\"bi-truck\" /></div>",
+          "corrected": "            <div class=\"col-md-3\"><StatsCard Title=\"@Text(\"Delivered\", \"مسلمة\")\" Value=\"@dashboard.DeliveredOrders.ToString()\" Icon=\"bi-truck\" /></div>"
+        },
+        {
+          "line": 59,
+          "original": "            <div class=\"col-md-3\"><StatsCard Title=\"@Text(\"Completed\", \"Ù…ÙƒØªÙ…Ù„Ø©\")\" Value=\"@dashboard.CompletedOrders.ToString()\" Icon=\"bi-patch-check\" /></div>",
+          "corrected": "            <div class=\"col-md-3\"><StatsCard Title=\"@Text(\"Completed\", \"مكتملة\")\" Value=\"@dashboard.CompletedOrders.ToString()\" Icon=\"bi-patch-check\" /></div>"
+        },
+        {
+          "line": 71,
+          "original": "                <AppCard Title=\"@Text(\"Open Order Value\", \"Ù‚ÙŠÙ…Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…ÙØªÙˆØ­Ø©\")\">",
+          "corrected": "                <AppCard Title=\"@Text(\"Open Order Value\", \"قيمة الأوامر المفتوحة\")\">"
+        },
+        {
+          "line": 76,
+          "original": "                <AppCard Title=\"@Text(\"Completed Order Value\", \"Ù‚ÙŠÙ…Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…ÙƒØªÙ…Ù„Ø©\")\">",
+          "corrected": "                <AppCard Title=\"@Text(\"Completed Order Value\", \"قيمة الأوامر المكتملة\")\">"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/SalesDeliveryNoteList.razor",
+      "routes": [
+        "/Sales/DeliveryNotes"
+      ],
+      "spans_repaired": 60,
+      "changes": [
+        {
+          "line": 21,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"ليس لديك الصلاحية لعرض هذه الصفحة\")</div>"
+        },
+        {
+          "line": 25,
+          "original": "    <PageHeader Title=\"@Text(\"Delivery Notes\", \"Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„ØªØ³Ù„ÙŠÙ…\")\"",
+          "corrected": "    <PageHeader Title=\"@Text(\"Delivery Notes\", \"إشعارات التسليم\")\""
+        },
+        {
+          "line": 26,
+          "original": "                Subtitle=\"@Text(\"Post sales deliveries and track warehouse shipment documents.\", \"ØªØ±Ø­ÙŠÙ„ ØªØ³Ù„ÙŠÙ…Ø§Øª Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ù…Ø³ØªÙ†Ø¯Ø§Øª Ø§Ù„Ø´Ø­Ù†.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Post sales deliveries and track warehouse shipment documents.\", \"ترحيل تسليمات المبيعات ومتابعة مستندات الشحن.\")\""
+        },
+        {
+          "line": 27,
+          "original": "                Overline=\"@Text(\"Sales\", \"Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "                Overline=\"@Text(\"Sales\", \"المبيعات\")\""
+        },
+        {
+          "line": 30,
+          "original": "    <AppCard Title=\"@Text(\"Delivery Notes\", \"Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„ØªØ³Ù„ÙŠÙ…\")\">",
+          "corrected": "    <AppCard Title=\"@Text(\"Delivery Notes\", \"إشعارات التسليم\")\">"
+        },
+        {
+          "line": 37,
+          "original": "                    @Text(\"Clear\", \"Ù…Ø³Ø­\")",
+          "corrected": "                    @Text(\"Clear\", \"مسح\")"
+        },
+        {
+          "line": 48,
+          "original": "            <EmptyState Title=\"@Text(\"No delivery notes\", \"Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¥Ø´Ø¹Ø§Ø±Ø§Øª ØªØ³Ù„ÙŠÙ…\")\"",
+          "corrected": "            <EmptyState Title=\"@Text(\"No delivery notes\", \"لا توجد إشعارات تسليم\")\""
+        },
+        {
+          "line": 49,
+          "original": "                        Message=\"@Text(\"Delivery notes created from sales orders will appear here.\", \"Ø³ØªØ¸Ù‡Ø± Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„ØªØ³Ù„ÙŠÙ… Ø§Ù„Ù…Ù†Ø´Ø£Ø© Ù…Ù† Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹ Ù‡Ù†Ø§.\")\"",
+          "corrected": "                        Message=\"@Text(\"Delivery notes created from sales orders will appear here.\", \"ستظهر إشعارات التسليم المنشأة من أوامر البيع هنا.\")\""
+        },
+        {
+          "line": 58,
+          "original": "                            <th>@Text(\"Number\", \"Ø§Ù„Ø±Ù‚Ù…\")</th>",
+          "corrected": "                            <th>@Text(\"Number\", \"الرقم\")</th>"
+        },
+        {
+          "line": 59,
+          "original": "                            <th>@Text(\"Sales order\", \"Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹\")</th>",
+          "corrected": "                            <th>@Text(\"Sales order\", \"أمر البيع\")</th>"
+        },
+        {
+          "line": 60,
+          "original": "                            <th>@Text(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</th>",
+          "corrected": "                            <th>@Text(\"Status\", \"الحالة\")</th>"
+        },
+        {
+          "line": 61,
+          "original": "                            <th>@Text(\"Delivery date\", \"ØªØ§Ø±ÙŠØ® Ø§Ù„ØªØ³Ù„ÙŠÙ…\")</th>",
+          "corrected": "                            <th>@Text(\"Delivery date\", \"تاريخ التسليم\")</th>"
+        },
+        {
+          "line": 62,
+          "original": "                            <th>@Text(\"Lines\", \"Ø§Ù„Ø£ØµÙ†Ø§Ù\")</th>",
+          "corrected": "                            <th>@Text(\"Lines\", \"الأصناف\")</th>"
+        },
+        {
+          "line": 82,
+          "original": "                                            <i class=\"bi bi-check2-circle\"></i> @Text(\"Post\", \"ØªØ±Ø­ÙŠÙ„\")",
+          "corrected": "                                            <i class=\"bi bi-check2-circle\"></i> @Text(\"Post\", \"ترحيل\")"
+        },
+        {
+          "line": 149,
+          "original": "            ToastService.ShowSuccess(Text(\"Delivery note posted.\", \"ØªÙ… ØªØ±Ø­ÙŠÙ„ Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„ØªØ³Ù„ÙŠÙ….\"));",
+          "corrected": "            ToastService.ShowSuccess(Text(\"Delivery note posted.\", \"تم ترحيل إشعار التسليم.\"));"
+        },
+        {
+          "line": 154,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to post delivery note.\", \"ØªØ¹Ø°Ø± ØªØ±Ø­ÙŠÙ„ Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„ØªØ³Ù„ÙŠÙ….\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to post delivery note.\", \"تعذر ترحيل إشعار التسليم.\"));"
+        },
+        {
+          "line": 164,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to cancel delivery note.\", \"ØªØ¹Ø°Ø± Ø¥Ù„ØºØ§Ø¡ Ø¥Ø´Ø¹Ø§Ø± Ø§Ù„ØªØ³Ù„ÙŠÙ….\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to cancel delivery note.\", \"تعذر إلغاء إشعار التسليم.\"));"
+        },
+        {
+          "line": 179,
+          "original": "            return Text(\"Filtered by customer\", \"Ù…ØµÙÙŠ Ø­Ø³Ø¨ Ø§Ù„Ø¹Ù…ÙŠÙ„\");",
+          "corrected": "            return Text(\"Filtered by customer\", \"مصفي حسب العميل\");"
+        },
+        {
+          "line": 181,
+          "original": "            return Text(\"Filtered by SKU\", \"Ù…ØµÙÙŠ Ø­Ø³Ø¨ ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ù†ØªØ¬\");",
+          "corrected": "            return Text(\"Filtered by SKU\", \"مصفي حسب وحدة المنتج\");"
+        },
+        {
+          "line": 182,
+          "original": "        return Text(\"Filtered by product\", \"Ù…ØµÙÙŠ Ø­Ø³Ø¨ Ø§Ù„Ù…Ù†ØªØ¬\");",
+          "corrected": "        return Text(\"Filtered by product\", \"مصفي حسب المنتج\");"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/SalesOrderCreate.razor",
+      "routes": [
+        "/Sales/Orders/Create"
+      ],
+      "spans_repaired": 95,
+      "changes": [
+        {
+          "line": 29,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to create sales orders.\", \"Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© Ø¥Ù†Ø´Ø§Ø¡ Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹.\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to create sales orders.\", \"لا تملك صلاحية إنشاء أوامر البيع.\")</div>"
+        },
+        {
+          "line": 33,
+          "original": "    <PageHeader Title=\"@Text(\"New Sales Order\", \"Ø£Ù…Ø± Ø¨ÙŠØ¹ Ø¬Ø¯ÙŠØ¯\")\"",
+          "corrected": "    <PageHeader Title=\"@Text(\"New Sales Order\", \"أمر بيع جديد\")\""
+        },
+        {
+          "line": 34,
+          "original": "                Subtitle=\"@Text(\"Create a draft sales order for organization and back-office sales.\", \"Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø³ÙˆØ¯Ø© Ø£Ù…Ø± Ø¨ÙŠØ¹ Ù„Ù„Ù…Ø¨ÙŠØ¹Ø§Øª Ø§Ù„Ù…ÙƒØªØ¨ÙŠØ© ÙˆØ§Ù„Ø¹Ù…Ù„Ø§Ø¡ Ù…Ù† Ø§Ù„Ù…Ø¤Ø³Ø³Ø§Øª.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Create a draft sales order for organization and back-office sales.\", \"إنشاء مسودة أمر بيع للمبيعات المكتبية والعملاء من المؤسسات.\")\""
+        },
+        {
+          "line": 35,
+          "original": "                Overline=\"@Text(\"Sales\", \"Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "                Overline=\"@Text(\"Sales\", \"المبيعات\")\""
+        },
+        {
+          "line": 39,
+          "original": "                <i class=\"bi bi-arrow-left\"></i> @Text(\"Back\", \"Ø±Ø¬ÙˆØ¹\")",
+          "corrected": "                <i class=\"bi bi-arrow-left\"></i> @Text(\"Back\", \"رجوع\")"
+        },
+        {
+          "line": 48,
+          "original": "            <div class=\"mt-2\">@Text(\"Loading sales order form...\", \"Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ù†Ù…ÙˆØ°Ø¬ Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹...\")</div>",
+          "corrected": "            <div class=\"mt-2\">@Text(\"Loading sales order form...\", \"جاري تحميل نموذج أمر البيع...\")</div>"
+        },
+        {
+          "line": 58,
+          "original": "                    <AppCard Title=\"@Text(\"Order Details\", \"ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø£Ù…Ø±\")\" CssClass=\"mb-3\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Order Details\", \"تفاصيل الأمر\")\" CssClass=\"mb-3\">"
+        },
+        {
+          "line": 61,
+          "original": "                                <label class=\"form-label\">@Text(\"Order number\", \"Ø±Ù‚Ù… Ø§Ù„Ø£Ù…Ø±\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Order number\", \"رقم الأمر\")</label>"
+        },
+        {
+          "line": 65,
+          "original": "                                <label class=\"form-label\">@Text(\"Order date\", \"ØªØ§Ø±ÙŠØ® Ø§Ù„Ø£Ù…Ø±\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Order date\", \"تاريخ الأمر\")</label>"
+        },
+        {
+          "line": 69,
+          "original": "                                <label class=\"form-label\">@Text(\"Delivery date\", \"ØªØ§Ø±ÙŠØ® Ø§Ù„ØªØ³Ù„ÙŠÙ…\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Delivery date\", \"تاريخ التسليم\")</label>"
+        },
+        {
+          "line": 73,
+          "original": "                                <label class=\"form-label\">@Text(\"Customer\", \"Ø§Ù„Ø¹Ù…ÙŠÙ„\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Customer\", \"العميل\")</label>"
+        },
+        {
+          "line": 75,
+          "original": "                                    <option value=\"\">@Text(\"Select customer\", \"Ø§Ø®ØªØ± Ø§Ù„Ø¹Ù…ÙŠÙ„\")</option>",
+          "corrected": "                                    <option value=\"\">@Text(\"Select customer\", \"اختر العميل\")</option>"
+        },
+        {
+          "line": 83,
+          "original": "                                <label class=\"form-label\">@Text(\"Customer purchase order\", \"Ø£Ù…Ø± Ø´Ø±Ø§Ø¡ Ø§Ù„Ø¹Ù…ÙŠÙ„\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Customer purchase order\", \"أمر شراء العميل\")</label>"
+        },
+        {
+          "line": 87,
+          "original": "                                <label class=\"form-label\">@Text(\"Notes\", \"Ù…Ù„Ø§Ø­Ø¸Ø§Øª\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Notes\", \"ملاحظات\")</label>"
+        },
+        {
+          "line": 91,
+          "original": "                                <label class=\"form-label\">@Text(\"Terms\", \"Ø§Ù„Ø´Ø±ÙˆØ·\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Terms\", \"الشروط\")</label>"
+        },
+        {
+          "line": 97,
+          "original": "                    <AppCard Title=\"@Text(\"Order Lines\", \"Ø£ØµÙ†Ø§Ù Ø§Ù„Ø£Ù…Ø±\")\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Order Lines\", \"أصناف الأمر\")\">"
+        },
+        {
+          "line": 100,
+          "original": "                                <i class=\"bi bi-plus-lg\"></i> @Text(\"Add line\", \"Ø¥Ø¶Ø§ÙØ© ØµÙ†Ù\")",
+          "corrected": "                                <i class=\"bi bi-plus-lg\"></i> @Text(\"Add line\", \"إضافة صنف\")"
+        },
+        {
+          "line": 108,
+          "original": "                                        <th>@Text(\"SKU\", \"Ø§Ù„Ø±Ù…Ø²\")</th>",
+          "corrected": "                                        <th>@Text(\"SKU\", \"الرمز\")</th>"
+        },
+        {
+          "line": 109,
+          "original": "                                        <th>@Text(\"Qty\", \"Ø§Ù„ÙƒÙ…ÙŠØ©\")</th>",
+          "corrected": "                                        <th>@Text(\"Qty\", \"الكمية\")</th>"
+        },
+        {
+          "line": 110,
+          "original": "                                        <th>@Text(\"Unit price\", \"Ø³Ø¹Ø± Ø§Ù„ÙˆØ­Ø¯Ø©\")</th>",
+          "corrected": "                                        <th>@Text(\"Unit price\", \"سعر الوحدة\")</th>"
+        },
+        {
+          "line": 111,
+          "original": "                                        <th>@Text(\"Discount\", \"Ø§Ù„Ø®ØµÙ…\")</th>",
+          "corrected": "                                        <th>@Text(\"Discount\", \"الخصم\")</th>"
+        },
+        {
+          "line": 112,
+          "original": "                                        <th>@Text(\"Tax\", \"Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©\")</th>",
+          "corrected": "                                        <th>@Text(\"Tax\", \"الضريبة\")</th>"
+        },
+        {
+          "line": 113,
+          "original": "                                        <th>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</th>",
+          "corrected": "                                        <th>@Text(\"Total\", \"الإجمالي\")</th>"
+        },
+        {
+          "line": 123,
+          "original": "                                                    <option value=\"\">@Text(\"Select SKU\", \"Ø§Ø®ØªØ± Ø§Ù„Ø±Ù…Ø²\")</option>",
+          "corrected": "                                                    <option value=\"\">@Text(\"Select SKU\", \"اختر الرمز\")</option>"
+        },
+        {
+          "line": 153,
+          "original": "                    <AppCard Title=\"@Text(\"Quick Customer\", \"Ø¹Ù…ÙŠÙ„ Ø³Ø±ÙŠØ¹\")\" CssClass=\"mb-3\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Quick Customer\", \"عميل سريع\")\" CssClass=\"mb-3\">"
+        },
+        {
+          "line": 155,
+          "original": "                            <label class=\"form-label\">@Text(\"Organization name\", \"Ø§Ø³Ù… Ø§Ù„Ù…Ø¤Ø³Ø³Ø©\")</label>",
+          "corrected": "                            <label class=\"form-label\">@Text(\"Organization name\", \"اسم المؤسسة\")</label>"
+        },
+        {
+          "line": 159,
+          "original": "                            <label class=\"form-label\">@Text(\"Commercial name\", \"Ø§Ù„Ø§Ø³Ù… Ø§Ù„ØªØ¬Ø§Ø±ÙŠ\")</label>",
+          "corrected": "                            <label class=\"form-label\">@Text(\"Commercial name\", \"الاسم التجاري\")</label>"
+        },
+        {
+          "line": 163,
+          "original": "                            <label class=\"form-label\">@Text(\"VAT number\", \"Ø§Ù„Ø±Ù‚Ù… Ø§Ù„Ø¶Ø±ÙŠØ¨ÙŠ\")</label>",
+          "corrected": "                            <label class=\"form-label\">@Text(\"VAT number\", \"الرقم الضريبي\")</label>"
+        },
+        {
+          "line": 167,
+          "original": "                            <i class=\"bi bi-person-plus\"></i> @Text(\"Create and select\", \"Ø¥Ù†Ø´Ø§Ø¡ ÙˆØ§Ø®ØªÙŠØ§Ø±\")",
+          "corrected": "                            <i class=\"bi bi-person-plus\"></i> @Text(\"Create and select\", \"إنشاء واختيار\")"
+        },
+        {
+          "line": 171,
+          "original": "                    <AppCard Title=\"@Text(\"Totals\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠØ§Øª\")\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Totals\", \"الإجماليات\")\">"
+        },
+        {
+          "line": 172,
+          "original": "                        <div class=\"summary-row\"><span>@Text(\"Subtotal\", \"Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹\")</span><strong>@Money(order.Subtotal)</strong></div>",
+          "corrected": "                        <div class=\"summary-row\"><span>@Text(\"Subtotal\", \"المجموع\")</span><strong>@Money(order.Subtotal)</strong></div>"
+        },
+        {
+          "line": 173,
+          "original": "                        <div class=\"summary-row\"><span>@Text(\"Tax\", \"Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©\")</span><strong>@Money(order.TaxAmount)</strong></div>",
+          "corrected": "                        <div class=\"summary-row\"><span>@Text(\"Tax\", \"الضريبة\")</span><strong>@Money(order.TaxAmount)</strong></div>"
+        },
+        {
+          "line": 174,
+          "original": "                        <div class=\"summary-row summary-total\"><span>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</span><strong>@Money(order.TotalAmount)</strong></div>",
+          "corrected": "                        <div class=\"summary-row summary-total\"><span>@Text(\"Total\", \"الإجمالي\")</span><strong>@Money(order.TotalAmount)</strong></div>"
+        },
+        {
+          "line": 176,
+          "original": "                            <i class=\"bi bi-save\"></i> @Text(\"Save Draft\", \"Ø­ÙØ¸ ÙƒÙ…Ø³ÙˆØ¯Ø©\")",
+          "corrected": "                            <i class=\"bi bi-save\"></i> @Text(\"Save Draft\", \"حفظ كمسودة\")"
+        },
+        {
+          "line": 298,
+          "original": "            ToastService.ShowWarning(Text(\"Enter the organization name.\", \"Ø£Ø¯Ø®Ù„ Ø§Ø³Ù… Ø§Ù„Ù…Ø¤Ø³Ø³Ø©.\"));",
+          "corrected": "            ToastService.ShowWarning(Text(\"Enter the organization name.\", \"أدخل اسم المؤسسة.\"));"
+        },
+        {
+          "line": 307,
+          "original": "            ToastService.ShowSuccess(Text(\"Customer created.\", \"ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¹Ù…ÙŠÙ„.\"));",
+          "corrected": "            ToastService.ShowSuccess(Text(\"Customer created.\", \"تم إنشاء العميل.\"));"
+        },
+        {
+          "line": 316,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to create customer.\", \"ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¹Ù…ÙŠÙ„.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to create customer.\", \"تعذر إنشاء العميل.\"));"
+        },
+        {
+          "line": 325,
+          "original": "            ToastService.ShowWarning(Text(\"Select a customer.\", \"Ø§Ø®ØªØ± Ø§Ù„Ø¹Ù…ÙŠÙ„.\"));",
+          "corrected": "            ToastService.ShowWarning(Text(\"Select a customer.\", \"اختر العميل.\"));"
+        },
+        {
+          "line": 332,
+          "original": "            ToastService.ShowWarning(Text(\"Add at least one SKU line.\", \"Ø£Ø¶Ù ØµÙ†ÙØ§ ÙˆØ§Ø­Ø¯Ø§ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.\"));",
+          "corrected": "            ToastService.ShowWarning(Text(\"Add at least one SKU line.\", \"أضف صنفا واحدا على الأقل.\"));"
+        },
+        {
+          "line": 342,
+          "original": "            ToastService.ShowSuccess(Text(\"Sales order draft created.\", \"ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ù…Ø³ÙˆØ¯Ø© Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹.\"));",
+          "corrected": "            ToastService.ShowSuccess(Text(\"Sales order draft created.\", \"تم إنشاء مسودة أمر البيع.\"));"
+        },
+        {
+          "line": 347,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to create sales order.\", \"ØªØ¹Ø°Ø± Ø¥Ù†Ø´Ø§Ø¡ Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to create sales order.\", \"تعذر إنشاء أمر البيع.\"));"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/SalesOrderDetail.razor",
+      "routes": [
+        "/Sales/Orders/{Id:guid}"
+      ],
+      "spans_repaired": 107,
+      "changes": [
+        {
+          "line": 34,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"ليس لديك الصلاحية لعرض هذه الصفحة\")</div>"
+        },
+        {
+          "line": 38,
+          "original": "    <PageHeader Title=\"@(order?.Number ?? Text(\"Sales Order\", \"Ø£Ù…Ø± Ø¨ÙŠØ¹\"))\"",
+          "corrected": "    <PageHeader Title=\"@(order?.Number ?? Text(\"Sales Order\", \"أمر بيع\"))\""
+        },
+        {
+          "line": 39,
+          "original": "                Subtitle=\"@Text(\"Review sales order lines, totals, and fulfillment workflow.\", \"Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø£ØµÙ†Ø§Ù ÙˆØ§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠØ§Øª ÙˆØ³ÙŠØ± Ø§Ù„ØªÙ†ÙÙŠØ°.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Review sales order lines, totals, and fulfillment workflow.\", \"مراجعة الأصناف والإجماليات وسير التنفيذ.\")\""
+        },
+        {
+          "line": 40,
+          "original": "                Overline=\"@Text(\"Sales Order\", \"Ø£Ù…Ø± Ø¨ÙŠØ¹\")\"",
+          "corrected": "                Overline=\"@Text(\"Sales Order\", \"أمر بيع\")\""
+        },
+        {
+          "line": 44,
+          "original": "                <i class=\"bi bi-arrow-left\"></i> @Text(\"Back\", \"Ø±Ø¬ÙˆØ¹\")",
+          "corrected": "                <i class=\"bi bi-arrow-left\"></i> @Text(\"Back\", \"رجوع\")"
+        },
+        {
+          "line": 53,
+          "original": "            <div class=\"mt-2\">@Text(\"Loading sales order...\", \"Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹...\")</div>",
+          "corrected": "            <div class=\"mt-2\">@Text(\"Loading sales order...\", \"جاري تحميل أمر البيع...\")</div>"
+        },
+        {
+          "line": 58,
+          "original": "        <EmptyState Title=\"@Text(\"Sales order not found\", \"Ù„Ù… ÙŠØªÙ… Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù…Ø±\")\"",
+          "corrected": "        <EmptyState Title=\"@Text(\"Sales order not found\", \"لم يتم العثور على الأمر\")\""
+        },
+        {
+          "line": 59,
+          "original": "                    Message=\"@Text(\"The requested sales order could not be loaded.\", \"ØªØ¹Ø°Ø± ØªØ­Ù…ÙŠÙ„ Ø£Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨.\")\"",
+          "corrected": "                    Message=\"@Text(\"The requested sales order could not be loaded.\", \"تعذر تحميل أمر البيع المطلوب.\")\""
+        },
+        {
+          "line": 66,
+          "original": "                <AppCard Title=\"@Text(\"Lines\", \"Ø§Ù„Ø£ØµÙ†Ø§Ù\")\">",
+          "corrected": "                <AppCard Title=\"@Text(\"Lines\", \"الأصناف\")\">"
+        },
+        {
+          "line": 71,
+          "original": "                                    <th>@Text(\"Item\", \"Ø§Ù„ØµÙ†Ù\")</th>",
+          "corrected": "                                    <th>@Text(\"Item\", \"الصنف\")</th>"
+        },
+        {
+          "line": 72,
+          "original": "                                    <th>@Text(\"SKU\", \"Ø§Ù„Ø±Ù…Ø²\")</th>",
+          "corrected": "                                    <th>@Text(\"SKU\", \"الرمز\")</th>"
+        },
+        {
+          "line": 73,
+          "original": "                                    <th>@Text(\"Qty\", \"Ø§Ù„ÙƒÙ…ÙŠØ©\")</th>",
+          "corrected": "                                    <th>@Text(\"Qty\", \"الكمية\")</th>"
+        },
+        {
+          "line": 74,
+          "original": "                                    <th>@Text(\"Reserved\", \"Ù…Ø­Ø¬ÙˆØ²\")</th>",
+          "corrected": "                                    <th>@Text(\"Reserved\", \"محجوز\")</th>"
+        },
+        {
+          "line": 75,
+          "original": "                                    <th>@Text(\"Delivered\", \"Ù…Ø³Ù„Ù…\")</th>",
+          "corrected": "                                    <th>@Text(\"Delivered\", \"مسلم\")</th>"
+        },
+        {
+          "line": 76,
+          "original": "                                    <th>@Text(\"Remaining\", \"Ù…ØªØ¨Ù‚ÙŠ\")</th>",
+          "corrected": "                                    <th>@Text(\"Remaining\", \"متبقي\")</th>"
+        },
+        {
+          "line": 77,
+          "original": "                                    <th>@Text(\"Invoiced\", \"Ù…ÙÙˆØªØ±\")</th>",
+          "corrected": "                                    <th>@Text(\"Invoiced\", \"مفوتر\")</th>"
+        },
+        {
+          "line": 78,
+          "original": "                                    <th>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</th>",
+          "corrected": "                                    <th>@Text(\"Total\", \"الإجمالي\")</th>"
+        },
+        {
+          "line": 122,
+          "original": "                <AppCard Title=\"@Text(\"Summary\", \"Ø§Ù„Ù…Ù„Ø®Øµ\")\" CssClass=\"mb-3\">",
+          "corrected": "                <AppCard Title=\"@Text(\"Summary\", \"الملخص\")\" CssClass=\"mb-3\">"
+        },
+        {
+          "line": 123,
+          "original": "                    <div class=\"summary-row\"><span>@Text(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</span><strong>@StatusText(order.Status)</strong></div>",
+          "corrected": "                    <div class=\"summary-row\"><span>@Text(\"Status\", \"الحالة\")</span><strong>@StatusText(order.Status)</strong></div>"
+        },
+        {
+          "line": 126,
+          "original": "                        <div class=\"summary-row\"><span>@Text(\"Branch\", \"Ø§Ù„ÙØ±Ø¹\")</span><strong>@BranchName(order.BranchId.Value)</strong></div>",
+          "corrected": "                        <div class=\"summary-row\"><span>@Text(\"Branch\", \"الفرع\")</span><strong>@BranchName(order.BranchId.Value)</strong></div>"
+        },
+        {
+          "line": 128,
+          "original": "                    <div class=\"summary-row\"><span>@Text(\"Order date\", \"ØªØ§Ø±ÙŠØ® Ø§Ù„Ø£Ù…Ø±\")</span><strong>@order.OrderDate.ToString(\"yyyy-MM-dd\")</strong></div>",
+          "corrected": "                    <div class=\"summary-row\"><span>@Text(\"Order date\", \"تاريخ الأمر\")</span><strong>@order.OrderDate.ToString(\"yyyy-MM-dd\")</strong></div>"
+        },
+        {
+          "line": 129,
+          "original": "                    <div class=\"summary-row\"><span>@Text(\"Subtotal\", \"Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹\")</span><strong>@Money(order.Subtotal)</strong></div>",
+          "corrected": "                    <div class=\"summary-row\"><span>@Text(\"Subtotal\", \"المجموع\")</span><strong>@Money(order.Subtotal)</strong></div>"
+        },
+        {
+          "line": 130,
+          "original": "                    <div class=\"summary-row\"><span>@Text(\"Tax\", \"Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©\")</span><strong>@Money(order.TaxAmount)</strong></div>",
+          "corrected": "                    <div class=\"summary-row\"><span>@Text(\"Tax\", \"الضريبة\")</span><strong>@Money(order.TaxAmount)</strong></div>"
+        },
+        {
+          "line": 131,
+          "original": "                    <div class=\"summary-row summary-total\"><span>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</span><strong>@Money(order.TotalAmount)</strong></div>",
+          "corrected": "                    <div class=\"summary-row summary-total\"><span>@Text(\"Total\", \"الإجمالي\")</span><strong>@Money(order.TotalAmount)</strong></div>"
+        },
+        {
+          "line": 169,
+          "original": "                    <AppCard Title=\"@Text(\"Workflow\", \"Ø³ÙŠØ± Ø§Ù„Ø¹Ù…Ù„\")\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Workflow\", \"سير العمل\")\">"
+        },
+        {
+          "line": 173,
+          "original": "                                <i class=\"bi bi-check2-circle\"></i> @Text(\"Confirm order\", \"ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø£Ù…Ø±\")",
+          "corrected": "                                <i class=\"bi bi-check2-circle\"></i> @Text(\"Confirm order\", \"تأكيد الأمر\")"
+        },
+        {
+          "line": 178,
+          "original": "                            <label class=\"form-label\">@Text(\"Reservation warehouse\", \"Ù…Ø³ØªÙˆØ¯Ø¹ Ø§Ù„Ø­Ø¬Ø²\")</label>",
+          "corrected": "                            <label class=\"form-label\">@Text(\"Reservation warehouse\", \"مستودع الحجز\")</label>"
+        },
+        {
+          "line": 180,
+          "original": "                                <option value=\"@Guid.Empty\">@Text(\"Select warehouse\", \"Ø§Ø®ØªØ± Ø§Ù„Ù…Ø³ØªÙˆØ¯Ø¹\")</option>",
+          "corrected": "                                <option value=\"@Guid.Empty\">@Text(\"Select warehouse\", \"اختر المستودع\")</option>"
+        },
+        {
+          "line": 198,
+          "original": "                                <i class=\"bi bi-box-seam\"></i> @Text(\"Reserve stock\", \"Ø­Ø¬Ø² Ø§Ù„Ù…Ø®Ø²ÙˆÙ†\")",
+          "corrected": "                                <i class=\"bi bi-box-seam\"></i> @Text(\"Reserve stock\", \"حجز المخزون\")"
+        },
+        {
+          "line": 201,
+          "original": "                                <i class=\"bi bi-unlock\"></i> @Text(\"Release reservation\", \"ÙÙƒ Ø§Ù„Ø­Ø¬Ø²\")",
+          "corrected": "                                <i class=\"bi bi-unlock\"></i> @Text(\"Release reservation\", \"فك الحجز\")"
+        },
+        {
+          "line": 205,
+          "original": "                            <i class=\"bi bi-truck\"></i> @Text(\"Mark delivered\", \"ØªØ­Ø¯ÙŠØ¯ ÙƒÙ…Ø³Ù„Ù…\")",
+          "corrected": "                            <i class=\"bi bi-truck\"></i> @Text(\"Mark delivered\", \"تحديد كمسلم\")"
+        },
+        {
+          "line": 208,
+          "original": "                            <i class=\"bi bi-receipt\"></i> @Text(\"Mark invoiced\", \"ØªØ­Ø¯ÙŠØ¯ ÙƒÙ…ÙÙˆØªØ±\")",
+          "corrected": "                            <i class=\"bi bi-receipt\"></i> @Text(\"Mark invoiced\", \"تحديد كمفوتر\")"
+        },
+        {
+          "line": 210,
+          "original": "                        <label class=\"form-label\">@Text(\"Cancel reason\", \"Ø³Ø¨Ø¨ Ø§Ù„Ø¥Ù„ØºØ§Ø¡\")</label>",
+          "corrected": "                        <label class=\"form-label\">@Text(\"Cancel reason\", \"سبب الإلغاء\")</label>"
+        },
+        {
+          "line": 213,
+          "original": "                            <i class=\"bi bi-x-circle\"></i> @Text(\"Cancel order\", \"Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø£Ù…Ø±\")",
+          "corrected": "                            <i class=\"bi bi-x-circle\"></i> @Text(\"Cancel order\", \"إلغاء الأمر\")"
+        },
+        {
+          "line": 306,
+          "original": "    private async Task ConfirmAsync() => await RunWorkflowAsync(() => WorkflowService.ConfirmAsync(Id), Text(\"Order confirmed.\", \"ØªÙ… ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø£Ù…Ø±.\"));",
+          "corrected": "    private async Task ConfirmAsync() => await RunWorkflowAsync(() => WorkflowService.ConfirmAsync(Id), Text(\"Order confirmed.\", \"تم تأكيد الأمر.\"));"
+        },
+        {
+          "line": 310,
+          "original": "        Text(\"Stock reserved.\", \"ØªÙ… Ø­Ø¬Ø² Ø§Ù„Ù…Ø®Ø²ÙˆÙ†.\"));",
+          "corrected": "        Text(\"Stock reserved.\", \"تم حجز المخزون.\"));"
+        },
+        {
+          "line": 314,
+          "original": "        Text(\"Reservation released.\", \"ØªÙ… ÙÙƒ Ø§Ù„Ø­Ø¬Ø².\"));",
+          "corrected": "        Text(\"Reservation released.\", \"تم فك الحجز.\"));"
+        },
+        {
+          "line": 316,
+          "original": "    private async Task DeliverAsync() => await RunWorkflowAsync(() => WorkflowService.DeliverAsync(order!), Text(\"Order delivered.\", \"ØªÙ… ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø£Ù…Ø± ÙƒÙ…Ø³Ù„Ù….\"));",
+          "corrected": "    private async Task DeliverAsync() => await RunWorkflowAsync(() => WorkflowService.DeliverAsync(order!), Text(\"Order delivered.\", \"تم تحديد الأمر كمسلم.\"));"
+        },
+        {
+          "line": 318,
+          "original": "    private async Task InvoiceAsync() => await RunWorkflowAsync(() => WorkflowService.InvoiceAsync(order!), Text(\"Order invoiced.\", \"ØªÙ… ØªØ­Ø¯ÙŠØ¯ Ø§Ù„Ø£Ù…Ø± ÙƒÙ…ÙÙˆØªØ±.\"));",
+          "corrected": "    private async Task InvoiceAsync() => await RunWorkflowAsync(() => WorkflowService.InvoiceAsync(order!), Text(\"Order invoiced.\", \"تم تحديد الأمر كمفوتر.\"));"
+        },
+        {
+          "line": 324,
+          "original": "            ToastService.ShowWarning(Text(\"Enter a cancel reason.\", \"Ø£Ø¯Ø®Ù„ Ø³Ø¨Ø¨ Ø§Ù„Ø¥Ù„ØºØ§Ø¡.\"));",
+          "corrected": "            ToastService.ShowWarning(Text(\"Enter a cancel reason.\", \"أدخل سبب الإلغاء.\"));"
+        },
+        {
+          "line": 328,
+          "original": "        await RunWorkflowAsync(() => WorkflowService.CancelAsync(Id, cancelReason), Text(\"Order cancelled.\", \"ØªÙ… Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø£Ù…Ø±.\"));",
+          "corrected": "        await RunWorkflowAsync(() => WorkflowService.CancelAsync(Id, cancelReason), Text(\"Order cancelled.\", \"تم إلغاء الأمر.\"));"
+        },
+        {
+          "line": 345,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Workflow action failed.\", \"ÙØ´Ù„ Ø¥Ø¬Ø±Ø§Ø¡ Ø³ÙŠØ± Ø§Ù„Ø¹Ù…Ù„.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Workflow action failed.\", \"فشل إجراء سير العمل.\"));"
+        },
+        {
+          "line": 381,
+          "original": "        SalesOrderStatus.Confirmed => Text(\"Confirmed\", \"Ù…Ø¤ÙƒØ¯\"),",
+          "corrected": "        SalesOrderStatus.Confirmed => Text(\"Confirmed\", \"مؤكد\"),"
+        },
+        {
+          "line": 382,
+          "original": "        SalesOrderStatus.PartiallyReserved => Text(\"Partially reserved\", \"Ù…Ø­Ø¬ÙˆØ² Ø¬Ø²Ø¦ÙŠØ§\"),",
+          "corrected": "        SalesOrderStatus.PartiallyReserved => Text(\"Partially reserved\", \"محجوز جزئيا\"),"
+        },
+        {
+          "line": 383,
+          "original": "        SalesOrderStatus.Reserved => Text(\"Reserved\", \"Ù…Ø­Ø¬ÙˆØ²\"),",
+          "corrected": "        SalesOrderStatus.Reserved => Text(\"Reserved\", \"محجوز\"),"
+        },
+        {
+          "line": 384,
+          "original": "        SalesOrderStatus.PartiallyDelivered => Text(\"Partially delivered\", \"Ù…Ø³Ù„Ù… Ø¬Ø²Ø¦ÙŠØ§\"),",
+          "corrected": "        SalesOrderStatus.PartiallyDelivered => Text(\"Partially delivered\", \"مسلم جزئيا\"),"
+        },
+        {
+          "line": 385,
+          "original": "        SalesOrderStatus.Delivered => Text(\"Delivered\", \"Ù…Ø³Ù„Ù…\"),",
+          "corrected": "        SalesOrderStatus.Delivered => Text(\"Delivered\", \"مسلم\"),"
+        },
+        {
+          "line": 386,
+          "original": "        SalesOrderStatus.PartiallyInvoiced => Text(\"Partially invoiced\", \"Ù…ÙÙˆØªØ± Ø¬Ø²Ø¦ÙŠØ§\"),",
+          "corrected": "        SalesOrderStatus.PartiallyInvoiced => Text(\"Partially invoiced\", \"مفوتر جزئيا\"),"
+        },
+        {
+          "line": 387,
+          "original": "        SalesOrderStatus.Invoiced => Text(\"Invoiced\", \"Ù…ÙÙˆØªØ±\"),",
+          "corrected": "        SalesOrderStatus.Invoiced => Text(\"Invoiced\", \"مفوتر\"),"
+        },
+        {
+          "line": 388,
+          "original": "        SalesOrderStatus.Completed => Text(\"Completed\", \"Ù…ÙƒØªÙ…Ù„\"),",
+          "corrected": "        SalesOrderStatus.Completed => Text(\"Completed\", \"مكتمل\"),"
+        },
+        {
+          "line": 389,
+          "original": "        SalesOrderStatus.Cancelled => Text(\"Cancelled\", \"Ù…Ù„ØºÙŠ\"),",
+          "corrected": "        SalesOrderStatus.Cancelled => Text(\"Cancelled\", \"ملغي\"),"
+        },
+        {
+          "line": 390,
+          "original": "        _ => Text(\"Draft\", \"Ù…Ø³ÙˆØ¯Ø©\")",
+          "corrected": "        _ => Text(\"Draft\", \"مسودة\")"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/SalesOrderList.razor",
+      "routes": [
+        "/Sales/Orders"
+      ],
+      "spans_repaired": 70,
+      "changes": [
+        {
+          "line": 25,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"ليس لديك الصلاحية لعرض هذه الصفحة\")</div>"
+        },
+        {
+          "line": 29,
+          "original": "    <PageHeader Title=\"@Text(\"Sales Orders\", \"Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹\")\"",
+          "corrected": "    <PageHeader Title=\"@Text(\"Sales Orders\", \"أوامر البيع\")\""
+        },
+        {
+          "line": 30,
+          "original": "                Subtitle=\"@Text(\"Browse converted sales orders and inspect fulfillment progress.\", \"Ø§Ø³ØªØ¹Ø±Ø§Ø¶ Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹ ÙˆÙ…ØªØ§Ø¨Ø¹Ø© Ø§Ù„ØªÙ†ÙÙŠØ°.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Browse converted sales orders and inspect fulfillment progress.\", \"استعراض أوامر البيع ومتابعة التنفيذ.\")\""
+        },
+        {
+          "line": 31,
+          "original": "                Overline=\"@Text(\"Sales\", \"Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "                Overline=\"@Text(\"Sales\", \"المبيعات\")\""
+        },
+        {
+          "line": 37,
+          "original": "                    <i class=\"bi bi-plus-lg\"></i> @Text(\"New Sales Order\", \"Ø£Ù…Ø± Ø¨ÙŠØ¹ Ø¬Ø¯ÙŠØ¯\")",
+          "corrected": "                    <i class=\"bi bi-plus-lg\"></i> @Text(\"New Sales Order\", \"أمر بيع جديد\")"
+        },
+        {
+          "line": 41,
+          "original": "                <i class=\"bi bi-graph-up-arrow\"></i> @Text(\"Dashboard\", \"Ù„ÙˆØ­Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")",
+          "corrected": "                <i class=\"bi bi-graph-up-arrow\"></i> @Text(\"Dashboard\", \"لوحة المبيعات\")"
+        },
+        {
+          "line": 46,
+          "original": "    <AppCard Title=\"@Text(\"Orders\", \"Ø§Ù„Ø£ÙˆØ§Ù…Ø±\")\">",
+          "corrected": "    <AppCard Title=\"@Text(\"Orders\", \"الأوامر\")\">"
+        },
+        {
+          "line": 53,
+          "original": "                    @Text(\"Clear filter\", \"Ù…Ø³Ø­ Ø§Ù„ØªØµÙÙŠØ©\")",
+          "corrected": "                    @Text(\"Clear filter\", \"مسح التصفية\")"
+        },
+        {
+          "line": 61,
+          "original": "                <div class=\"mt-2\">@Text(\"Loading sales orders...\", \"Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹...\")</div>",
+          "corrected": "                <div class=\"mt-2\">@Text(\"Loading sales orders...\", \"جاري تحميل أوامر البيع...\")</div>"
+        },
+        {
+          "line": 66,
+          "original": "            <EmptyState Title=\"@Text(\"No sales orders\", \"Ù„Ø§ ØªÙˆØ¬Ø¯ Ø£ÙˆØ§Ù…Ø± Ø¨ÙŠØ¹\")\"",
+          "corrected": "            <EmptyState Title=\"@Text(\"No sales orders\", \"لا توجد أوامر بيع\")\""
+        },
+        {
+          "line": 67,
+          "original": "                        Message=\"@Text(\"Accepted order intakes will appear here.\", \"Ø³ØªØ¸Ù‡Ø± Ø§Ù„Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù…Ù‚Ø¨ÙˆÙ„Ø© Ù‡Ù†Ø§.\")\"",
+          "corrected": "                        Message=\"@Text(\"Accepted order intakes will appear here.\", \"ستظهر الطلبات المقبولة هنا.\")\""
+        },
+        {
+          "line": 76,
+          "original": "                            <th>@Text(\"Number\", \"Ø§Ù„Ø±Ù‚Ù…\")</th>",
+          "corrected": "                            <th>@Text(\"Number\", \"الرقم\")</th>"
+        },
+        {
+          "line": 77,
+          "original": "                            <th>@Text(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</th>",
+          "corrected": "                            <th>@Text(\"Status\", \"الحالة\")</th>"
+        },
+        {
+          "line": 78,
+          "original": "                            <th>@Text(\"Order date\", \"ØªØ§Ø±ÙŠØ® Ø§Ù„Ø£Ù…Ø±\")</th>",
+          "corrected": "                            <th>@Text(\"Order date\", \"تاريخ الأمر\")</th>"
+        },
+        {
+          "line": 79,
+          "original": "                            <th>@Text(\"Subtotal\", \"Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹\")</th>",
+          "corrected": "                            <th>@Text(\"Subtotal\", \"المجموع\")</th>"
+        },
+        {
+          "line": 80,
+          "original": "                            <th>@Text(\"Tax\", \"Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©\")</th>",
+          "corrected": "                            <th>@Text(\"Tax\", \"الضريبة\")</th>"
+        },
+        {
+          "line": 81,
+          "original": "                            <th>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</th>",
+          "corrected": "                            <th>@Text(\"Total\", \"الإجمالي\")</th>"
+        },
+        {
+          "line": 82,
+          "original": "                            <th>@Text(\"Branch\", \"Ø§Ù„ÙØ±Ø¹\")</th>",
+          "corrected": "                            <th>@Text(\"Branch\", \"الفرع\")</th>"
+        },
+        {
+          "line": 109,
+          "original": "                <button class=\"btn btn-outline-secondary\" @onclick=\"PreviousPage\" disabled=\"@(pageIndex == 0 || isLoading)\">@Text(\"Previous\", \"Ø§Ù„Ø³Ø§Ø¨Ù‚\")</button>",
+          "corrected": "                <button class=\"btn btn-outline-secondary\" @onclick=\"PreviousPage\" disabled=\"@(pageIndex == 0 || isLoading)\">@Text(\"Previous\", \"السابق\")</button>"
+        },
+        {
+          "line": 110,
+          "original": "                <span class=\"text-muted\">@Text($\"Page {pageIndex + 1}\", $\"ØµÙØ­Ø© {pageIndex + 1}\")</span>",
+          "corrected": "                <span class=\"text-muted\">@Text($\"Page {pageIndex + 1}\", $\"صفحة {pageIndex + 1}\")</span>"
+        },
+        {
+          "line": 111,
+          "original": "                <button class=\"btn btn-outline-secondary\" @onclick=\"NextPage\" disabled=\"@(!HasNextPage || isLoading)\">@Text(\"Next\", \"Ø§Ù„ØªØ§Ù„ÙŠ\")</button>",
+          "corrected": "                <button class=\"btn btn-outline-secondary\" @onclick=\"NextPage\" disabled=\"@(!HasNextPage || isLoading)\">@Text(\"Next\", \"التالي\")</button>"
+        },
+        {
+          "line": 206,
+          "original": "            return Text(\"Filtered by customer\", \"Ù…ØµÙÙ‰ Ø­Ø³Ø¨ Ø§Ù„Ø¹Ù…ÙŠÙ„\");",
+          "corrected": "            return Text(\"Filtered by customer\", \"مصفى حسب العميل\");"
+        },
+        {
+          "line": 208,
+          "original": "            return Text(\"Filtered by SKU\", \"Ù…ØµÙÙ‰ Ø­Ø³Ø¨ ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ù†ØªØ¬\");",
+          "corrected": "            return Text(\"Filtered by SKU\", \"مصفى حسب وحدة المنتج\");"
+        },
+        {
+          "line": 210,
+          "original": "            return Text(\"Filtered by product\", \"Ù…ØµÙÙ‰ Ø­Ø³Ø¨ Ø§Ù„Ù…Ù†ØªØ¬\");",
+          "corrected": "            return Text(\"Filtered by product\", \"مصفى حسب المنتج\");"
+        },
+        {
+          "line": 211,
+          "original": "        return Text(\"Filtered\", \"Ù…ØµÙÙ‰\");",
+          "corrected": "        return Text(\"Filtered\", \"مصفى\");"
+        },
+        {
+          "line": 216,
+          "original": "        SalesOrderStatus.Confirmed => Text(\"Confirmed\", \"Ù…Ø¤ÙƒØ¯\"),",
+          "corrected": "        SalesOrderStatus.Confirmed => Text(\"Confirmed\", \"مؤكد\"),"
+        },
+        {
+          "line": 217,
+          "original": "        SalesOrderStatus.PartiallyReserved => Text(\"Partially reserved\", \"Ù…Ø­Ø¬ÙˆØ² Ø¬Ø²Ø¦ÙŠØ§\"),",
+          "corrected": "        SalesOrderStatus.PartiallyReserved => Text(\"Partially reserved\", \"محجوز جزئيا\"),"
+        },
+        {
+          "line": 218,
+          "original": "        SalesOrderStatus.Reserved => Text(\"Reserved\", \"Ù…Ø­Ø¬ÙˆØ²\"),",
+          "corrected": "        SalesOrderStatus.Reserved => Text(\"Reserved\", \"محجوز\"),"
+        },
+        {
+          "line": 219,
+          "original": "        SalesOrderStatus.PartiallyDelivered => Text(\"Partially delivered\", \"Ù…Ø³Ù„Ù… Ø¬Ø²Ø¦ÙŠØ§\"),",
+          "corrected": "        SalesOrderStatus.PartiallyDelivered => Text(\"Partially delivered\", \"مسلم جزئيا\"),"
+        },
+        {
+          "line": 220,
+          "original": "        SalesOrderStatus.Delivered => Text(\"Delivered\", \"Ù…Ø³Ù„Ù…\"),",
+          "corrected": "        SalesOrderStatus.Delivered => Text(\"Delivered\", \"مسلم\"),"
+        },
+        {
+          "line": 221,
+          "original": "        SalesOrderStatus.PartiallyInvoiced => Text(\"Partially invoiced\", \"Ù…ÙÙˆØªØ± Ø¬Ø²Ø¦ÙŠØ§\"),",
+          "corrected": "        SalesOrderStatus.PartiallyInvoiced => Text(\"Partially invoiced\", \"مفوتر جزئيا\"),"
+        },
+        {
+          "line": 222,
+          "original": "        SalesOrderStatus.Invoiced => Text(\"Invoiced\", \"Ù…ÙÙˆØªØ±\"),",
+          "corrected": "        SalesOrderStatus.Invoiced => Text(\"Invoiced\", \"مفوتر\"),"
+        },
+        {
+          "line": 223,
+          "original": "        SalesOrderStatus.Completed => Text(\"Completed\", \"Ù…ÙƒØªÙ…Ù„\"),",
+          "corrected": "        SalesOrderStatus.Completed => Text(\"Completed\", \"مكتمل\"),"
+        },
+        {
+          "line": 224,
+          "original": "        SalesOrderStatus.Cancelled => Text(\"Cancelled\", \"Ù…Ù„ØºÙŠ\"),",
+          "corrected": "        SalesOrderStatus.Cancelled => Text(\"Cancelled\", \"ملغي\"),"
+        },
+        {
+          "line": 225,
+          "original": "        _ => Text(\"Draft\", \"Ù…Ø³ÙˆØ¯Ø©\")",
+          "corrected": "        _ => Text(\"Draft\", \"مسودة\")"
+        },
+        {
+          "line": 240,
+          "original": "            return Text(\"Company\", \"Ø§Ù„Ø´Ø±ÙƒØ©\");",
+          "corrected": "            return Text(\"Company\", \"الشركة\");"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/SalesQuotationEdit.razor",
+      "routes": [
+        "/Sales/Quotations/Create",
+        "/Sales/Quotations/{Id:guid}"
+      ],
+      "spans_repaired": 132,
+      "changes": [
+        {
+          "line": 30,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permission to save quotations.\", \"Ù„ÙŠØ³Øª Ù„Ø¯ÙŠÙƒ ØµÙ„Ø§Ø­ÙŠØ© Ø­ÙØ¸ Ø¹Ø±ÙˆØ¶ Ø§Ù„Ø£Ø³Ø¹Ø§Ø±.\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permission to save quotations.\", \"ليست لديك صلاحية حفظ عروض الأسعار.\")</div>"
+        },
+        {
+          "line": 34,
+          "original": "    <PageHeader Title=\"@Text(IsEdit ? \"Edit Quotation\" : \"New Quotation\", IsEdit ? \"ØªØ¹Ø¯ÙŠÙ„ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±\" : \"Ø¹Ø±Ø¶ Ø³Ø¹Ø± Ø¬Ø¯ÙŠØ¯\")\"",
+          "corrected": "    <PageHeader Title=\"@Text(IsEdit ? \"Edit Quotation\" : \"New Quotation\", IsEdit ? \"تعديل عرض السعر\" : \"عرض سعر جديد\")\""
+        },
+        {
+          "line": 35,
+          "original": "                Subtitle=\"@Text(\"Create and maintain customer quotations before converting them to sales orders.\", \"Ø¥Ù†Ø´Ø§Ø¡ Ø¹Ø±ÙˆØ¶ Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆÙ…Ø±Ø§Ø¬Ø¹ØªÙ‡Ø§ Ù‚Ø¨Ù„ ØªØ­ÙˆÙŠÙ„Ù‡Ø§ Ø¥Ù„Ù‰ Ø£ÙˆØ§Ù…Ø± Ø¨ÙŠØ¹.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Create and maintain customer quotations before converting them to sales orders.\", \"إنشاء عروض أسعار العملاء ومراجعتها قبل تحويلها إلى أوامر بيع.\")\""
+        },
+        {
+          "line": 36,
+          "original": "                Overline=\"@Text(\"Sales\", \"Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "                Overline=\"@Text(\"Sales\", \"المبيعات\")\""
+        },
+        {
+          "line": 40,
+          "original": "                <i class=\"bi bi-arrow-left\"></i> @Text(\"Back\", \"Ø±Ø¬ÙˆØ¹\")",
+          "corrected": "                <i class=\"bi bi-arrow-left\"></i> @Text(\"Back\", \"رجوع\")"
+        },
+        {
+          "line": 49,
+          "original": "            <div class=\"mt-2\">@Text(\"Loading quotation form...\", \"Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ Ù†Ù…ÙˆØ°Ø¬ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±...\")</div>",
+          "corrected": "            <div class=\"mt-2\">@Text(\"Loading quotation form...\", \"جاري تحميل نموذج عرض السعر...\")</div>"
+        },
+        {
+          "line": 58,
+          "original": "                    <AppCard Title=\"@Text(\"Quotation Details\", \"ØªÙØ§ØµÙŠÙ„ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±\")\" CssClass=\"mb-3\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Quotation Details\", \"تفاصيل عرض السعر\")\" CssClass=\"mb-3\">"
+        },
+        {
+          "line": 61,
+          "original": "                                <label class=\"form-label\">@Text(\"Quotation number\", \"Ø±Ù‚Ù… Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Quotation number\", \"رقم عرض السعر\")</label>"
+        },
+        {
+          "line": 65,
+          "original": "                                <label class=\"form-label\">@Text(\"Quotation date\", \"ØªØ§Ø±ÙŠØ® Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Quotation date\", \"تاريخ عرض السعر\")</label>"
+        },
+        {
+          "line": 69,
+          "original": "                                <label class=\"form-label\">@Text(\"Valid until\", \"ØµØ§Ù„Ø­ Ø­ØªÙ‰\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Valid until\", \"صالح حتى\")</label>"
+        },
+        {
+          "line": 73,
+          "original": "                                <label class=\"form-label\">@Text(\"Customer\", \"Ø§Ù„Ø¹Ù…ÙŠÙ„\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Customer\", \"العميل\")</label>"
+        },
+        {
+          "line": 75,
+          "original": "                                    <option value=\"\">@Text(\"Select customer\", \"Ø§Ø®ØªØ± Ø§Ù„Ø¹Ù…ÙŠÙ„\")</option>",
+          "corrected": "                                    <option value=\"\">@Text(\"Select customer\", \"اختر العميل\")</option>"
+        },
+        {
+          "line": 83,
+          "original": "                                <label class=\"form-label\">@Text(\"Quotation template\", \"Ù‚Ø§Ù„Ø¨ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Quotation template\", \"قالب عرض السعر\")</label>"
+        },
+        {
+          "line": 85,
+          "original": "                                    <option value=\"\">@Text(\"Select quotation template\", \"Ø§Ø®ØªØ± Ù‚Ø§Ù„Ø¨ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±\")</option>",
+          "corrected": "                                    <option value=\"\">@Text(\"Select quotation template\", \"اختر قالب عرض السعر\")</option>"
+        },
+        {
+          "line": 93,
+          "original": "                                <label class=\"form-label\">@Text(\"Coupon code\", \"Ø±Ù…Ø² Ø§Ù„Ù‚Ø³ÙŠÙ…Ø©\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Coupon code\", \"رمز القسيمة\")</label>"
+        },
+        {
+          "line": 97,
+          "original": "                                <label class=\"form-label\">@Text(\"Notes\", \"Ù…Ù„Ø§Ø­Ø¸Ø§Øª\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Notes\", \"ملاحظات\")</label>"
+        },
+        {
+          "line": 101,
+          "original": "                                <label class=\"form-label\">@Text(\"Terms\", \"Ø§Ù„Ø´Ø±ÙˆØ·\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Terms\", \"الشروط\")</label>"
+        },
+        {
+          "line": 107,
+          "original": "                    <AppCard Title=\"@Text(\"Commercial Controls\", \"Ø§Ù„Ø¶ÙˆØ§Ø¨Ø· Ø§Ù„ØªØ¬Ø§Ø±ÙŠØ©\")\" CssClass=\"mb-3\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Commercial Controls\", \"الضوابط التجارية\")\" CssClass=\"mb-3\">"
+        },
+        {
+          "line": 110,
+          "original": "                                <label class=\"form-label\">@Text(\"Invoice address\", \"Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ÙØ§ØªÙˆØ±Ø©\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Invoice address\", \"عنوان الفاتورة\")</label>"
+        },
+        {
+          "line": 112,
+          "original": "                                    <option value=\"\">@Text(\"Default customer invoice address\", \"Ø¹Ù†ÙˆØ§Ù† ÙØ§ØªÙˆØ±Ø© Ø§Ù„Ø¹Ù…ÙŠÙ„ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ\")</option>",
+          "corrected": "                                    <option value=\"\">@Text(\"Default customer invoice address\", \"عنوان فاتورة العميل الافتراضي\")</option>"
+        },
+        {
+          "line": 120,
+          "original": "                                <label class=\"form-label\">@Text(\"Delivery address\", \"Ø¹Ù†ÙˆØ§Ù† Ø§Ù„ØªØ³Ù„ÙŠÙ…\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Delivery address\", \"عنوان التسليم\")</label>"
+        },
+        {
+          "line": 122,
+          "original": "                                    <option value=\"\">@Text(\"Default customer delivery address\", \"Ø¹Ù†ÙˆØ§Ù† ØªØ³Ù„ÙŠÙ… Ø§Ù„Ø¹Ù…ÙŠÙ„ Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ\")</option>",
+          "corrected": "                                    <option value=\"\">@Text(\"Default customer delivery address\", \"عنوان تسليم العميل الافتراضي\")</option>"
+        },
+        {
+          "line": 130,
+          "original": "                                <label class=\"form-label\">@Text(\"Down payment amount\", \"Ù…Ø¨Ù„Øº Ø§Ù„Ø¯ÙØ¹Ø© Ø§Ù„Ù…Ù‚Ø¯Ù…Ø©\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Down payment amount\", \"مبلغ الدفعة المقدمة\")</label>"
+        },
+        {
+          "line": 134,
+          "original": "                                <label class=\"form-label\">@Text(\"Down payment percent\", \"Ù†Ø³Ø¨Ø© Ø§Ù„Ø¯ÙØ¹Ø© Ø§Ù„Ù…Ù‚Ø¯Ù…Ø©\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Down payment percent\", \"نسبة الدفعة المقدمة\")</label>"
+        },
+        {
+          "line": 138,
+          "original": "                                <label class=\"form-label\">@Text(\"Quote requirements\", \"Ù…ØªØ·Ù„Ø¨Ø§Øª Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±\")</label>",
+          "corrected": "                                <label class=\"form-label\">@Text(\"Quote requirements\", \"متطلبات عرض السعر\")</label>"
+        },
+        {
+          "line": 142,
+          "original": "                                        <span class=\"form-check-label\">@Text(\"Signature\", \"Ø§Ù„ØªÙˆÙ‚ÙŠØ¹\")</span>",
+          "corrected": "                                        <span class=\"form-check-label\">@Text(\"Signature\", \"التوقيع\")</span>"
+        },
+        {
+          "line": 146,
+          "original": "                                        <span class=\"form-check-label\">@Text(\"Online payment\", \"Ø§Ù„Ø¯ÙØ¹ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ\")</span>",
+          "corrected": "                                        <span class=\"form-check-label\">@Text(\"Online payment\", \"الدفع الإلكتروني\")</span>"
+        },
+        {
+          "line": 150,
+          "original": "                                        <span class=\"form-check-label\">@Text(\"Pro-forma\", \"ÙØ§ØªÙˆØ±Ø© Ø´ÙƒÙ„ÙŠØ©\")</span>",
+          "corrected": "                                        <span class=\"form-check-label\">@Text(\"Pro-forma\", \"فاتورة شكلية\")</span>"
+        },
+        {
+          "line": 157,
+          "original": "                    <AppCard Title=\"@Text(\"Quotation Lines\", \"Ø¨Ù†ÙˆØ¯ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±\")\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Quotation Lines\", \"بنود عرض السعر\")\">"
+        },
+        {
+          "line": 160,
+          "original": "                                <i class=\"bi bi-plus-lg\"></i> @Text(\"Add line\", \"Ø¥Ø¶Ø§ÙØ© Ø¨Ù†Ø¯\")",
+          "corrected": "                                <i class=\"bi bi-plus-lg\"></i> @Text(\"Add line\", \"إضافة بند\")"
+        },
+        {
+          "line": 167,
+          "original": "                                        <th>@Text(\"SKU\", \"ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ù†ØªØ¬\")</th>",
+          "corrected": "                                        <th>@Text(\"SKU\", \"وحدة المنتج\")</th>"
+        },
+        {
+          "line": 168,
+          "original": "                                        <th>@Text(\"Qty\", \"Ø§Ù„ÙƒÙ…ÙŠØ©\")</th>",
+          "corrected": "                                        <th>@Text(\"Qty\", \"الكمية\")</th>"
+        },
+        {
+          "line": 169,
+          "original": "                                        <th>@Text(\"Unit price\", \"Ø³Ø¹Ø± Ø§Ù„ÙˆØ­Ø¯Ø©\")</th>",
+          "corrected": "                                        <th>@Text(\"Unit price\", \"سعر الوحدة\")</th>"
+        },
+        {
+          "line": 170,
+          "original": "                                        <th>@Text(\"Discount\", \"Ø§Ù„Ø®ØµÙ…\")</th>",
+          "corrected": "                                        <th>@Text(\"Discount\", \"الخصم\")</th>"
+        },
+        {
+          "line": 171,
+          "original": "                                        <th>@Text(\"Tax\", \"Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©\")</th>",
+          "corrected": "                                        <th>@Text(\"Tax\", \"الضريبة\")</th>"
+        },
+        {
+          "line": 172,
+          "original": "                                        <th>@Text(\"Optional\", \"Ø§Ø®ØªÙŠØ§Ø±ÙŠ\")</th>",
+          "corrected": "                                        <th>@Text(\"Optional\", \"اختياري\")</th>"
+        },
+        {
+          "line": 173,
+          "original": "                                        <th>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</th>",
+          "corrected": "                                        <th>@Text(\"Total\", \"الإجمالي\")</th>"
+        },
+        {
+          "line": 183,
+          "original": "                                                    <option value=\"\">@Text(\"Select SKU\", \"Ø§Ø®ØªØ± ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ù†ØªØ¬\")</option>",
+          "corrected": "                                                    <option value=\"\">@Text(\"Select SKU\", \"اختر وحدة المنتج\")</option>"
+        },
+        {
+          "line": 195,
+          "original": "                                                    <span class=\"erp-status-chip erp-status-chip-info mt-1\">@Text(\"Optional product\", \"Ù…Ù†ØªØ¬ Ø§Ø®ØªÙŠØ§Ø±ÙŠ\")</span>",
+          "corrected": "                                                    <span class=\"erp-status-chip erp-status-chip-info mt-1\">@Text(\"Optional product\", \"منتج اختياري\")</span>"
+        },
+        {
+          "line": 219,
+          "original": "                    <AppCard Title=\"@Text(\"Totals\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠØ§Øª\")\">",
+          "corrected": "                    <AppCard Title=\"@Text(\"Totals\", \"الإجماليات\")\">"
+        },
+        {
+          "line": 220,
+          "original": "                        <div class=\"summary-row\"><span>@Text(\"Subtotal\", \"Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹ Ø§Ù„ÙØ±Ø¹ÙŠ\")</span><strong>@Money(quotation.Subtotal)</strong></div>",
+          "corrected": "                        <div class=\"summary-row\"><span>@Text(\"Subtotal\", \"المجموع الفرعي\")</span><strong>@Money(quotation.Subtotal)</strong></div>"
+        },
+        {
+          "line": 221,
+          "original": "                        <div class=\"summary-row\"><span>@Text(\"Tax\", \"Ø§Ù„Ø¶Ø±ÙŠØ¨Ø©\")</span><strong>@Money(quotation.TaxAmount)</strong></div>",
+          "corrected": "                        <div class=\"summary-row\"><span>@Text(\"Tax\", \"الضريبة\")</span><strong>@Money(quotation.TaxAmount)</strong></div>"
+        },
+        {
+          "line": 222,
+          "original": "                        <div class=\"summary-row summary-total\"><span>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</span><strong>@Money(quotation.TotalAmount)</strong></div>",
+          "corrected": "                        <div class=\"summary-row summary-total\"><span>@Text(\"Total\", \"الإجمالي\")</span><strong>@Money(quotation.TotalAmount)</strong></div>"
+        },
+        {
+          "line": 224,
+          "original": "                            <i class=\"bi bi-save\"></i> @Text(\"Save Quotation\", \"Ø­ÙØ¸ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±\")",
+          "corrected": "                            <i class=\"bi bi-save\"></i> @Text(\"Save Quotation\", \"حفظ عرض السعر\")"
+        },
+        {
+          "line": 406,
+          "original": "            ToastService.ShowWarning(Text(\"Select a customer.\", \"Ø§Ø®ØªØ± Ø¹Ù…ÙŠÙ„Ø§.\"));",
+          "corrected": "            ToastService.ShowWarning(Text(\"Select a customer.\", \"اختر عميلا.\"));"
+        },
+        {
+          "line": 414,
+          "original": "            ToastService.ShowWarning(Text(\"Add at least one SKU line.\", \"Ø£Ø¶Ù Ø¨Ù†Ø¯ ÙˆØ­Ø¯Ø© Ù…Ù†ØªØ¬ ÙˆØ§Ø­Ø¯Ø§ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„.\"));",
+          "corrected": "            ToastService.ShowWarning(Text(\"Add at least one SKU line.\", \"أضف بند وحدة منتج واحدا على الأقل.\"));"
+        },
+        {
+          "line": 438,
+          "original": "            ToastService.ShowSuccess(Text(\"Quotation saved.\", \"ØªÙ… Ø­ÙØ¸ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±.\"));",
+          "corrected": "            ToastService.ShowSuccess(Text(\"Quotation saved.\", \"تم حفظ عرض السعر.\"));"
+        },
+        {
+          "line": 443,
+          "original": "            ToastService.ShowError(errorDetail ?? Text(\"Unable to save quotation.\", \"ØªØ¹Ø°Ø± Ø­ÙØ¸ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±.\"));",
+          "corrected": "            ToastService.ShowError(errorDetail ?? Text(\"Unable to save quotation.\", \"تعذر حفظ عرض السعر.\"));"
+        },
+        {
+          "line": 484,
+          "original": "            PartnerAddressType.Invoice => Text(\"Invoice\", \"ÙØ§ØªÙˆØ±Ø©\"),",
+          "corrected": "            PartnerAddressType.Invoice => Text(\"Invoice\", \"فاتورة\"),"
+        },
+        {
+          "line": 485,
+          "original": "            PartnerAddressType.Delivery => Text(\"Delivery\", \"ØªØ³Ù„ÙŠÙ…\"),",
+          "corrected": "            PartnerAddressType.Delivery => Text(\"Delivery\", \"تسليم\"),"
+        },
+        {
+          "line": 486,
+          "original": "            PartnerAddressType.Private => Text(\"Private\", \"Ø®Ø§Øµ\"),",
+          "corrected": "            PartnerAddressType.Private => Text(\"Private\", \"خاص\"),"
+        },
+        {
+          "line": 487,
+          "original": "            PartnerAddressType.Other => Text(\"Other\", \"Ø£Ø®Ø±Ù‰\"),",
+          "corrected": "            PartnerAddressType.Other => Text(\"Other\", \"أخرى\"),"
+        },
+        {
+          "line": 488,
+          "original": "            _ => Text(\"Contact\", \"Ø¬Ù‡Ø© Ø§ØªØµØ§Ù„\")",
+          "corrected": "            _ => Text(\"Contact\", \"جهة اتصال\")"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/SalesQuotationList.razor",
+      "routes": [
+        "/Sales/Quotations"
+      ],
+      "spans_repaired": 107,
+      "changes": [
+        {
+          "line": 20,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"ليس لديك الصلاحية لعرض هذه الصفحة\")</div>"
+        },
+        {
+          "line": 24,
+          "original": "    <PageHeader Title=\"@Text(\"Sales Quotations\", \"Ø¹Ø±ÙˆØ¶ Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "    <PageHeader Title=\"@Text(\"Sales Quotations\", \"عروض أسعار المبيعات\")\""
+        },
+        {
+          "line": 25,
+          "original": "                Subtitle=\"@Text(\"Track quotation status, conversion, and open quotation value.\", \"Ù…ØªØ§Ø¨Ø¹Ø© Ø­Ø§Ù„Ø© Ø¹Ø±ÙˆØ¶ Ø§Ù„Ø£Ø³Ø¹Ø§Ø± ÙˆØ§Ù„ØªØ­ÙˆÙŠÙ„ ÙˆØ§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ù…ÙØªÙˆØ­Ø©.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Track quotation status, conversion, and open quotation value.\", \"متابعة حالة عروض الأسعار والتحويل والقيمة المفتوحة.\")\""
+        },
+        {
+          "line": 26,
+          "original": "                Overline=\"@Text(\"Sales\", \"Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "                Overline=\"@Text(\"Sales\", \"المبيعات\")\""
+        },
+        {
+          "line": 32,
+          "original": "                    <i class=\"bi bi-plus-lg\"></i> @Text(\"New Quotation\", \"Ø¹Ø±Ø¶ Ø³Ø¹Ø± Ø¬Ø¯ÙŠØ¯\")",
+          "corrected": "                    <i class=\"bi bi-plus-lg\"></i> @Text(\"New Quotation\", \"عرض سعر جديد\")"
+        },
+        {
+          "line": 36,
+          "original": "                <i class=\"bi bi-list-check\"></i> @Text(\"Sales Orders\", \"Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ø¨ÙŠØ¹\")",
+          "corrected": "                <i class=\"bi bi-list-check\"></i> @Text(\"Sales Orders\", \"أوامر البيع\")"
+        },
+        {
+          "line": 41,
+          "original": "                    <i class=\"bi bi-clock-history\"></i> @Text(\"Expire overdue\", \"Ø¥Ù†Ù‡Ø§Ø¡ Ø§Ù„Ø¹Ø±ÙˆØ¶ Ø§Ù„Ù…ØªØ£Ø®Ø±Ø©\")",
+          "corrected": "                    <i class=\"bi bi-clock-history\"></i> @Text(\"Expire overdue\", \"إنهاء العروض المتأخرة\")"
+        },
+        {
+          "line": 47,
+          "original": "    <AppCard Title=\"@Text(\"Quotations\", \"Ø¹Ø±ÙˆØ¶ Ø§Ù„Ø£Ø³Ø¹Ø§Ø±\")\">",
+          "corrected": "    <AppCard Title=\"@Text(\"Quotations\", \"عروض الأسعار\")\">"
+        },
+        {
+          "line": 54,
+          "original": "                    @Text(\"Clear filter\", \"Ù…Ø³Ø­ Ø§Ù„ØªØµÙÙŠØ©\")",
+          "corrected": "                    @Text(\"Clear filter\", \"مسح التصفية\")"
+        },
+        {
+          "line": 64,
+          "original": "            <EmptyState Title=\"@Text(\"No quotations\", \"Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¹Ø±ÙˆØ¶ Ø£Ø³Ø¹Ø§Ø±\")\"",
+          "corrected": "            <EmptyState Title=\"@Text(\"No quotations\", \"لا توجد عروض أسعار\")\""
+        },
+        {
+          "line": 65,
+          "original": "                        Message=\"@Text(\"Created quotations will appear here.\", \"Ø³ØªØ¸Ù‡Ø± Ø¹Ø±ÙˆØ¶ Ø§Ù„Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ù…Ù†Ø´Ø£Ø© Ù‡Ù†Ø§.\")\"",
+          "corrected": "                        Message=\"@Text(\"Created quotations will appear here.\", \"ستظهر عروض الأسعار المنشأة هنا.\")\""
+        },
+        {
+          "line": 74,
+          "original": "                            <th>@Text(\"Number\", \"Ø§Ù„Ø±Ù‚Ù…\")</th>",
+          "corrected": "                            <th>@Text(\"Number\", \"الرقم\")</th>"
+        },
+        {
+          "line": 75,
+          "original": "                            <th>@Text(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</th>",
+          "corrected": "                            <th>@Text(\"Status\", \"الحالة\")</th>"
+        },
+        {
+          "line": 76,
+          "original": "                            <th>@Text(\"Date\", \"Ø§Ù„ØªØ§Ø±ÙŠØ®\")</th>",
+          "corrected": "                            <th>@Text(\"Date\", \"التاريخ\")</th>"
+        },
+        {
+          "line": 77,
+          "original": "                            <th>@Text(\"Valid until\", \"ØµØ§Ù„Ø­ Ø­ØªÙ‰\")</th>",
+          "corrected": "                            <th>@Text(\"Valid until\", \"صالح حتى\")</th>"
+        },
+        {
+          "line": 78,
+          "original": "                            <th>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</th>",
+          "corrected": "                            <th>@Text(\"Total\", \"الإجمالي\")</th>"
+        },
+        {
+          "line": 79,
+          "original": "                            <th>@Text(\"Controls\", \"Ø§Ù„Ø¶ÙˆØ§Ø¨Ø·\")</th>",
+          "corrected": "                            <th>@Text(\"Controls\", \"الضوابط\")</th>"
+        },
+        {
+          "line": 94,
+          "original": "                                        <span class=\"erp-status-chip erp-status-chip-danger ms-1\">@Text(\"Expired\", \"Ù…Ù†ØªÙ‡ÙŠ\")</span>",
+          "corrected": "                                        <span class=\"erp-status-chip erp-status-chip-danger ms-1\">@Text(\"Expired\", \"منتهي\")</span>"
+        },
+        {
+          "line": 102,
+          "original": "                                            <span class=\"erp-status-chip erp-status-chip-muted\">@Text(\"Signature\", \"Ø§Ù„ØªÙˆÙ‚ÙŠØ¹\")</span>",
+          "corrected": "                                            <span class=\"erp-status-chip erp-status-chip-muted\">@Text(\"Signature\", \"التوقيع\")</span>"
+        },
+        {
+          "line": 106,
+          "original": "                                            <span class=\"erp-status-chip erp-status-chip-primary\">@Text(\"Payment\", \"Ø§Ù„Ø¯ÙØ¹\")</span>",
+          "corrected": "                                            <span class=\"erp-status-chip erp-status-chip-primary\">@Text(\"Payment\", \"الدفع\")</span>"
+        },
+        {
+          "line": 110,
+          "original": "                                            <span class=\"erp-status-chip erp-status-chip-info\">@Text(\"Pro-forma\", \"ÙØ§ØªÙˆØ±Ø© Ø´ÙƒÙ„ÙŠØ©\")</span>",
+          "corrected": "                                            <span class=\"erp-status-chip erp-status-chip-info\">@Text(\"Pro-forma\", \"فاتورة شكلية\")</span>"
+        },
+        {
+          "line": 114,
+          "original": "                                            <span class=\"erp-status-chip erp-status-chip-warning\">@Text(\"Down payment\", \"Ø¯ÙØ¹Ø© Ù…Ù‚Ø¯Ù…Ø©\")</span>",
+          "corrected": "                                            <span class=\"erp-status-chip erp-status-chip-warning\">@Text(\"Down payment\", \"دفعة مقدمة\")</span>"
+        },
+        {
+          "line": 118,
+          "original": "                                            <span class=\"erp-status-chip erp-status-chip-muted\">@Text(\"Optional lines\", \"Ø¨Ù†ÙˆØ¯ Ø§Ø®ØªÙŠØ§Ø±ÙŠØ©\")</span>",
+          "corrected": "                                            <span class=\"erp-status-chip erp-status-chip-muted\">@Text(\"Optional lines\", \"بنود اختيارية\")</span>"
+        },
+        {
+          "line": 126,
+          "original": "                                            <i class=\"bi bi-pencil\"></i> @Text(\"Edit\", \"ØªØ¹Ø¯ÙŠÙ„\")",
+          "corrected": "                                            <i class=\"bi bi-pencil\"></i> @Text(\"Edit\", \"تعديل\")"
+        },
+        {
+          "line": 132,
+          "original": "                                            <i class=\"bi bi-envelope\"></i> @Text(\"Send\", \"Ø¥Ø±Ø³Ø§Ù„\")",
+          "corrected": "                                            <i class=\"bi bi-envelope\"></i> @Text(\"Send\", \"إرسال\")"
+        },
+        {
+          "line": 136,
+          "original": "                                        <i class=\"bi bi-printer\"></i> @Text(\"Print\", \"Ø·Ø¨Ø§Ø¹Ø©\")",
+          "corrected": "                                        <i class=\"bi bi-printer\"></i> @Text(\"Print\", \"طباعة\")"
+        },
+        {
+          "line": 141,
+          "original": "                                            <i class=\"bi bi-arrow-right-circle\"></i> @Text(\"Convert\", \"ØªØ­ÙˆÙŠÙ„\")",
+          "corrected": "                                            <i class=\"bi bi-arrow-right-circle\"></i> @Text(\"Convert\", \"تحويل\")"
+        },
+        {
+          "line": 204,
+          "original": "            return Text(\"Filtered by customer\", \"Ù…ØµÙÙ‰ Ø­Ø³Ø¨ Ø§Ù„Ø¹Ù…ÙŠÙ„\");",
+          "corrected": "            return Text(\"Filtered by customer\", \"مصفى حسب العميل\");"
+        },
+        {
+          "line": 206,
+          "original": "            return Text(\"Filtered by SKU\", \"Ù…ØµÙÙ‰ Ø­Ø³Ø¨ ÙˆØ­Ø¯Ø© Ø§Ù„Ù…Ù†ØªØ¬\");",
+          "corrected": "            return Text(\"Filtered by SKU\", \"مصفى حسب وحدة المنتج\");"
+        },
+        {
+          "line": 208,
+          "original": "            return Text(\"Filtered by product\", \"Ù…ØµÙÙ‰ Ø­Ø³Ø¨ Ø§Ù„Ù…Ù†ØªØ¬\");",
+          "corrected": "            return Text(\"Filtered by product\", \"مصفى حسب المنتج\");"
+        },
+        {
+          "line": 209,
+          "original": "        return Text(\"Filtered\", \"Ù…ØµÙÙ‰\");",
+          "corrected": "        return Text(\"Filtered\", \"مصفى\");"
+        },
+        {
+          "line": 217,
+          "original": "            ToastService.ShowSuccess(Text(\"Quotation updated.\", \"ØªÙ… ØªØ­Ø¯ÙŠØ« Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±.\"));",
+          "corrected": "            ToastService.ShowSuccess(Text(\"Quotation updated.\", \"تم تحديث عرض السعر.\"));"
+        },
+        {
+          "line": 218,
+          "original": "            ToastService.ShowSuccess(Text(\"Marked sent. Email delivery depends on the configured mail infrastructure.\", \"ØªÙ… ØªØ¹ÙŠÙŠÙ†Ù‡ ÙƒÙ…Ø±Ø³Ù„. ÙŠØ¹ØªÙ…Ø¯ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø¹Ù„Ù‰ Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª Ø§Ù„Ø¨Ù†ÙŠØ© Ø§Ù„Ø¨Ø±ÙŠØ¯ÙŠØ©.\"));",
+          "corrected": "            ToastService.ShowSuccess(Text(\"Marked sent. Email delivery depends on the configured mail infrastructure.\", \"تم تعيينه كمرسل. يعتمد إرسال البريد على إعدادات البنية البريدية.\"));"
+        },
+        {
+          "line": 223,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Action failed.\", \"ØªØ¹Ø°Ø± ØªÙ†ÙÙŠØ° Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Action failed.\", \"تعذر تنفيذ الإجراء.\"));"
+        },
+        {
+          "line": 233,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to convert quotation.\", \"ØªØ¹Ø°Ø± ØªØ­ÙˆÙŠÙ„ Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¹Ø±.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to convert quotation.\", \"تعذر تحويل عرض السعر.\"));"
+        },
+        {
+          "line": 243,
+          "original": "            ToastService.ShowSuccess(Text($\"{count} overdue quotation(s) expired.\", $\"ØªÙ… Ø¥Ù†Ù‡Ø§Ø¡ {count} Ø¹Ø±Ø¶ Ø³Ø¹Ø± Ù…ØªØ£Ø®Ø±.\"));",
+          "corrected": "            ToastService.ShowSuccess(Text($\"{count} overdue quotation(s) expired.\", $\"تم إنهاء {count} عرض سعر متأخر.\"));"
+        },
+        {
+          "line": 248,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Could not expire overdue quotations.\", \"ØªØ¹Ø°Ø± Ø¥Ù†Ù‡Ø§Ø¡ Ø¹Ø±ÙˆØ¶ Ø§Ù„Ø£Ø³Ø¹Ø§Ø± Ø§Ù„Ù…ØªØ£Ø®Ø±Ø©.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Could not expire overdue quotations.\", \"تعذر إنهاء عروض الأسعار المتأخرة.\"));"
+        },
+        {
+          "line": 263,
+          "original": "        SalesQuotationStatus.Draft => Text(\"Draft\", \"Ù…Ø³ÙˆØ¯Ø©\"),",
+          "corrected": "        SalesQuotationStatus.Draft => Text(\"Draft\", \"مسودة\"),"
+        },
+        {
+          "line": 264,
+          "original": "        SalesQuotationStatus.Sent => Text(\"Sent\", \"Ù…Ø±Ø³Ù„\"),",
+          "corrected": "        SalesQuotationStatus.Sent => Text(\"Sent\", \"مرسل\"),"
+        },
+        {
+          "line": 265,
+          "original": "        SalesQuotationStatus.Accepted => Text(\"Accepted\", \"Ù…Ù‚Ø¨ÙˆÙ„\"),",
+          "corrected": "        SalesQuotationStatus.Accepted => Text(\"Accepted\", \"مقبول\"),"
+        },
+        {
+          "line": 266,
+          "original": "        SalesQuotationStatus.Rejected => Text(\"Rejected\", \"Ù…Ø±ÙÙˆØ¶\"),",
+          "corrected": "        SalesQuotationStatus.Rejected => Text(\"Rejected\", \"مرفوض\"),"
+        },
+        {
+          "line": 267,
+          "original": "        SalesQuotationStatus.Expired => Text(\"Expired\", \"Ù…Ù†ØªÙ‡ÙŠ\"),",
+          "corrected": "        SalesQuotationStatus.Expired => Text(\"Expired\", \"منتهي\"),"
+        },
+        {
+          "line": 268,
+          "original": "        SalesQuotationStatus.ConvertedToSalesOrder => Text(\"Converted\", \"Ù…Ø­ÙˆÙ„\"),",
+          "corrected": "        SalesQuotationStatus.ConvertedToSalesOrder => Text(\"Converted\", \"محول\"),"
+        },
+        {
+          "line": 269,
+          "original": "        SalesQuotationStatus.Cancelled => Text(\"Cancelled\", \"Ù…Ù„ØºÙ‰\"),",
+          "corrected": "        SalesQuotationStatus.Cancelled => Text(\"Cancelled\", \"ملغى\"),"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/SalesOrder/Pages/SalesReturnList.razor",
+      "routes": [
+        "/Sales/Returns"
+      ],
+      "spans_repaired": 44,
+      "changes": [
+        {
+          "line": 20,
+          "original": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ© Ù„Ø¹Ø±Ø¶ Ù‡Ø°Ù‡ Ø§Ù„ØµÙØ­Ø©\")</div>",
+          "corrected": "        <div class=\"alert alert-warning\">@Text(\"You don't have permissions to view this page\", \"ليس لديك الصلاحية لعرض هذه الصفحة\")</div>"
+        },
+        {
+          "line": 24,
+          "original": "    <PageHeader Title=\"@Text(\"Sales Returns\", \"Ù…Ø±ØªØ¬Ø¹Ø§Øª Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "    <PageHeader Title=\"@Text(\"Sales Returns\", \"مرتجعات المبيعات\")\""
+        },
+        {
+          "line": 25,
+          "original": "                Subtitle=\"@Text(\"Post customer returns and optional credit notes.\", \"ØªØ±Ø­ÙŠÙ„ Ù…Ø±ØªØ¬Ø¹Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆØ¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„Ø¯Ø§Ø¦Ù† Ø¹Ù†Ø¯ Ø§Ù„Ø­Ø§Ø¬Ø©.\")\"",
+          "corrected": "                Subtitle=\"@Text(\"Post customer returns and optional credit notes.\", \"ترحيل مرتجعات العملاء وإشعارات الدائن عند الحاجة.\")\""
+        },
+        {
+          "line": 26,
+          "original": "                Overline=\"@Text(\"Sales\", \"Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª\")\"",
+          "corrected": "                Overline=\"@Text(\"Sales\", \"المبيعات\")\""
+        },
+        {
+          "line": 32,
+          "original": "                    <i class=\"bi bi-plus-lg\"></i> @Text(\"Register Return\", \"ØªØ³Ø¬ÙŠÙ„ Ù…Ø±ØªØ¬Ø¹\")",
+          "corrected": "                    <i class=\"bi bi-plus-lg\"></i> @Text(\"Register Return\", \"تسجيل مرتجع\")"
+        },
+        {
+          "line": 38,
+          "original": "    <AppCard Title=\"@Text(\"Returns\", \"Ø§Ù„Ù…Ø±ØªØ¬Ø¹Ø§Øª\")\">",
+          "corrected": "    <AppCard Title=\"@Text(\"Returns\", \"المرتجعات\")\">"
+        },
+        {
+          "line": 45,
+          "original": "            <EmptyState Title=\"@Text(\"No returns\", \"Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…Ø±ØªØ¬Ø¹Ø§Øª\")\"",
+          "corrected": "            <EmptyState Title=\"@Text(\"No returns\", \"لا توجد مرتجعات\")\""
+        },
+        {
+          "line": 46,
+          "original": "                        Message=\"@Text(\"Customer returns will appear here.\", \"Ø³ØªØ¸Ù‡Ø± Ù…Ø±ØªØ¬Ø¹Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ Ù‡Ù†Ø§.\")\"",
+          "corrected": "                        Message=\"@Text(\"Customer returns will appear here.\", \"ستظهر مرتجعات العملاء هنا.\")\""
+        },
+        {
+          "line": 55,
+          "original": "                            <th>@Text(\"Number\", \"Ø§Ù„Ø±Ù‚Ù…\")</th>",
+          "corrected": "                            <th>@Text(\"Number\", \"الرقم\")</th>"
+        },
+        {
+          "line": 56,
+          "original": "                            <th>@Text(\"Status\", \"Ø§Ù„Ø­Ø§Ù„Ø©\")</th>",
+          "corrected": "                            <th>@Text(\"Status\", \"الحالة\")</th>"
+        },
+        {
+          "line": 57,
+          "original": "                            <th>@Text(\"Date\", \"Ø§Ù„ØªØ§Ø±ÙŠØ®\")</th>",
+          "corrected": "                            <th>@Text(\"Date\", \"التاريخ\")</th>"
+        },
+        {
+          "line": 58,
+          "original": "                            <th>@Text(\"Credit note\", \"Ø¥Ø´Ø¹Ø§Ø± Ø¯Ø§Ø¦Ù†\")</th>",
+          "corrected": "                            <th>@Text(\"Credit note\", \"إشعار دائن\")</th>"
+        },
+        {
+          "line": 59,
+          "original": "                            <th>@Text(\"Total\", \"Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ\")</th>",
+          "corrected": "                            <th>@Text(\"Total\", \"الإجمالي\")</th>"
+        },
+        {
+          "line": 70,
+          "original": "                                <td>@(salesReturn.CreateCreditNote ? Text(\"Yes\", \"Ù†Ø¹Ù…\") : Text(\"No\", \"Ù„Ø§\"))</td>",
+          "corrected": "                                <td>@(salesReturn.CreateCreditNote ? Text(\"Yes\", \"نعم\") : Text(\"No\", \"لا\"))</td>"
+        },
+        {
+          "line": 76,
+          "original": "                                            <i class=\"bi bi-check2-circle\"></i> @Text(\"Post\", \"ØªØ±Ø­ÙŠÙ„\")",
+          "corrected": "                                            <i class=\"bi bi-check2-circle\"></i> @Text(\"Post\", \"ترحيل\")"
+        },
+        {
+          "line": 140,
+          "original": "            ToastService.ShowSuccess(Text(\"Return posted.\", \"ØªÙ… ØªØ±Ø­ÙŠÙ„ Ø§Ù„Ù…Ø±ØªØ¬Ø¹.\"));",
+          "corrected": "            ToastService.ShowSuccess(Text(\"Return posted.\", \"تم ترحيل المرتجع.\"));"
+        },
+        {
+          "line": 145,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to post return.\", \"ØªØ¹Ø°Ø± ØªØ±Ø­ÙŠÙ„ Ø§Ù„Ù…Ø±ØªØ¬Ø¹.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to post return.\", \"تعذر ترحيل المرتجع.\"));"
+        },
+        {
+          "line": 155,
+          "original": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to cancel return.\", \"ØªØ¹Ø°Ø± Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ù…Ø±ØªØ¬Ø¹.\"));",
+          "corrected": "            ToastService.ShowError(result.Error?.Detail ?? Text(\"Unable to cancel return.\", \"تعذر إلغاء المرتجع.\"));"
+        }
+      ]
+    },
+    {
+      "file": "UI/AlAfkarERP/AlAfkarERP.Shared/Pages/Features/TaskManagement/Pages/TaskList.razor",
+      "routes": [
+        "/TaskManagement/List"
+      ],
+      "spans_repaired": 1,
+      "changes": [
+        {
+          "line": 34,
+          "original": "    <AppCard Title=\"@Text(\"Tasks\", \"Ø§Ù„Ù…Ù‡Ø§Ù…\")\" CssClass=\"mb-3\">",
+          "corrected": "    <AppCard Title=\"@Text(\"Tasks\", \"المهام\")\" CssClass=\"mb-3\">"
+        }
+      ]
+    }
+  ]
+}
