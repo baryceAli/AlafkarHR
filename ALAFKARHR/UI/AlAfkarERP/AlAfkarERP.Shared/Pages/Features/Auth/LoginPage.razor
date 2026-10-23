@@ -81,7 +81,7 @@
                         <p>@Text("Enter your credentials to access your ERP dashboard.", "أدخل بيانات الدخول للوصول إلى لوحة تحكم ERP.")</p>
                     </div>
 
-                    <EditForm Model="@login" OnValidSubmit="HandleLogin" class="login-form">
+                    <EditForm Model="@login" OnValidSubmit="HandleLogin" FormName="lgn" class="login-form">
                         <DataAnnotationsValidator />
 
                         <div class="form-field">

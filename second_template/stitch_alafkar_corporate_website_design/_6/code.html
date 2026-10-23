@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-tertiary-container":"#817eb4","tertiary-container":"#181445","on-surface":"#0b1c30","inverse-primary":"#bec6e0","tertiary-fixed":"#e3dfff","primary-fixed":"#dae2fd","outline-variant":"#c6c6cd","on-primary":"#ffffff","amber-vibrant":"#EA580C","on-primary-container":"#7c839b","secondary-fixed":"#ffddb8","amber-soft":"#FEF3C7","secondary-fixed-dim":"#ffb95f","surface-subtle":"#F8FAFC","background":"#f8f9ff","navy-deep":"#0A0D17","inverse-on-surface":"#eaf1ff","navy-card":"#161E31","surface-container-highest":"#d3e4fe","error-container":"#ffdad6","on-error-container":"#93000a","on-tertiary-fixed":"#181445","primary-container":"#131b2e","surface-tint":"#565e74","on-tertiary":"#ffffff","surface-container":"#e5eeff","tertiary-fixed-dim":"#c4c1fb","secondary":"#855300","on-tertiary-fixed-variant":"#444173","on-secondary":"#ffffff","on-surface-variant":"#45464d","surface-bright":"#f8f9ff","primary-fixed-dim":"#bec6e0","surface-container-high":"#dce9ff","on-primary-fixed-variant":"#3f465c","on-primary-fixed":"#131b2e","amber-deep":"#D97706","on-secondary-container":"#684000","tertiary":"#000000","surface-cream":"#FFFDF9","surface-container-low":"#eff4ff","on-secondary-fixed":"#2a1700","surface-container-lowest":"#ffffff","on-background":"#0b1c30","surface-variant":"#d3e4fe","surface-dim":"#cbdbf5","error":"#ba1a1a","on-secondary-fixed-variant":"#653e00","inverse-surface":"#213145","secondary-container":"#fea619","outline":"#76777d","on-error":"#ffffff","surface":"#f8f9ff","border-warm":"#F3E8D6","primary":"#000000","border-dark-subtle":"#2E384D"},"borderRadius":{"DEFAULT":"1rem","lg":"2rem","xl":"3rem","full":"9999px"},"spacing":{"space-lg":"1.5rem","gutter-sm":"1rem","space-md":"1rem","gutter":"1.5rem","margin-md":"3rem","space-sm":"0.5rem","space-xs":"0.25rem","margin-lg":"5rem","gutter-lg":"2rem","space-2xl":"3.5xl","margin":"1.5rem","space-xl":"2.25rem"},"fontFamily":{"label-sm":["IBM Plex Sans"],"body-sm":["IBM Plex Sans"],"headline-lg":["IBM Plex Sans"],"headline-sm":["IBM Plex Sans"],"label-lg":["IBM Plex Sans"],"headline-xl-mobile":["IBM Plex Sans"],"body-md":["IBM Plex Sans"],"label-md":["IBM Plex Sans"],"headline-md":["IBM Plex Sans"],"body-xl":["IBM Plex Sans"],"counter-display":["IBM Plex Sans"],"display-hero":["IBM Plex Sans"],"display-hero-mobile":["IBM Plex Sans"],"headline-xl":["IBM Plex Sans"]},"fontSize":{"label-sm":["0.75rem",{"lineHeight":"1.125rem","fontWeight":"500"}],"body-sm":["0.875rem",{"lineHeight":"1.5rem","fontWeight":"400"}],"headline-lg":["1.75rem",{"lineHeight":"2.5rem","fontWeight":"600"}],"headline-sm":["1.125rem",{"lineHeight":"1.75rem","fontWeight":"600"}],"label-lg":["0.9375rem",{"lineHeight":"1.375rem","fontWeight":"600"}],"headline-xl-mobile":["1.75rem",{"lineHeight":"2.5rem","fontWeight":"700"}],"body-md":["1rem",{"lineHeight":"1.75rem","fontWeight":"400"}],"label-md":["0.8125rem",{"lineHeight":"1.25rem","fontWeight":"500"}],"headline-md":["1.375rem",{"lineHeight":"2rem","fontWeight":"600"}],"body-xl":["1.125rem",{"lineHeight":"2rem","fontWeight":"400"}],"counter-display":["2.25rem",{"lineHeight":"2.5rem","fontWeight":"700"}],"display-hero":["3.5rem",{"lineHeight":"4.5rem","letterSpacing":"-0.02em","fontWeight":"700"}],"display-hero-mobile":["2.25rem",{"lineHeight":"3rem","letterSpacing":"-0.01em","fontWeight":"700"}],"headline-xl":["2.5rem",{"lineHeight":"3.25rem","letterSpacing":"-0.015em","fontWeight":"700"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 inset-x-0 z-50 px-gutter-sm lg:px-margin pt-space-sm"><div class="h-20 max-w-7xl mx-auto px-gutter bg-surface-container-lowest/85 backdrop-blur-xl rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.04)] flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3WKF9W5wRu6vz7F9hkrZyew0ROLayOlN6c5Dkz0LeiKXCRuEWykPs11fY2bP86jiXrUC-x8Qam-dPwdvYGYgLQ0HzHFyMnD4Nobrlf-klpSirPeWYUzmWiwXcf32CUgB4QbP_1MKXiaDxqfejBJ7GwxqA48DlWMkOogNSkIfq9PqidPePRIg48lFeGDY9jxEeiXHrXCBj3U_EZZ6spCw4kc9YUYwoTTdJCXumVR_9bPrpwJPRnKSA"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-tight font-bold">الأفكار</span><span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline">للحلول المؤسسية</span></div></div><nav class="hidden xl:flex items-center gap-space-xs p-1" data-active-classes="bg-secondary-container text-on-surface font-semibold rounded-full"><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="home" href="#">الرئيسية</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="about-us" href="#">من نحن</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="our-services" href="#">خدماتنا</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="our-projects" href="#">مشاريعنا وإنجازاتنا</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="our-partners" href="#">شركاؤنا</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="contact-us" href="#">تواصل معنا</a></nav><div class="flex items-center gap-space-sm"><div class="flex items-center bg-surface-container-low rounded-full p-1"><button class="px-space-sm py-1 rounded-full font-label-sm text-label-sm bg-surface-container-lowest text-on-surface font-semibold shadow-sm" type="button">عربي</button><button class="px-space-sm py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" type="button">EN</button></div><a class="hidden md:inline-flex items-center gap-space-xs px-space-lg py-space-sm bg-amber-deep text-on-primary rounded-full font-label-md text-label-md hover:bg-amber-vibrant shadow-[0_10px_25px_-3px_rgba(245,158,11,0.35)] transition-all" data-path="consultation-request" href="#"><span>طلب استشارة</span><span class="material-symbols-outlined text-base">cloud_upload</span></a></div></div></header><main class="w-full pt-20 bg-surface"><div class="flex flex-col w-full">
+<!-- SECTION 1: Strategic Hero & Institutional Framing -->
+<section class="relative w-full overflow-hidden bg-surface-cream pb-space-2xl">
+<!-- Ambient Warm Modernist Glow Elements -->
+<div class="absolute -top-24 right-1/4 w-96 h-96 bg-amber-soft/40 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute top-1/2 left-0 w-80 h-80 bg-surface-container-highest/60 rounded-full blur-3xl pointer-events-none"></div>
+<div class="relative max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg pt-space-xl">
+<!-- Breadcrumb Navigation -->
+<nav class="flex items-center gap-space-xs mb-space-lg text-outline font-label-md text-label-md">
+<a class="hover:text-amber-deep transition-colors flex items-center gap-1" data-path="home" href="#">
+<span class="material-symbols-outlined text-sm">home</span>
+          الرئيسية
+        </a>
+<span class="material-symbols-outlined text-xs">arrow_left</span>
+<span class="text-on-surface font-semibold text-amber-deep">تواصل معنا</span>
+</nav>
+<!-- Institutional Sub-Tag / Badge -->
+<div class="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm mb-space-md shadow-sm">
+<span class="w-2 h-2 rounded-full bg-amber-vibrant animate-pulse"></span>
+<span class="font-semibold">قنوات تواصل مفتوحة | استشارات تمكّن مستقبلك المؤسسي</span>
+</div>
+<!-- Main Heading & Strategic Narrative Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-lg items-end mb-space-2xl">
+<div class="lg:col-span-8 space-y-space-md">
+<h1 class="font-display-hero text-display-hero-mobile md:text-display-hero text-on-surface leading-tight font-bold">
+            يسعدنا الاستماع لتطلعاتكم: <br/>
+<span class="bg-gradient-to-l from-amber-vibrant via-amber-deep to-on-surface bg-clip-text text-transparent">
+              لنبداً معاً رحلة التمكين وصناعة الأثر المستدام
+            </span>
+</h1>
+<p class="font-body-xl text-body-xl text-on-surface-variant max-w-3xl leading-relaxed">
+            نرحب بالتواصل والتعاون المؤسسي مع الوزارات، الهيئات والبرامج الحكومية، كبرى شركات القطاع الخاص، والمؤسسات الأهلية لتبادل الرؤى وتطوير أحدث حلول الحوكمة، التطوير الاستراتيجي، والتحول المؤسسي الرشيد بالمملكة العربية السعودية.
+          </p>
+</div>
+<!-- Metric Speed-of-Response Highlights Box -->
+<div class="lg:col-span-4 bg-surface-container-lowest p-space-lg rounded-3xl shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.05)] space-y-space-md">
+<div class="flex items-center gap-space-sm pb-space-sm border-b border-border-warm">
+<span class="material-symbols-outlined text-amber-vibrant text-2xl">bolt</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-bold">مؤشرات الاستجابة والجاهزية</span>
+</div>
+<div class="space-y-space-sm">
+<div class="flex items-center justify-between p-space-sm rounded-2xl bg-surface-subtle">
+<span class="font-label-md text-label-md text-on-surface font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-deep text-lg">timer</span>
+                زمن مراجعة الطلب الأولي
+              </span>
+<span class="font-label-md text-label-md text-amber-vibrant font-bold">خلال 24 ساعة</span>
+</div>
+<div class="flex items-center justify-between p-space-sm rounded-2xl bg-surface-subtle">
+<span class="font-label-md text-label-md text-on-surface font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-deep text-lg">video_camera_front</span>
+                جلسة تشخيصية تمهيدية
+              </span>
+<span class="font-label-md text-label-md text-on-surface font-bold">مجانية ومباشرة</span>
+</div>
+<div class="flex items-center justify-between p-space-sm rounded-2xl bg-surface-subtle">
+<span class="font-label-md text-label-md text-on-surface font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-deep text-lg">domain_verification</span>
+                التواجد الاستشاري
+              </span>
+<span class="font-label-md text-label-md text-on-surface font-bold">الرياض وكافة المناطق</span>
+</div>
+</div>
+</div>
+</div>
+<!-- SECTION 2: 4 Direct Contact Strategic Channels -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<!-- Card 1: Headquarters -->
+<div class="p-space-lg rounded-3xl bg-surface-container-lowest shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
+<div class="space-y-space-md">
+<div class="w-12 h-12 rounded-2xl bg-amber-soft text-amber-deep flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-2xl">location_city</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-amber-deep font-semibold">المقر الرئيسي العام</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mt-1">برج الأعمال الاستشاري</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2 leading-relaxed">
+                الرياض، المملكة العربية السعودية - طريق الملك فهد، حي العليا، الدور 14.
+              </p>
+</div>
+</div>
+<div class="pt-space-md mt-space-md bg-surface-subtle -mx-space-lg -mb-space-lg p-space-md rounded-b-3xl">
+<div class="flex items-center justify-between text-outline">
+<span class="font-label-sm text-label-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">schedule</span>
+                الأحد - الخميس
+              </span>
+<span class="font-label-sm text-label-sm text-on-surface font-semibold">8:00 ص - 4:00 م</span>
+</div>
+</div>
+</div>
+<!-- Card 2: Phone & WhatsApp -->
+<div class="p-space-lg rounded-3xl bg-surface-container-lowest shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
+<div class="space-y-space-md">
+<div class="w-12 h-12 rounded-2xl bg-amber-soft text-amber-deep flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-2xl">support_agent</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-amber-deep font-semibold">المحادثة والاتصال المؤسسي</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mt-1">الرقم الموحد المعتمد</h3>
+<div class="mt-2 space-y-1">
+<a class="font-body-md text-body-md text-on-surface font-semibold hover:text-amber-deep transition-colors block text-right" dir="ltr" href="tel:+966110000000">
+                  +966 11 000 0000
+                </a>
+<p class="font-body-sm text-body-sm text-on-surface-variant">خط استشاري مخصص للجهات والمؤسسات</p>
+</div>
+</div>
+</div>
+<div class="pt-space-md mt-space-md">
+<a class="w-full py-2.5 px-space-md rounded-full bg-surface-container-high hover:bg-amber-soft text-on-surface hover:text-amber-deep font-label-md text-label-md flex items-center justify-center gap-2 transition-colors" href="https://wa.me/966110000000" target="_blank">
+<span class="material-symbols-outlined text-base">chat</span>
+<span>محادثة واتساب سريعة</span>
+</a>
+</div>
+</div>
+<!-- Card 3: Dedicated Inboxes -->
+<div class="p-space-lg rounded-3xl bg-surface-container-lowest shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
+<div class="space-y-space-md">
+<div class="w-12 h-12 rounded-2xl bg-amber-soft text-amber-deep flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-2xl">mark_email_unread</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-amber-deep font-semibold">المراسلات الموجهة</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mt-1">عناوين البريد المتخصصة</h3>
+<ul class="font-body-sm text-body-sm space-y-2 mt-2">
+<li class="flex items-center justify-between">
+<span class="text-on-surface-variant">الاستشارات:</span>
+<a class="font-semibold text-amber-deep hover:underline" href="mailto:partner@alafkar.sa">partner@alafkar.sa</a>
+</li>
+<li class="flex items-center justify-between">
+<span class="text-on-surface-variant">العامة:</span>
+<a class="font-semibold text-on-surface hover:underline" href="mailto:info@alafkar.sa">info@alafkar.sa</a>
+</li>
+<li class="flex items-center justify-between">
+<span class="text-on-surface-variant">الخبراء:</span>
+<a class="font-semibold text-on-surface hover:underline" href="mailto:careers@alafkar.sa">careers@alafkar.sa</a>
+</li>
+</ul>
+</div>
+</div>
+<div class="pt-space-md mt-space-md">
+<span class="inline-flex items-center gap-1 font-label-sm text-label-sm text-outline">
+<span class="material-symbols-outlined text-sm text-amber-deep">verified_user</span>
+              تشفير كامل للوثائق الواردة
+            </span>
+</div>
+</div>
+<!-- Card 4: Digital Hub & Knowledge Networks -->
+<div class="p-space-lg rounded-3xl bg-surface-container-lowest shadow-[0px_4px_20px_-2px_rgba(15,23,42,0.04)] hover:shadow-xl transition-all duration-300 flex flex-col justify-between group">
+<div class="space-y-space-md">
+<div class="w-12 h-12 rounded-2xl bg-amber-soft text-amber-deep flex items-center justify-center group-hover:scale-105 transition-transform">
+<span class="material-symbols-outlined text-2xl">hub</span>
+</div>
+<div>
+<span class="font-label-sm text-label-sm text-amber-deep font-semibold">المنظومة الرقمية والمعرفة</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mt-1">المنصات المؤسسية</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-2 leading-relaxed">
+                تابع أحدث التقارير الاستراتيجية، أوراق العمل الوطنية، والتحليلات المتخصصة.
+              </p>
+</div>
+</div>
+<div class="pt-space-md mt-space-md flex items-center gap-space-xs">
+<a class="flex-1 py-2 rounded-xl bg-surface-container-low hover:bg-navy-deep hover:text-on-primary text-center font-label-sm text-label-sm font-semibold transition-colors" href="#" title="LinkedIn">
+              LinkedIn
+            </a>
+<a class="flex-1 py-2 rounded-xl bg-surface-container-low hover:bg-navy-deep hover:text-on-primary text-center font-label-sm text-label-sm font-semibold transition-colors" href="#" title="X Platform">
+              منصة X
+            </a>
+<a class="w-10 py-2 rounded-xl bg-surface-container-low hover:bg-amber-deep hover:text-on-primary flex items-center justify-center transition-colors" href="#" title="YouTube">
+<span class="material-symbols-outlined text-sm">smart_display</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 3: The Flagship Interactive Booking & Strategic Consultation Form -->
+<section class="w-full bg-surface py-space-2xl">
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-lg">
+<!-- Right Column (8 Cols): The Institutional Form Module -->
+<div class="lg:col-span-8 bg-surface-container-lowest p-gutter md:p-space-xl rounded-3xl shadow-[0px_12px_32px_-4px_rgba(15,23,42,0.06)]">
+<div class="space-y-space-xs mb-space-xl">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm font-bold">
+<span class="material-symbols-outlined text-sm">edit_calendar</span>
+              استمارة التدخل الاستشاري
+            </div>
+<h2 class="font-headline-xl text-headline-lg md:text-headline-xl text-on-surface font-bold">
+              طلب استشارة وتحديد جلسة استكشافية
+            </h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+              يرجى تعبئة البيانات المؤسسية بدقة لتمكين المستشار المختص من إعداد التحليل المبدئي ومحاور اللقاء.
+            </p>
+</div>
+<form class="space-y-space-lg" id="consultationForm" onsubmit="event.preventDefault(); handleFormSubmit();">
+<!-- Row 1: Full Name & Official Role -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right" for="fullName">
+                  الاسم الكامل واللقب المهني <span class="text-amber-vibrant">*</span>
+</label>
+<input class="w-full py-3.5 px-4 rounded-2xl bg-surface-subtle text-on-surface placeholder:text-outline-variant font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-amber-deep/20 focus:border-amber-deep transition-all" id="fullName" placeholder="مثال: د. عبدالله التميمي" required="" type="text"/>
+</div>
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right" for="jobTitle">
+                  المسمى أو المنصب الوظيفي <span class="text-amber-vibrant">*</span>
+</label>
+<input class="w-full py-3.5 px-4 rounded-2xl bg-surface-subtle text-on-surface placeholder:text-outline-variant font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-amber-deep/20 focus:border-amber-deep transition-all" id="jobTitle" placeholder="مثال: وكيل الوزارة / الرئيس التنفيذي / مدير التخطيط" required="" type="text"/>
+</div>
+</div>
+<!-- Row 2: Organization Name & Sector Type -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right" for="organizationName">
+                  اسم المنظمة / الجهة الرسمية <span class="text-amber-vibrant">*</span>
+</label>
+<input class="w-full py-3.5 px-4 rounded-2xl bg-surface-subtle text-on-surface placeholder:text-outline-variant font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-amber-deep/20 focus:border-amber-deep transition-all" id="organizationName" placeholder="وزارة / هيئة مستقلة / شركة مساهمة / مؤسسة أهلية" required="" type="text"/>
+</div>
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right" for="sectorType">
+                  تصنيف القطاع المؤسسي <span class="text-amber-vibrant">*</span>
+</label>
+<div class="relative">
+<select class="w-full py-3.5 px-4 appearance-none rounded-2xl bg-surface-subtle text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-amber-deep/20 transition-all cursor-pointer" id="sectorType" required="">
+<option disabled="" selected="" value="">حدد طبيعة القطاع...</option>
+<option value="gov">قطاع حكومي مركزي / وزارة</option>
+<option value="semi-gov">هيئة عامة / برنامج رؤية 2030</option>
+<option value="private-enterprise">شركات كبرى ومجموعات قابضة</option>
+<option value="non-profit">قطاع غير ربحي / مؤسسات مجتمعية</option>
+<option value="awqaf">كيانات وأوقاف تنموية</option>
+<option value="other">جهات ومؤسسات أخرى</option>
+</select>
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
+</div>
+</div>
+</div>
+<!-- Row 3: Official Email & Phone Number -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right" for="workEmail">
+                  البريد الإلكتروني المؤسسي (Work Email) <span class="text-amber-vibrant">*</span>
+</label>
+<input class="w-full py-3.5 px-4 rounded-2xl bg-surface-subtle text-on-surface placeholder:text-outline-variant font-body-md text-body-md text-left focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-amber-deep/20 transition-all" dir="ltr" id="workEmail" placeholder="name@organization.gov.sa" required="" type="email"/>
+</div>
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right" for="phoneNumber">
+                  رقم الجوال المعتمد للتواصل المؤسسي <span class="text-amber-vibrant">*</span>
+</label>
+<div class="relative flex items-center" dir="ltr">
+<span class="absolute left-3 text-outline font-label-md text-label-md font-semibold select-none">+966</span>
+<input class="w-full py-3.5 pl-16 pr-4 rounded-2xl bg-surface-subtle text-on-surface placeholder:text-outline-variant font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-amber-deep/20 transition-all" id="phoneNumber" placeholder="50 000 0000" required="" type="tel"/>
+</div>
+</div>
+</div>
+<!-- Row 4: Consulting Scope / Practice Selection -->
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right" for="consultingDomain">
+                مجال الاستشارة أو التدخل الاستراتيجي المطلوب <span class="text-amber-vibrant">*</span>
+</label>
+<div class="relative">
+<select class="w-full py-3.5 px-4 appearance-none rounded-2xl bg-surface-subtle text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-amber-deep/20 transition-all cursor-pointer" id="consultingDomain" required="">
+<option disabled="" selected="" value="">اختر التخصص الاستشاري ذو الأولوية...</option>
+<option value="org-dev">التطوير التنظيمي، الأدلة الإجرائية، وإعادة الهيكلة</option>
+<option value="strat-planning">التخطيط الاستراتيجي وصياغة مؤشرات الأداء (KPIs)</option>
+<option value="innovation">إدارة الابتكار والتحول المؤسسي المستدام</option>
+<option value="leadership">بناء القدرات الوطنية وبرامج إعداد القيادات التنفيذية</option>
+<option value="pmo">تأسيس وحوكمة مكاتب إدارة المشاريع المؤسسية (EPMO)</option>
+<option value="sroi">قياس الأثر الاجتماعي والعائد على الاستثمار التنموي (SROI)</option>
+<option value="knowledge-partner">شراكة معرفية واستشارية شاملة طويلة المدى</option>
+</select>
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">expand_more</span>
+</div>
+</div>
+<!-- Row 5: Challenge Narrative / Scope Brief -->
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right" for="challengeScope">
+                ملخص التحدي المؤسسي أو مستهدفات المشروع <span class="text-amber-vibrant">*</span>
+</label>
+<textarea class="w-full py-3.5 px-4 rounded-2xl bg-surface-subtle text-on-surface placeholder:text-outline-variant font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-amber-deep/20 transition-all" id="challengeScope" placeholder="صف بإيجاز: الوضع الراهن للمنظمة، أبرز الأولويات المستهدفة، والإطار الزمني المتوقع للبدء في المشروع..." required="" rows="4"></textarea>
+</div>
+<!-- Row 6: Meeting Preference & Attachment -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-space-md">
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right" for="meetingPref">
+                  صيغة الجلسة الاستكشافية المفضلة
+                </label>
+<div class="relative">
+<select class="w-full py-3.5 px-4 appearance-none rounded-2xl bg-surface-subtle text-on-surface font-body-md text-body-md focus:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-amber-deep/20 transition-all cursor-pointer" id="meetingPref">
+<option value="teams">لقاء افتراضي تفاعلي (Microsoft Teams)</option>
+<option value="zoom">لقاء افتراضي (Zoom)</option>
+<option value="in-person-hq">زيارة مقر شركة الأفكار (الرياض - حي العليا)</option>
+<option value="in-person-client">زيارة وفد استشاري لمقر منظمتكم الموقرة</option>
+</select>
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-base">calendar_month</span>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="block font-label-md text-label-md text-on-surface font-semibold text-right">
+                  إرفاق كراسة الشروط / نطاق العمل (RFP) <span class="text-outline text-label-sm">(اختياري)</span>
+</label>
+<label class="flex items-center justify-between py-3 px-4 rounded-2xl bg-surface-subtle hover:bg-surface-container-high transition-colors cursor-pointer group">
+<span class="font-label-sm text-label-sm text-outline-variant group-hover:text-on-surface truncate" id="fileNameDisplay">
+                    رفع ملف (PDF, DOCX حتى 25 ميجابايت)
+                  </span>
+<span class="material-symbols-outlined text-amber-deep text-xl">upload_file</span>
+<input class="hidden" id="fileAttachment" onchange="document.getElementById('fileNameDisplay').textContent = this.files[0] ? this.files[0].name : 'رفع ملف';" type="file"/>
+</label>
+</div>
+</div>
+<!-- Strict NDA & Confidentiality Statement -->
+<div class="p-space-md rounded-2xl bg-surface-container-low flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-amber-deep text-xl mt-0.5">verified_user</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+<strong class="text-on-surface font-semibold">ميثاق السرية المؤسسية:</strong> تلتزم شركة الأفكار الناجحة بأعلى معايير حماية البيانات وسرية المعلومات الاستراتيجية والحكومية وفق سياسات عدم الإفصاح المعتمدة (NDA).
+              </p>
+</div>
+<!-- Submit Button & Action Feedback -->
+<div class="pt-space-sm">
+<button class="w-full py-4 px-space-xl rounded-full bg-gradient-to-l from-amber-vibrant to-amber-deep hover:from-amber-deep hover:to-amber-vibrant text-on-primary font-label-lg text-label-lg shadow-[0px_10px_25px_-3px_rgba(245,158,11,0.35)] hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-space-xs group" id="submitBtn" type="submit">
+<span>إرسال طلب الاستشارة وحجز الجلسة التمهيدية</span>
+<span class="material-symbols-outlined text-xl group-hover:-translate-x-1 transition-transform">rocket_launch</span>
+</button>
+</div>
+<!-- Feedback Alert (Hidden by default) -->
+<div class="hidden p-space-md rounded-2xl bg-amber-soft text-amber-deep text-center font-headline-sm text-headline-sm font-semibold" id="formSuccessAlert">
+<span class="material-symbols-outlined inline-block align-middle mr-1">check_circle</span>
+              تم استلام طلبكم بنجاح! سيتواصل معكم المستشار التنفيذي المختص خلال 24 ساعة عمل.
+            </div>
+</form>
+</div>
+<!-- Left Column (4 Cols): Strategic Process Roadmap & Trust Anchor -->
+<div class="lg:col-span-4 space-y-space-lg">
+<!-- Dark Modernist Card: Our Response Roadmap -->
+<div class="p-space-xl rounded-3xl bg-navy-card text-inverse-on-surface shadow-[0px_20px_40px_-10px_rgba(15,23,42,0.4)] relative overflow-hidden">
+<div class="absolute -top-12 -left-12 w-44 h-44 bg-amber-vibrant/20 rounded-full blur-2xl"></div>
+<div class="relative space-y-space-md">
+<div class="flex items-center justify-between pb-space-sm border-b border-border-dark-subtle">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-deep text-2xl">alt_route</span>
+<h3 class="font-headline-sm text-headline-sm text-on-primary font-bold">خارطة طريق الاستجابة</h3>
+</div>
+<span class="px-2.5 py-1 rounded-full bg-navy-deep text-amber-soft font-label-sm text-label-sm">منهجية دقيقة</span>
+</div>
+<p class="font-body-sm text-body-sm text-outline-variant">
+                مسار موحد ومدروس يضمن سرعة التجاوب والتحليل الأعمق لتحديات منظمتكم:
+              </p>
+<!-- Methodology Steps -->
+<div class="space-y-space-md pt-space-xs">
+<!-- Step 01 -->
+<div class="flex items-start gap-space-sm">
+<div class="w-10 h-10 rounded-2xl bg-navy-deep flex items-center justify-center text-amber-deep font-counter-display text-base font-bold shrink-0">
+                    01
+                  </div>
+<div>
+<h4 class="font-label-lg text-label-lg text-on-primary font-bold">الاستلام والتصنيف التخصصي</h4>
+<p class="font-body-sm text-body-sm text-outline-variant mt-0.5">تحويل الطلب للمستشار القطاعي المعني خلال ساعتين من الإرسال.</p>
+</div>
+</div>
+<!-- Step 02 -->
+<div class="flex items-start gap-space-sm">
+<div class="w-10 h-10 rounded-2xl bg-navy-deep flex items-center justify-center text-amber-deep font-counter-display text-base font-bold shrink-0">
+                    02
+                  </div>
+<div>
+<h4 class="font-label-lg text-label-lg text-on-primary font-bold">التشخيص المبدئي وتأطير التحدي</h4>
+<p class="font-body-sm text-body-sm text-outline-variant mt-0.5">مراجعة المعطيات ومقارنتها بأفضل الممارسات الوطنية والدولية.</p>
+</div>
+</div>
+<!-- Step 03 -->
+<div class="flex items-start gap-space-sm">
+<div class="w-10 h-10 rounded-2xl bg-amber-vibrant/20 text-amber-soft flex items-center justify-center font-counter-display text-base font-bold shrink-0">
+                    03
+                  </div>
+<div>
+<h4 class="font-label-lg text-label-lg text-amber-soft font-bold">الجلسة الاستكشافية المعمقة</h4>
+<p class="font-body-sm text-body-sm text-outline-variant mt-0.5">حوار استراتيجي (45 دقيقة) مع فريق القيادة لتحديد مخرجات التحول.</p>
+</div>
+</div>
+<!-- Step 04 -->
+<div class="flex items-start gap-space-sm">
+<div class="w-10 h-10 rounded-2xl bg-navy-deep flex items-center justify-center text-amber-deep font-counter-display text-base font-bold shrink-0">
+                    04
+                  </div>
+<div>
+<h4 class="font-label-lg text-label-lg text-on-primary font-bold">تقديم العرض الفني ونطاق العمل</h4>
+<p class="font-body-sm text-body-sm text-outline-variant mt-0.5">تسليم مقترح متكامل مدعوم بالجدول الزمني ومؤشرات النجاح المرصودة.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Card: Download Profile & Portfolio -->
+<div class="p-space-lg rounded-3xl bg-surface-container-low shadow-sm space-y-space-md">
+<div class="flex items-center gap-space-sm">
+<div class="w-10 h-10 rounded-xl bg-amber-soft text-amber-deep flex items-center justify-center">
+<span class="material-symbols-outlined">description</span>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-on-surface font-bold">الملف التعريفي للشركة</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">نسخة 2025 الشاملة (PDF - 18 MB)</p>
+</div>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              تعرّف على منهجياتنا المعتمدة، سجل إنجازاتنا في التحول المؤسسي، وشهادات شركائنا في القطاعين الحكومي والخاص.
+            </p>
+<a class="w-full py-3 px-space-md rounded-full bg-surface-container-lowest hover:bg-surface-container-high text-on-surface font-label-md text-label-md font-semibold flex items-center justify-center gap-2 shadow-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-amber-deep text-lg">download</span>
+<span>تحميل الملف التعريفي وسجل الإنجازات</span>
+</a>
+</div>
+<!-- Testimonial / Institutional Trust Snippet -->
+<div class="p-space-lg rounded-3xl bg-surface-container-lowest shadow-sm space-y-space-sm">
+<div class="flex items-center gap-1 text-amber-deep">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">star</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface italic leading-relaxed">
+              "تميز فريق شركة الأفكار بالعمق المعرفي والمرونة العالية في تفصيل الحلول وفق متطلبات منظومتنا الدقيقة، مما اختصر الكثير من الجهد في مرحلة التطوير الاستراتيجي."
+            </p>
+<div class="pt-space-xs text-outline font-label-sm text-label-sm">
+              — قيادة تنفيذية في إحدى الهيئات الوطنية الشريكة
+            </div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4: National Headquarters & Kingdom-Wide Footprint -->
+<section class="w-full bg-surface-cream py-space-2xl">
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md mb-space-xl">
+<div class="space-y-space-xs">
+<div class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-sm">map</span>
+            التغطية الجغرافية والحضور الميداني
+          </div>
+<h2 class="font-headline-xl text-headline-lg md:text-headline-xl text-on-surface font-bold">
+            مكاتبنا وشبكة الحضور الميداني بالمملكة
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-2xl">
+            انطلاقاً من مقرنا الرئيسي في قلب العاصمة الرياض، يقدم خبراؤنا الاستشاريون خدماتهم الميدانية لكافة مناطق وإمارات المملكة.
+          </p>
+</div>
+<div class="flex items-center gap-space-sm shrink-0">
+<a class="px-space-md py-2.5 rounded-full bg-surface-container-lowest text-on-surface hover:text-amber-deep font-label-md text-label-md font-semibold flex items-center gap-2 shadow-sm transition-all" href="https://maps.google.com" target="_blank">
+<span class="material-symbols-outlined text-amber-deep text-lg">near_me</span>
+<span>فتح في خرائط Google</span>
+</a>
+</div>
+</div>
+<!-- Map & Regional Branch Hubs Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-lg items-stretch">
+<!-- Visual Map Frame (7 cols) -->
+<div class="lg:col-span-7 bg-surface-container-lowest rounded-3xl overflow-hidden shadow-sm flex flex-col justify-between">
+<!-- Static/Dynamic Map Visualization Container -->
+<div class="w-full h-80 md:h-96 bg-cover bg-center relative" data-location="King Fahd Road, Riyadh, Saudi Arabia" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuB3Dwy2ykkcndRj7T0EipjsPthz-dVBBiFsJAuPPqTegj8VYfM1XMsFO89YrsP7omKZZBbv9OYPXfUHk6WuG-rVsDGBRnTnuMop6W0ujwlUuU4eSjKRRf-EPcUdljsIdnpXRJD0PAkJTz25NqMCAdsjjPz9_oawV3wIgrEFz5ymtyWbsidR5jX0244S7aX-myj6uwVa7KgjOd3BWOzJM8SVsve91C3CcBvSb67YWPxr12xsDBTlk-M7')">
+<!-- Map Overlay Pin Badge -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-navy-card text-on-primary py-2 px-4 rounded-full shadow-2xl flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-amber-vibrant animate-ping"></span>
+<span class="font-label-md text-label-md font-bold">المقر الرئيسي - برج الرياض الاستشاري</span>
+</div>
+<!-- Visual Legend Pill -->
+<div class="absolute bottom-4 right-4 bg-surface-container-lowest/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-on-surface font-label-sm text-label-sm shadow-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-amber-deep text-base">domain</span>
+<span>طريق الملك فهد، حي العليا</span>
+</div>
+</div>
+<!-- Quick Access Bar Below Map -->
+<div class="p-space-lg bg-surface-container-lowest flex flex-wrap items-center justify-between gap-space-md">
+<div>
+<span class="font-label-sm text-label-sm text-outline">إحداثيات الوصول السريع:</span>
+<div class="font-body-sm text-body-sm text-on-surface font-semibold" dir="ltr">24.7136° N, 46.6753° E</div>
+</div>
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm text-on-surface-variant">مواقف مخصصة لوفود الشركاء متوفرة</span>
+<span class="material-symbols-outlined text-amber-deep text-base">local_parking</span>
+</div>
+</div>
+</div>
+<!-- Regional Coordination Points (5 cols) -->
+<div class="lg:col-span-5 flex flex-col justify-between gap-space-md">
+<!-- Riyadh HQ Details Card -->
+<div class="p-space-lg rounded-3xl bg-surface-container-lowest shadow-sm space-y-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-amber-soft text-amber-deep font-bold">المنطقة الوسطى</span>
+<span class="font-label-sm text-label-sm text-outline">المقر الرئيس</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">مكتب الرياض - القيادة والعمليات</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              يضم قطاعات الاستشارات الكبرى، تصميم استراتيجيات التحول، وفرق إدارة البرامج والمبادرات.
+            </p>
+</div>
+<!-- Western Region Hub -->
+<div class="p-space-lg rounded-3xl bg-surface-container-lowest shadow-sm space-y-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface font-bold">المنطقة الغربية</span>
+<span class="font-label-sm text-label-sm text-outline">تمثيل استشاري ميداني</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">جدة ومكة المكرمة</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              مكتب ارتباط مخصص لإسناد مشاريع القطاع السياحي، منظومة الحج والعمرة، والجهات غير الربحية والأوقاف.
+            </p>
+</div>
+<!-- Eastern Region Hub -->
+<div class="p-space-lg rounded-3xl bg-surface-container-lowest shadow-sm space-y-space-xs">
+<div class="flex items-center justify-between">
+<span class="font-label-sm text-label-sm px-2.5 py-0.5 rounded-full bg-surface-container-high text-on-surface font-bold">المنطقة الشرقية</span>
+<span class="font-label-sm text-label-sm text-outline">تمثيل استشاري ميداني</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">الخبر والدمام</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              تنسيق المشاريع الاستراتيجية لقطاعات الصناعة، الطاقة، والحوكمة في كبرى الشركات الوطنية والعائلية.
+            </p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 5: Institutional FAQ (Accordion Interactions) -->
+<section class="w-full bg-surface py-space-2xl">
+<div class="max-w-4xl mx-auto px-gutter-sm lg:px-margin">
+<div class="text-center space-y-space-xs mb-space-xl">
+<div class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-sm">quiz</span>
+          الأسئلة الشائعة
+        </div>
+<h2 class="font-headline-xl text-headline-lg md:text-headline-xl text-on-surface font-bold">
+          كل ما تود معرفته حول التعاقد والتواصل الاستشاري
+        </h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+          إجابات واضحة على الاستفسارات المتكررة من مسؤولي المشتريات والتخطيط الاستراتيجي.
+        </p>
+</div>
+<!-- FAQ Accordion List -->
+<div class="space-y-space-md" id="faqAccordion">
+<!-- Item 1 -->
+<div class="rounded-3xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<button class="w-full p-space-lg text-right flex items-center justify-between gap-space-sm font-headline-sm text-headline-sm text-on-surface font-semibold" onclick="toggleFaq(this)" type="button">
+<span class="flex items-center gap-3">
+<span class="w-8 h-8 rounded-full bg-amber-soft text-amber-deep flex items-center justify-center font-counter-display text-sm">1</span>
+              هل تقدم «الأفكار الناجحة» جلسات استكشافية أولية مجانية؟
+            </span>
+<span class="material-symbols-outlined text-amber-deep transition-transform duration-300">expand_more</span>
+</button>
+<div class="faq-content hidden px-space-lg pb-space-lg text-on-surface-variant font-body-md text-body-md leading-relaxed border-t border-surface-container-low pt-space-sm">
+            نعم، نوفر جلسة تشخيصية واستكشافية أولية (مدتها تتراوح بين 45 إلى 60 دقيقة) بدون أي التزام مالي. تهدف الجلسة إلى الاستماع المباشر لتحديات قيادة المنظمة، استعراض السياق المؤسسي، وتحديد ما إذا كانت متطلباتكم تتوافق مع خبراتنا وحلولنا التخصصية.
+          </div>
+</div>
+<!-- Item 2 -->
+<div class="rounded-3xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<button class="w-full p-space-lg text-right flex items-center justify-between gap-space-sm font-headline-sm text-headline-sm text-on-surface font-semibold" onclick="toggleFaq(this)" type="button">
+<span class="flex items-center gap-3">
+<span class="w-8 h-8 rounded-full bg-amber-soft text-amber-deep flex items-center justify-center font-counter-display text-sm">2</span>
+              كيف يتم توقيع اتفاقيات الحفاظ على سرية المعلومات (NDA)؟
+            </span>
+<span class="material-symbols-outlined text-amber-deep transition-transform duration-300">expand_more</span>
+</button>
+<div class="faq-content hidden px-space-lg pb-space-lg text-on-surface-variant font-body-md text-body-md leading-relaxed border-t border-surface-container-low pt-space-sm">
+            نعتمد نماذج قياسية متوافقة مع الأنظمة السعودية لحماية البيانات، كما نرحب بمراجعة وتوقيع اتفاقيات عدم الإفصاح (NDA) الصادرة مباشرة من جهتكم الموقرة قبل مشاركة أي مستندات أو عقد اجتماعات تفصيلية حول المشروعات الحساسة.
+          </div>
+</div>
+<!-- Item 3 -->
+<div class="rounded-3xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<button class="w-full p-space-lg text-right flex items-center justify-between gap-space-sm font-headline-sm text-headline-sm text-on-surface font-semibold" onclick="toggleFaq(this)" type="button">
+<span class="flex items-center gap-3">
+<span class="w-8 h-8 rounded-full bg-amber-soft text-amber-deep flex items-center justify-center font-counter-display text-sm">3</span>
+              هل تقدمون استشارات للجهات الواقعة خارج مدينة الرياض؟
+            </span>
+<span class="material-symbols-outlined text-amber-deep transition-transform duration-300">expand_more</span>
+</button>
+<div class="faq-content hidden px-space-lg pb-space-lg text-on-surface-variant font-body-md text-body-md leading-relaxed border-t border-surface-container-low pt-space-sm">
+            بكل تأكيد. تمتلك الشركة نموذج عمل هجين يجمع بين العمل الاستشاري الميداني في مقر العميل عبر زيارات وورش عمل دورية مكثفة، والإشراف المؤسسي المستمر عبر المنصات الرقمية وفرق العمل المشتركة في كافة مناطق المملكة.
+          </div>
+</div>
+<!-- Item 4 -->
+<div class="rounded-3xl bg-surface-container-lowest shadow-sm overflow-hidden">
+<button class="w-full p-space-lg text-right flex items-center justify-between gap-space-sm font-headline-sm text-headline-sm text-on-surface font-semibold" onclick="toggleFaq(this)" type="button">
+<span class="flex items-center gap-3">
+<span class="w-8 h-8 rounded-full bg-amber-soft text-amber-deep flex items-center justify-center font-counter-display text-sm">4</span>
+              ما هي الآلية لدعوة الشركة في منافسات منصة اعتماد والمشتريات الحكومية؟
+            </span>
+<span class="material-symbols-outlined text-amber-deep transition-transform duration-300">expand_more</span>
+</button>
+<div class="faq-content hidden px-space-lg pb-space-lg text-on-surface-variant font-body-md text-body-md leading-relaxed border-t border-surface-container-low pt-space-sm">
+            شركة الأفكار الناجحة مسجلة ومؤهلة رسمياً على بوابة «اعتماد» الحكومية وكافة منصات الشراء المعتمدة (مثل سابك، أرامكو، والشركات الوطنية الكبرى). يمكن إرسال دعوات المنافسات المحدودة أو المباشرة عبر البريد المعتمد: tenders@alafkar.sa مصحوبة برقم المنافسة.
+          </div>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 6: Quick Support Final Institutional Banner -->
+<section class="w-full px-gutter-sm lg:px-margin-lg py-space-xl">
+<div class="max-w-7xl mx-auto rounded-3xl bg-navy-card p-gutter lg:p-space-xl relative overflow-hidden text-inverse-on-surface shadow-[0px_20px_40px_-10px_rgba(15,23,42,0.5)]">
+<!-- Ambient Visual Background Elements -->
+<div class="absolute -right-16 -bottom-16 w-80 h-80 bg-amber-vibrant/20 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute left-10 top-0 w-64 h-64 bg-surface-container-high/10 rounded-full blur-2xl pointer-events-none"></div>
+<div class="relative flex flex-col lg:flex-row lg:items-center justify-between gap-space-lg">
+<div class="space-y-space-xs max-w-2xl">
+<div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-navy-deep text-amber-soft font-label-sm text-label-sm font-semibold">
+<span class="material-symbols-outlined text-amber-deep text-sm">handshake</span>
+            جاهزون لصناعة التحول معك
+          </div>
+<h3 class="font-headline-xl text-headline-lg md:text-headline-xl text-on-primary font-bold">
+            هل تحتاج إلى مشورة عاجلة أو إسناد استشاري فوري؟
+          </h3>
+<p class="font-body-md text-body-md text-outline-variant leading-relaxed">
+            تحدث مباشرة مع مستشارينا المعتمدين لمناقشة التحديات التنظيمية أو التخطيط لمشاريع التحول الوطني.
+          </p>
+</div>
+<div class="flex flex-col sm:flex-row items-center gap-space-sm shrink-0">
+<a class="w-full sm:w-auto px-space-lg py-3.5 rounded-full bg-surface-container-lowest hover:bg-surface-cream text-on-surface font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-sm transition-all" href="tel:+966110000000">
+<span class="material-symbols-outlined text-amber-deep text-lg">call</span>
+<span>الاتصال المباشر</span>
+</a>
+<a class="w-full sm:w-auto px-space-lg py-3.5 rounded-full bg-gradient-to-l from-amber-vibrant to-amber-deep hover:from-amber-deep hover:to-amber-vibrant text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-[0px_10px_25px_-3px_rgba(245,158,11,0.35)] transition-all" href="#consultationForm">
+<span>حجز الجلسة التمهيدية</span>
+<span class="material-symbols-outlined text-lg">arrow_upward</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+<!-- Interactive Logic for FAQ Accordion and Form Feedback -->
+<script>
+    function toggleFaq(button) {
+      const content = button.nextElementSibling;
+      const icon = button.querySelector('.material-symbols-outlined');
+      const isHidden = content.classList.contains('hidden');
+      
+      // Close all accordion panels in the container
+      document.querySelectorAll('#faqAccordion .faq-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('#faqAccordion button .material-symbols-outlined').forEach(ic => ic.classList.remove('rotate-180'));
+
+      if (isHidden) {
+        content.classList.remove('hidden');
+        icon.classList.add('rotate-180');
+      }
+    }
+
+    function handleFormSubmit() {
+      const submitBtn = document.getElementById('submitBtn');
+      const successAlert = document.getElementById('formSuccessAlert');
+
+      // Visual state indication
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<span>جارٍ الإرسال والتسجيل...</span><span class="material-symbols-outlined text-lg animate-spin">refresh</span>`;
+
+      setTimeout(() => {
+        submitBtn.classList.add('hidden');
+        successAlert.classList.remove('hidden');
+        successAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 1000);
+    }
+  </script>
+</div></main><footer class="w-full bg-navy-card text-on-surface-variant mt-space-2xl"><div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg pt-space-2xl pb-space-xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter-lg"><div class="space-y-space-md"><div class="flex items-center gap-space-sm"><div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-surface">lightbulb</span></div><div><h3 class="font-headline-sm text-headline-sm text-inverse-on-surface">شركة الأفكار الناجحة</h3><p class="font-label-sm text-label-sm text-outline-variant">حلول مؤسسية وتطوير استراتيجي</p></div></div><p class="font-body-sm text-body-sm text-outline-variant leading-relaxed">شريككم الاستراتيجي الموثوق في تمكين المنظمات وصناعة التحول المؤسسي المستدام بالمملكة العربية السعودية وفق مستهدفات رؤية 2030.</p><div class="flex items-center gap-space-sm pt-space-xs"><a class="w-9 h-9 rounded-full bg-navy-deep flex items-center justify-center text-outline-variant hover:text-on-primary hover:bg-amber-deep transition-colors" href="#"><span class="material-symbols-outlined text-base">share</span></a><a class="w-9 h-9 rounded-full bg-navy-deep flex items-center justify-center text-outline-variant hover:text-on-primary hover:bg-amber-deep transition-colors" href="#"><span class="material-symbols-outlined text-base">play_circle</span></a><a class="w-9 h-9 rounded-full bg-navy-deep flex items-center justify-center text-outline-variant hover:text-on-primary hover:bg-amber-deep transition-colors" href="#"><span class="material-symbols-outlined text-base">alternate_email</span></a></div></div><div class="space-y-space-md"><h4 class="font-headline-sm text-headline-sm text-inverse-on-surface">روابط سريعة</h4><ul class="space-y-space-xs font-body-sm text-body-sm"><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="home" href="#">الرئيسية</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="about-us" href="#">من نحن</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="our-services" href="#">خدماتنا المتخصصة</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="our-projects" href="#">سجل الإنجازات</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="our-partners" href="#">شبكة الشركاء</a></li></ul></div><div class="space-y-space-md"><h4 class="font-headline-sm text-headline-sm text-inverse-on-surface">مجالات التميز</h4><ul class="space-y-space-xs font-body-sm text-body-sm"><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>التخطيط الاستراتيجي والحوكمة</span></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>إعادة الهيكلة والتطوير المؤسسي</span></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>إدارة الابتكار والتحول الرقمي</span></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>مؤشرات الأداء وإدارة التغيير</span></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>تطوير القيادات وبناء القدرات</span></li></ul></div><div class="space-y-space-md"><h4 class="font-headline-sm text-headline-sm text-inverse-on-surface">معلومات التواصل</h4><div class="space-y-space-sm font-body-sm text-body-sm"><div class="flex items-start gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-base">location_on</span><span>الرياض، المملكة العربية السعودية - حي الملقا</span></div><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-base">call</span><span dir="ltr">+966 11 000 0000</span></div><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-base">mail</span><span>info@alafkar.sa</span></div><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-base">schedule</span><span>الأحد - الخميس: 8:00 ص - 4:00 م</span></div></div><div class="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-navy-deep text-amber-soft font-label-sm text-label-sm"><span class="w-2 h-2 rounded-full bg-amber-vibrant"></span><span>متوائم مع رؤية السعودية 2030</span></div></div></div><div class="bg-navy-deep py-space-md px-gutter-sm lg:px-margin-lg text-center"><div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-space-sm text-outline-variant font-label-sm text-label-sm"><span>© 2025 شركة الأفكار الناجحة للاستشارات والحلول المؤسسية. جميع الحقوق محفوظة.</span><div class="flex items-center gap-space-md"><a class="hover:text-inverse-on-surface transition-colors" href="#">سياسة الخصوصية</a><a class="hover:text-inverse-on-surface transition-colors" href="#">الشروط والأحكام</a></div></div></div></footer></body></html>

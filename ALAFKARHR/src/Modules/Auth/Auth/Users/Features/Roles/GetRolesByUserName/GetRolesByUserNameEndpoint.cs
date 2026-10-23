@@ -6,9 +6,9 @@ public class GetRolesByUserNameEndpoint : ICarterModule
 {
     public void AddRoutes(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/v1/auth/roles/GetByUserName/{userName}", async (string userName, ISender sender) =>
+        app.MapGet("/api/v1/auth/roles/GetByUserName/{userName}", async (string userName, ISender sender, CancellationToken cancellationToken) =>
         {
-            var result = await sender.Send(new GetRolesByUserNameQuery(userName));
+            var result = await sender.Send(new GetRolesByUserNameQuery(userName), cancellationToken);
             return Results.Ok(result.Adapt<GetRolesByUserNameResponse>());
         })
             .WithName("GetRolesByUserName")

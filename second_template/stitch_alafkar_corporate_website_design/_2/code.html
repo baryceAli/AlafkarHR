@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_standard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={"darkMode":"class","theme":{"extend":{"colors":{"on-tertiary-container":"#817eb4","tertiary-container":"#181445","on-surface":"#0b1c30","inverse-primary":"#bec6e0","tertiary-fixed":"#e3dfff","primary-fixed":"#dae2fd","outline-variant":"#c6c6cd","on-primary":"#ffffff","amber-vibrant":"#EA580C","on-primary-container":"#7c839b","secondary-fixed":"#ffddb8","amber-soft":"#FEF3C7","secondary-fixed-dim":"#ffb95f","surface-subtle":"#F8FAFC","background":"#f8f9ff","navy-deep":"#0A0D17","inverse-on-surface":"#eaf1ff","navy-card":"#161E31","surface-container-highest":"#d3e4fe","error-container":"#ffdad6","on-error-container":"#93000a","on-tertiary-fixed":"#181445","primary-container":"#131b2e","surface-tint":"#565e74","on-tertiary":"#ffffff","surface-container":"#e5eeff","tertiary-fixed-dim":"#c4c1fb","secondary":"#855300","on-tertiary-fixed-variant":"#444173","on-secondary":"#ffffff","on-surface-variant":"#45464d","surface-bright":"#f8f9ff","primary-fixed-dim":"#bec6e0","surface-container-high":"#dce9ff","on-primary-fixed-variant":"#3f465c","on-primary-fixed":"#131b2e","amber-deep":"#D97706","on-secondary-container":"#684000","tertiary":"#000000","surface-cream":"#FFFDF9","surface-container-low":"#eff4ff","on-secondary-fixed":"#2a1700","surface-container-lowest":"#ffffff","on-background":"#0b1c30","surface-variant":"#d3e4fe","surface-dim":"#cbdbf5","error":"#ba1a1a","on-secondary-fixed-variant":"#653e00","inverse-surface":"#213145","secondary-container":"#fea619","outline":"#76777d","on-error":"#ffffff","surface":"#f8f9ff","border-warm":"#F3E8D6","primary":"#000000","border-dark-subtle":"#2E384D"},"borderRadius":{"DEFAULT":"1rem","lg":"2rem","xl":"3rem","full":"9999px"},"spacing":{"space-lg":"1.5rem","gutter-sm":"1rem","space-md":"1rem","gutter":"1.5rem","margin-md":"3rem","space-sm":"0.5rem","space-xs":"0.25rem","margin-lg":"5rem","gutter-lg":"2rem","space-2xl":"3.5xl","margin":"1.5rem","space-xl":"2.25rem"},"fontFamily":{"label-sm":["IBM Plex Sans"],"body-sm":["IBM Plex Sans"],"headline-lg":["IBM Plex Sans"],"headline-sm":["IBM Plex Sans"],"label-lg":["IBM Plex Sans"],"headline-xl-mobile":["IBM Plex Sans"],"body-md":["IBM Plex Sans"],"label-md":["IBM Plex Sans"],"headline-md":["IBM Plex Sans"],"body-xl":["IBM Plex Sans"],"counter-display":["IBM Plex Sans"],"display-hero":["IBM Plex Sans"],"display-hero-mobile":["IBM Plex Sans"],"headline-xl":["IBM Plex Sans"]},"fontSize":{"label-sm":["0.75rem",{"lineHeight":"1.125rem","fontWeight":"500"}],"body-sm":["0.875rem",{"lineHeight":"1.5rem","fontWeight":"400"}],"headline-lg":["1.75rem",{"lineHeight":"2.5rem","fontWeight":"600"}],"headline-sm":["1.125rem",{"lineHeight":"1.75rem","fontWeight":"600"}],"label-lg":["0.9375rem",{"lineHeight":"1.375rem","fontWeight":"600"}],"headline-xl-mobile":["1.75rem",{"lineHeight":"2.5rem","fontWeight":"700"}],"body-md":["1rem",{"lineHeight":"1.75rem","fontWeight":"400"}],"label-md":["0.8125rem",{"lineHeight":"1.25rem","fontWeight":"500"}],"headline-md":["1.375rem",{"lineHeight":"2rem","fontWeight":"600"}],"body-xl":["1.125rem",{"lineHeight":"2rem","fontWeight":"400"}],"counter-display":["2.25rem",{"lineHeight":"2.5rem","fontWeight":"700"}],"display-hero":["3.5rem",{"lineHeight":"4.5rem","letterSpacing":"-0.02em","fontWeight":"700"}],"display-hero-mobile":["2.25rem",{"lineHeight":"3rem","letterSpacing":"-0.01em","fontWeight":"700"}],"headline-xl":["2.5rem",{"lineHeight":"3.25rem","letterSpacing":"-0.015em","fontWeight":"700"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><header class="fixed top-0 inset-x-0 z-50 px-gutter-sm lg:px-margin pt-space-sm"><div class="h-20 max-w-7xl mx-auto px-gutter bg-surface-container-lowest/85 backdrop-blur-xl rounded-full shadow-[0_1px_8px_rgba(0,0,0,0.04)] flex items-center justify-between gap-space-md"><div class="flex items-center gap-space-sm"><img alt="Profile" class="w-8 h-8 rounded-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA3WKF9W5wRu6vz7F9hkrZyew0ROLayOlN6c5Dkz0LeiKXCRuEWykPs11fY2bP86jiXrUC-x8Qam-dPwdvYGYgLQ0HzHFyMnD4Nobrlf-klpSirPeWYUzmWiwXcf32CUgB4QbP_1MKXiaDxqfejBJ7GwxqA48DlWMkOogNSkIfq9PqidPePRIg48lFeGDY9jxEeiXHrXCBj3U_EZZ6spCw4kc9YUYwoTTdJCXumVR_9bPrpwJPRnKSA"/><div class="flex flex-col"><span class="font-headline-sm text-headline-sm text-on-surface leading-tight font-bold">الأفكار</span><span class="font-label-sm text-label-sm text-on-surface-variant hidden sm:inline">للحلول المؤسسية</span></div></div><nav class="hidden xl:flex items-center gap-space-xs p-1" data-active-classes="bg-secondary-container text-on-surface font-semibold rounded-full"><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="home" href="#">الرئيسية</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="about-us" href="#">من نحن</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="our-services" href="#">خدماتنا</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="our-projects" href="#">مشاريعنا وإنجازاتنا</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="our-partners" href="#">شركاؤنا</a><a class="px-space-md py-space-xs rounded-full font-label-md text-label-md text-on-surface-variant hover:text-on-surface transition-colors" data-path="contact-us" href="#">تواصل معنا</a></nav><div class="flex items-center gap-space-sm"><div class="flex items-center bg-surface-container-low rounded-full p-1"><button class="px-space-sm py-1 rounded-full font-label-sm text-label-sm bg-surface-container-lowest text-on-surface font-semibold shadow-sm" type="button">عربي</button><button class="px-space-sm py-1 rounded-full font-label-sm text-label-sm text-on-surface-variant hover:text-on-surface transition-colors" type="button">EN</button></div><a class="hidden md:inline-flex items-center gap-space-xs px-space-lg py-space-sm bg-amber-deep text-on-primary rounded-full font-label-md text-label-md hover:bg-amber-vibrant shadow-[0_10px_25px_-3px_rgba(245,158,11,0.35)] transition-all" data-path="consultation-request" href="#"><span>طلب استشارة</span><span class="material-symbols-outlined text-base">cloud_upload</span></a></div></div></header><main class="w-full pt-20 bg-surface"><div class="flex flex-col w-full">
+<!-- 1. Hero / Header Banner Section -->
+<section class="relative w-full overflow-hidden bg-gradient-to-b from-surface-cream via-surface to-surface-container-low/40 pt-space-lg pb-space-2xl">
+<!-- Ambient Warm Orbs -->
+<div class="absolute -top-24 right-1/4 w-96 h-96 bg-amber-soft/60 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute top-1/2 left-10 w-80 h-80 bg-surface-container-highest/50 rounded-full blur-2xl pointer-events-none"></div>
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg relative z-10">
+<!-- Breadcrumbs & Institutional Pill Tag -->
+<div class="flex flex-wrap items-center justify-between gap-space-sm mb-space-lg">
+<div class="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-amber-soft text-amber-deep font-label-md text-label-md shadow-sm">
+<span class="w-2 h-2 rounded-full bg-amber-vibrant animate-pulse"></span>
+<span>عن الأفكار الناجحة | مسيرة تميز وابتكار مؤسسي</span>
+</div>
+<nav aria-label="Breadcrumb" class="flex items-center gap-space-xs text-on-surface-variant font-label-sm text-label-sm bg-surface-container-lowest/80 backdrop-blur-md px-space-md py-1 rounded-full shadow-sm">
+<a class="hover:text-amber-deep transition-colors" href="#">الرئيسية</a>
+<span class="material-symbols-outlined text-xs">arrow_back_ios</span>
+<span class="text-on-surface font-semibold">من نحن</span>
+</nav>
+</div>
+<!-- Hero Main Content Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-lg items-center">
+<div class="lg:col-span-8 space-y-space-md">
+<h1 class="font-display-hero text-headline-xl lg:text-display-hero text-on-surface font-bold leading-tight tracking-tight">
+            نبني <span class="text-amber-deep relative inline-block">الفكر المؤسسي
+              <svg class="absolute -bottom-2 inset-x-0 w-full h-3 text-secondary-container" preserveaspectratio="none" viewbox="0 0 100 12">
+<path d="M0,8 Q50,0 100,8" fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"></path>
+</svg>
+</span> ونمكّن شركاءنا من صناعة أثر مستدام يُلهم المستقبل.
+          </h1>
+<p class="font-body-xl text-body-xl text-on-surface-variant leading-relaxed max-w-3xl">
+            انطلقت <strong class="text-on-surface font-semibold">شركة الأفكار الناجحة</strong> من قلب العاصمة الرياض كبيت خبرة سعودي رائد ومتخصص في استشارات التطوير المؤسسي، وإعادة الهيكلة، والحوكمة، والتحول الاستراتيجي. نكرس طاقاتنا وخبراتنا العميقة لتمكين الكيانات الحكومية، ومنظومات القطاع الخاص، والمؤسسات غير الربحية من مواكبة التحولات الوطنية المتسارعة والمساهمة الفاعلة في ترجمة مستهدفات <span class="text-amber-deep font-semibold">رؤية السعودية 2030</span> إلى نتائج تشغيلية ملموسة ذات عائد وطني واقتصادي مستدام.
+          </p>
+<div class="pt-space-sm flex flex-wrap items-center gap-space-md">
+<a class="inline-flex items-center gap-space-xs px-space-lg py-space-sm bg-gradient-to-l from-amber-deep to-amber-vibrant text-on-primary rounded-full font-label-lg text-label-lg shadow-[0_10px_25px_-3px_rgba(245,158,11,0.35)] hover:shadow-[0_14px_30px_-2px_rgba(245,158,11,0.5)] transition-all" href="#story">
+<span class="material-symbols-outlined text-lg">auto_stories</span>
+<span>اكتشف هويتنا ومسيرتنا</span>
+</a>
+<div class="flex items-center gap-space-xs text-on-surface-variant font-label-md text-label-md px-space-md py-space-xs bg-surface-container-lowest rounded-full shadow-sm">
+<span class="material-symbols-outlined text-amber-deep">verified</span>
+<span>بيت خبرة استشاري وطني مرخص</span>
+</div>
+</div>
+</div>
+<!-- Metric Highlight Card (Asymmetric Offset) -->
+<div class="lg:col-span-4 flex flex-col gap-space-md">
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-xl space-y-space-md relative overflow-hidden">
+<div class="absolute -left-6 -bottom-6 w-32 h-32 bg-amber-soft/40 rounded-full blur-xl"></div>
+<div class="flex items-center justify-between">
+<span class="material-symbols-outlined text-amber-deep text-3xl">domain_verification</span>
+<span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface font-label-sm text-label-sm font-semibold">المملكة العربية السعودية</span>
+</div>
+<div>
+<div class="font-counter-display text-counter-display text-on-surface font-bold">12+ <span class="font-headline-sm text-headline-sm font-medium text-amber-deep">عاماً</span></div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">من مرافقة القيادات وصياغة نماذج العمل التنافسية وبناء الاستدامة المنظمية.</p>
+</div>
+<div class="grid grid-cols-2 gap-space-sm pt-space-xs">
+<div class="p-space-sm rounded bg-surface-cream">
+<span class="font-headline-md text-headline-md font-bold text-on-surface block">+140</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">مشروعاً استراتيجياً</span>
+</div>
+<div class="p-space-sm rounded bg-surface-cream">
+<span class="font-headline-md text-headline-md font-bold text-on-surface block">98%</span>
+<span class="font-label-sm text-label-sm text-on-surface-variant">رضا العملاء والشركاء</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 2. Our Story & Background (Split Editorial Layout) -->
+<section class="w-full py-space-2xl bg-surface-container-lowest relative" id="story">
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-lg items-center">
+<!-- Visual Composition Side -->
+<div class="lg:col-span-6 relative">
+<div class="relative z-10 rounded-xl overflow-hidden shadow-2xl">
+<img class="w-full h-[460px] object-cover" data-alt="High-level corporate strategic workshop in a modern Riyadh glass office tower, featuring Saudi business executives reviewing interactive roadmap displays on digital screens, ambient sunlit golden hour reflections, warm amber tones, ultra-detailed architectural aesthetic" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyOWQDdQMhnJj1dte9oraiwZWKN6j-FX9qOf1VArvjr307p7UCe6HJTfX8wO11Ky3qy_6mZh1MpJu4SU6M_c8CvbhE9umFT157TZdqykB4VW9DPhDwgzR2KVuGFO9_gJIZVyQFNFKDaVTzaKB1XILhSURG90CB6njwbLJ9L55iKTdrKtGfz5SOiDGViea1akMws6hSzeHCf_jL-OfB2OioVngACFWbTKP3upl2Br7ntfoF16BCDdtw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-navy-deep/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-6 right-6 left-6 text-on-primary space-y-1">
+<span class="px-3 py-1 rounded-full bg-amber-deep text-on-primary font-label-sm text-label-sm font-bold inline-block">حضور استشاري موثوق</span>
+<p class="font-headline-sm text-headline-sm font-bold">نحول التعقيدات التنظيمية إلى حلول قابلة للتنفيذ المباشر</p>
+</div>
+</div>
+<!-- Floating Floating Stats Card -->
+<div class="hidden sm:flex absolute -bottom-8 -left-6 z-20 bg-surface-cream p-space-md rounded-xl shadow-xl items-center gap-space-md max-w-xs">
+<div class="w-14 h-14 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-surface text-2xl font-bold">military_tech</span>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface">معايير حوكمة عالمية</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">مطبقة بروح وطنية تنسجم مع متطلبات السوق السعودي</p>
+</div>
+</div>
+</div>
+<!-- Narrative Content Side -->
+<div class="lg:col-span-6 space-y-space-md">
+<div class="inline-flex items-center gap-space-xs px-space-md py-1 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm">history_edu</span>
+<span>قصة النشأة والجذور</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold leading-tight">
+            من فكرة استشارية طموحة إلى شريك استراتيجي في رحلة التحول الوطني
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            بدأت رحلة <strong>«شركة الأفكار الناجحة»</strong> برؤية نابعة من إدراك الفجوة القائمة بين النظريات الإدارية المجردة وبين الواقع العملي للمؤسسات في المملكة العربية السعودية. تأسست الشركة برغبة صادقة في بناء نموذج استشاري سعودي فتيّ يتحدث لغة المنظمات المحلية ويفهم خصوصية البيئة التشريعية والتنموية بالمملكة.
+          </p>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            على مدار ما يزيد عن عقد كامل، واصلنا ترسيخ مكانتنا عبر الدمج الخلاق بين الأطر المنهجية العالمية والحلول المصممة خصيصاً لتلائم كل عميل، مما مكّننا من قيادة مشروعات كبرى للتحول التشغيلي والحوكمة وبناء مكاتب إدارة المشاريع (PMO) ونظم إدارة التغيير التي أثمرت نتائج راسخة وقيادات متمكنة.
+          </p>
+<!-- Featured Quote Block -->
+<div class="p-space-lg rounded-xl bg-surface-cream relative overflow-hidden">
+<div class="flex items-start gap-space-sm">
+<span class="material-symbols-outlined text-amber-deep text-3xl shrink-0 opacity-80">format_quote</span>
+<p class="font-body-xl text-body-xl text-on-surface font-semibold italic leading-relaxed">
+                "الاستشارة الحقيقية ليست تقريراً يُحفظ على الرفوف، بل هي شراكة فكرية وتنفيذية تُنير الطريق وتُحدث فارقاً حقيقياً في أداء المنظمة وكفاءة أفرادها."
+              </p>
+</div>
+<div class="mt-space-sm flex items-center justify-between text-on-surface-variant font-label-sm text-label-sm pt-space-xs">
+<span class="font-bold text-on-surface">فلسفة عمل شركة الأفكار الناجحة</span>
+<span class="text-amber-deep font-semibold">نهج الشراكة التفاعلية</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 3. Leadership & Management Message (Royal Nocturne Dark Section) -->
+<section class="w-full py-space-2xl bg-navy-card text-inverse-on-surface relative overflow-hidden">
+<!-- Ambient Golden Glow -->
+<div class="absolute top-0 right-0 w-[500px] h-[500px] bg-amber-deep/10 rounded-full blur-[120px] pointer-events-none"></div>
+<div class="absolute bottom-0 left-0 w-96 h-96 bg-primary-container/60 rounded-full blur-3xl pointer-events-none"></div>
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg relative z-10">
+<div class="bg-navy-deep/80 rounded-xl p-space-lg lg:p-space-2xl shadow-2xl backdrop-blur-xl">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-lg items-center">
+<!-- Text Body -->
+<div class="lg:col-span-8 space-y-space-md">
+<div class="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-white/10 text-amber-soft font-label-md text-label-md">
+<span class="material-symbols-outlined text-amber-deep text-base">campaign</span>
+<span>كلمة الإدارة التنفيذية</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-inverse-on-surface font-bold leading-tight">
+              نلتزم بتمكين منظومات الأعمال من صياغة مستقبلها بثقة واقتدار
+            </h2>
+<div class="space-y-space-sm font-body-lg text-inverse-on-surface/90 leading-relaxed">
+<p>
+                نعيش في المملكة العربية السعودية حقبة تاريخية فريدة تشهد إعادة صياغة شاملة للاقتصاد الوطني والمفاهيم الإدارية تحت مظلة رؤية المملكة 2030. وفي «شركة الأفكار الناجحة»، نعتبر أنفسنا جزءاً أصيلاً من هذه الوثبة الحضارية، واضعين نصب أعيننا واجباً وطنياً ومهنياً يتمثل في دعم المنظمات لتصل إلى أقصى درجات النضج المؤسسي والفاعلية التشغيلية.
+              </p>
+<p>
+                إن رهاننا الحقيقي كان وسيظل على العقل البشري، وبناء ثقافة الابتكار المؤسسي، وإرساء نظم الحوكمة التي تضمن استدامة المكتسبات وتواؤم المخرجات مع أعلى المقاييس العالمية. نرحب بشركائنا في مسيرة مشتركة نكتب فيها معاً فصولاً متجددة من النجاح والأثر الممتد.
+              </p>
+</div>
+<!-- Signature & Title Container -->
+<div class="pt-space-md flex flex-wrap items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-14 h-14 rounded-full bg-surface-container-lowest/10 p-1 flex items-center justify-center">
+<span class="material-symbols-outlined text-amber-soft text-3xl">badge</span>
+</div>
+<div>
+<h4 class="font-headline-sm text-headline-sm text-inverse-on-surface font-bold">مجلس الإدارة والإدارة التنفيذية</h4>
+<p class="font-label-sm text-label-sm text-outline-variant">شركة الأفكار الناجحة للاستشارات والحلول المؤسسية</p>
+</div>
+</div>
+<div class="inline-flex items-center gap-space-xs px-space-md py-2 rounded-full bg-white/5 text-amber-soft font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-amber-deep text-base">verified_user</span>
+<span>الرياض - المملكة العربية السعودية</span>
+</div>
+</div>
+</div>
+<!-- Decorative Emblem / Visual Card -->
+<div class="lg:col-span-4 flex justify-center">
+<div class="w-full max-w-sm bg-gradient-to-br from-navy-card to-navy-deep p-space-lg rounded-xl shadow-2xl text-center space-y-space-md relative overflow-hidden">
+<div class="w-20 h-20 mx-auto rounded-full bg-secondary-container/20 flex items-center justify-center">
+<span class="material-symbols-outlined text-amber-deep text-4xl">workspace_premium</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-inverse-on-surface font-bold">ميثاق التميز والجودة</h3>
+<p class="font-body-sm text-body-sm text-outline-variant leading-relaxed">
+                نلتزم بتقديم استشارات مدعومة بأدوات قياس كمية وكيفية دقيقة، محققين قيمة مضافة تفوق توقعات شركائنا في كافة مراحل التدخل الاستشاري.
+              </p>
+<div class="p-space-sm rounded bg-white/5 text-amber-soft font-label-sm text-label-sm">
+                معايير معتمدة وفق رؤية المملكة 2030
+              </div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 4. Vision, Mission & Strategic Purpose (Triad Cards Layout) -->
+<section class="w-full py-space-2xl bg-surface">
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg space-y-space-xl">
+<!-- Section Header -->
+<div class="text-center max-w-3xl mx-auto space-y-space-xs">
+<div class="inline-flex items-center gap-space-xs px-space-md py-1 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm">explore</span>
+<span>البوصلة الاستراتيجية</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">رؤيتنا، رسالتنا، وغايتنا الكبرى</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+          نستند إلى بوصلة موحدة تحدد معالم تطلعاتنا المستقبلية وتترجم تفانينا في خدمة التنمية المؤسسية الشاملة.
+        </p>
+</div>
+<!-- 3 Pillar Cards Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter-lg">
+<!-- Card 1: Vision -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group">
+<div class="space-y-space-md">
+<div class="w-14 h-14 rounded-full bg-amber-soft text-amber-deep flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">visibility</span>
+</div>
+<div class="inline-block px-3 py-1 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm font-semibold">
+              الرؤية المؤسسية
+            </div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold">الريادة في صناعة الحلول</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              أن نكون بيت الخبرة الاستشاري المفضل والأكثر موثوقية في المملكة العربية السعودية والشرق الأوسط في تطوير النماذج التنظيمية وحوكمة الأداء وتمكين التحول الاستراتيجي المستدام.
+            </p>
+</div>
+<div class="pt-space-md flex items-center gap-space-xs text-amber-deep font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-base">trending_up</span>
+<span>طموح استراتيجي بلا حدود</span>
+</div>
+</div>
+<!-- Card 2: Mission (Slightly elevated / Distinct Accent) -->
+<div class="bg-gradient-to-b from-surface-cream to-surface-container-lowest rounded-xl p-space-lg shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group relative overflow-hidden">
+<div class="absolute top-0 right-0 w-full h-1 bg-gradient-to-l from-amber-deep to-amber-vibrant"></div>
+<div class="space-y-space-md">
+<div class="w-14 h-14 rounded-full bg-secondary-container text-on-surface flex items-center justify-center group-hover:scale-110 transition-transform shadow-md">
+<span class="material-symbols-outlined text-3xl">flag</span>
+</div>
+<div class="inline-block px-3 py-1 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm font-semibold">
+              رسالتنا الوطنية
+            </div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold">تمكين وتكامل المنظمات</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              تقديم استشارات إدارية وبناء نماذج تشغيلية حديثة بالاعتماد على كفاءات وطنية وشراكات عالمية متخصصة، لتمكين عملائنا من تحقيق الكفاءة والتميز المؤسسي وصناعة أثر اقتصادي ومجتمعي ملموس.
+            </p>
+</div>
+<div class="pt-space-md flex items-center gap-space-xs text-amber-deep font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-base">handshake</span>
+<span>التزام تنفيذي راسخ</span>
+</div>
+</div>
+<!-- Card 3: Strategic Purpose -->
+<div class="bg-surface-container-lowest rounded-xl p-space-lg shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col justify-between group">
+<div class="space-y-space-md">
+<div class="w-14 h-14 rounded-full bg-surface-container text-on-surface flex items-center justify-center group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">target</span>
+</div>
+<div class="inline-block px-3 py-1 rounded-full bg-surface-container text-on-surface font-label-sm text-label-sm font-semibold">
+              الغاية الكبرى
+            </div>
+<h3 class="font-headline-md text-headline-md text-on-surface font-bold">استدامة الأثر الإيجابي</h3>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              خلق بيئات مؤسسية مرنة وواعية قادرة على التكيف الاستباقي مع المتغيرات الاقتصادية العالمية، ونقل المعرفة المؤسسية للكوادر السعودية لضمان استدامة النمو وتوريث التميز.
+            </p>
+</div>
+<div class="pt-space-md flex items-center gap-space-xs text-amber-deep font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-base">psychology</span>
+<span>بناء القدرات ونقل المعرفة</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 5. Core Values Matrix (6 Elevated Bento Cards) -->
+<section class="w-full py-space-2xl bg-surface-container-low/50 relative">
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg space-y-space-xl">
+<!-- Section Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-space-md">
+<div class="space-y-space-xs max-w-2xl">
+<div class="inline-flex items-center gap-space-xs px-space-md py-1 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm">diamond</span>
+<span>مرتكزاتنا الأخلاقية</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">منظومة القيم المؤسسية الراسخة</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+            قيمنا ليست مجرد كلمات معلقة، بل هي ميثاق أخلاقي وتشغيلي يوجه تفاعلاتنا اليومية وقراراتنا الاستشارية مع كل شريك.
+          </p>
+</div>
+<div class="hidden md:flex items-center gap-space-xs text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-3 h-3 rounded-full bg-amber-deep"></span>
+<span>6 قيم جوهرية توجه سلوكنا الاستشاري</span>
+</div>
+</div>
+<!-- Values Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-gutter">
+<!-- Value 1 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-md hover:shadow-xl transition-all duration-300 space-y-space-sm group">
+<div class="w-12 h-12 rounded-full bg-surface-cream text-amber-deep flex items-center justify-center group-hover:bg-amber-deep group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">verified_user</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">الأمانة والشفافية</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            نلتزم بأعلى درجات الصدق والنزاهة المهنية في تقييم التحديات وعرض الحلول دون مجاملة، مع الحفاظ الصارم على سرية بيانات شركائنا.
+          </p>
+</div>
+<!-- Value 2 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-md hover:shadow-xl transition-all duration-300 space-y-space-sm group">
+<div class="w-12 h-12 rounded-full bg-surface-cream text-amber-deep flex items-center justify-center group-hover:bg-amber-deep group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">lightbulb</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">الابتكار المستمر</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            نرفض الحلول الجاهزة، ونبتكر حلولاً نوعية وتصاميم مخصصة تراعي التحديات الفريدة وتواكب متطلبات المستقبل واقتصاد المعرفة.
+          </p>
+</div>
+<!-- Value 3 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-md hover:shadow-xl transition-all duration-300 space-y-space-sm group">
+<div class="w-12 h-12 rounded-full bg-surface-cream text-amber-deep flex items-center justify-center group-hover:bg-amber-deep group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">group_work</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">الشراكة الفاعلة</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            لا نعمل كمقدمي خدمات منعزلين، بل نعمل جنباً إلى جنب مع فرق العميل كفريق عمل موحد يتشارك التحديات ويحتفي بالنجاحات المشتركة.
+          </p>
+</div>
+<!-- Value 4 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-md hover:shadow-xl transition-all duration-300 space-y-space-sm group">
+<div class="w-12 h-12 rounded-full bg-surface-cream text-amber-deep flex items-center justify-center group-hover:bg-amber-deep group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">workspace_premium</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">التميز والجودة</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            نطبق المعايير العالمية في كل مرحلة من مراحل التحول المؤسسي لضمان تقديم مخرجات احترافية دقيقة تعزز من تنافسية المنظمة.
+          </p>
+</div>
+<!-- Value 5 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-md hover:shadow-xl transition-all duration-300 space-y-space-sm group">
+<div class="w-12 h-12 rounded-full bg-surface-cream text-amber-deep flex items-center justify-center group-hover:bg-amber-deep group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">all_inclusive</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">الأثر المستدام</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            نصمم حلولنا لتستمر وتتطور ذاتياً بعد انتهاء مهمتنا الاستشارية، مما يخلق تحولاً عميقاً في السلوك وثقافة العمل المنظمي.
+          </p>
+</div>
+<!-- Value 6 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-md hover:shadow-xl transition-all duration-300 space-y-space-sm group">
+<div class="w-12 h-12 rounded-full bg-surface-cream text-amber-deep flex items-center justify-center group-hover:bg-amber-deep group-hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-2xl">escalator_warning</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">التمكين والريادة</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+            تمكين القيادات والكوادر الوطنية عبر الإرشاد ونقل المعرفة والتدريب العملي المباشر ليصبحوا قادة التغيير في بيئاتهم المؤسسية.
+          </p>
+</div>
+</div>
+</div>
+</section>
+<!-- 6. Our Methodology & Transformation Framework (4 Sequential Steps) -->
+<section class="w-full py-space-2xl bg-surface-cream relative">
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg space-y-space-xl">
+<!-- Section Header -->
+<div class="text-center max-w-3xl mx-auto space-y-space-xs">
+<div class="inline-flex items-center gap-space-xs px-space-md py-1 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm">schema</span>
+<span>منهجية الأفكار الناجحة</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">إطار العمل الاستشاري المتكامل</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">
+          نتبع نموذجاً مرحلياً محكماً يضمن سلاسة الانتقال من الرؤية الاستراتيجية إلى الكفاءة التشغيلية الميدانية.
+        </p>
+</div>
+<!-- 4 Stages Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter relative">
+<!-- Step 1 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-lg relative flex flex-col justify-between group hover:shadow-xl transition-all">
+<div class="space-y-space-md">
+<div class="flex items-center justify-between">
+<span class="w-12 h-12 rounded-full bg-amber-soft text-amber-deep font-bold font-headline-md text-headline-md flex items-center justify-center shadow-sm">
+                01
+              </span>
+<span class="material-symbols-outlined text-on-surface-variant text-2xl group-hover:text-amber-deep transition-colors">analytics</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">التشخيص والتقييم المؤسسي</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              تحليل عميق للوضع الراهن، تقييم النضج التنظيمي، دراسة الفجوات التشغيلية، ومسح شامل لبيئة العمل وتطلعات أصحاب المصلحة.
+            </p>
+</div>
+<div class="pt-space-md">
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">تقارير قياس الفجوات</span>
+</div>
+</div>
+<!-- Step 2 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-lg relative flex flex-col justify-between group hover:shadow-xl transition-all">
+<div class="space-y-space-md">
+<div class="flex items-center justify-between">
+<span class="w-12 h-12 rounded-full bg-amber-soft text-amber-deep font-bold font-headline-md text-headline-md flex items-center justify-center shadow-sm">
+                02
+              </span>
+<span class="material-symbols-outlined text-on-surface-variant text-2xl group-hover:text-amber-deep transition-colors">architecture</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">التخطيط وتصميم النماذج</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              صياغة الخطة الاستراتيجية، بناء الهيكل التنظيمي، هندسة العمليات والإجراءات (BPR)، وتحديد مؤشرات قياس الأداء الرئيسية (KPIs).
+            </p>
+</div>
+<div class="pt-space-md">
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">خرائط الطريق المؤسسية</span>
+</div>
+</div>
+<!-- Step 3 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-lg relative flex flex-col justify-between group hover:shadow-xl transition-all">
+<div class="space-y-space-md">
+<div class="flex items-center justify-between">
+<span class="w-12 h-12 rounded-full bg-amber-soft text-amber-deep font-bold font-headline-md text-headline-md flex items-center justify-center shadow-sm">
+                03
+              </span>
+<span class="material-symbols-outlined text-on-surface-variant text-2xl group-hover:text-amber-deep transition-colors">settings_suggest</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">الحوكمة وتفعيل مكاتب PMO</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              بناء وتفعيل مكاتب إدارة المشاريع، حوكمة السياسات والصلاحيات، ومرافقة الفرق الميدانية في إدارة التغيير وتجاوز مقاومات التحول.
+            </p>
+</div>
+<div class="pt-space-md">
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">تطبيق أطر الحوكمة</span>
+</div>
+</div>
+<!-- Step 4 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-lg relative flex flex-col justify-between group hover:shadow-xl transition-all">
+<div class="space-y-space-md">
+<div class="flex items-center justify-between">
+<span class="w-12 h-12 rounded-full bg-amber-soft text-amber-deep font-bold font-headline-md text-headline-md flex items-center justify-center shadow-sm">
+                04
+              </span>
+<span class="material-symbols-outlined text-on-surface-variant text-2xl group-hover:text-amber-deep transition-colors">model_training</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface font-bold">قياس الأثر ونقل المعرفة</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+              متابعة تحقيق النتائج وتدريب الكوادر الداخلية، تسليم الأدلة المؤسسية المتكاملة، وضمان الاستقلالية التشغيلية والاستدامة الذاتية.
+            </p>
+</div>
+<div class="pt-space-md">
+<span class="px-2.5 py-1 rounded-full bg-surface-container text-on-surface-variant font-label-sm text-label-sm">استدامة التميز المؤسسي</span>
+</div>
+</div>
+</div>
+<!-- Methodology Note Pill -->
+<div class="bg-surface-container-lowest p-space-md rounded-full shadow-sm max-w-2xl mx-auto flex items-center justify-center gap-space-sm text-center">
+<span class="material-symbols-outlined text-amber-deep">published_with_changes</span>
+<span class="font-label-md text-label-md text-on-surface">إطار عمل مرن يدمج أفضل ممارسات PMI و ISO مع الخصوصية المحلية</span>
+</div>
+</div>
+</section>
+<!-- 7. Leadership, Consultants & Expertise Network -->
+<section class="w-full py-space-2xl bg-surface">
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg space-y-space-xl">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter-lg items-center">
+<div class="lg:col-span-5 space-y-space-md">
+<div class="inline-flex items-center gap-space-xs px-space-md py-1 rounded-full bg-amber-soft text-amber-deep font-label-sm text-label-sm">
+<span class="material-symbols-outlined text-sm">groups</span>
+<span>رأس المال البشري والخبرات</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold leading-tight">
+            نخبة من المستشارين والخبراء الوطنيين والدوليين
+          </h2>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+            يرتكز نجاح «الأفكار الناجحة» على شبكة استشارية تجمع بين الفكر الأكاديمي الرصين والتجربة القيادية الميدانية في مختلف القطاعات الحيوية بالمملكة، مما يمنح استشاراتنا عمقاً تنفيذياً ومصداقية استثنائية.
+          </p>
+<div class="space-y-space-sm pt-space-xs">
+<div class="flex items-center gap-space-sm p-space-sm rounded bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-amber-deep text-2xl">psychology_alt</span>
+<div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface">التخطيط والحوكمة الاستراتيجية</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">صياغة الاستراتيجيات المؤسسية وبطاقات الأداء المتوازن</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm p-space-sm rounded bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-amber-deep text-2xl">account_tree</span>
+<div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface">إعادة الهيكلة والتطوير التنظيمي</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">هندسة الإجراءات ورفع كفاءة الإنفاق والتشغيل</p>
+</div>
+</div>
+<div class="flex items-center gap-space-sm p-space-sm rounded bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-amber-deep text-2xl">light</span>
+<div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface">إدارة الابتكار والتحول الرقمي</h4>
+<p class="font-label-sm text-label-sm text-on-surface-variant">تطوير الخدمات وتبني التقنيات الحديثة ونظم الذكاء المؤسسي</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Visual Mosaic of Expertise -->
+<div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-gutter">
+<!-- Stat Tile 1 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-lg space-y-space-sm">
+<div class="w-12 h-12 rounded-full bg-secondary-container/20 text-secondary-container flex items-center justify-center font-bold">
+<span class="material-symbols-outlined text-2xl text-amber-deep">diversity_3</span>
+</div>
+<div class="font-counter-display text-counter-display font-bold text-on-surface">+45</div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface">مستشار وخبير معتمد</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              شبكة واسعة من القياديين والمستشارين المعتمدين محلياً ودولياً في مختلف التخصصات الإدارية.
+            </p>
+</div>
+<!-- Stat Tile 2 -->
+<div class="bg-surface-container-lowest p-space-lg rounded-xl shadow-lg space-y-space-sm">
+<div class="w-12 h-12 rounded-full bg-amber-soft text-amber-deep flex items-center justify-center font-bold">
+<span class="material-symbols-outlined text-2xl">school</span>
+</div>
+<div class="font-counter-display text-counter-display font-bold text-on-surface">+18</div>
+<h4 class="font-headline-sm text-headline-sm font-bold text-on-surface">قطاعاً تخصصياً</h4>
+<p class="font-body-sm text-body-sm text-on-surface-variant">
+              خبرات تطبيقية تشمل القطاع الحكومي، الصناعي، المالي، التعليمي، والقطاع غير الربحي.
+            </p>
+</div>
+<!-- Image Tile -->
+<div class="sm:col-span-2 rounded-xl overflow-hidden shadow-xl relative h-60">
+<img class="w-full h-full object-cover" data-alt="A modern collaborative boardroom in Riyadh, Saudi consultants and strategic planners in traditional and modern attire discussing visual organizational data on large minimalist architectural whiteboards, daylight streaming through clean lines" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7d7G0xhpKENArl9vs4UkmjxTU_9B5_JZ7aCbmTpDVaAUz3u6Dge1VNT2Eqz3PQ4rU9URftLjgKCo3dt6tw0FheRFFqZVSQLWPCEMCm9fSFpv55g9hUkRVwACEtzpPfQGOE_WP0RTeLs01EsLWSMAluufUV1iWCXDMNFcovVhKaM4nAVnw97B4CKJsl75jjkdwjdJPkm7hIqkBXrHMtEIjELuPhu4D2ipbI0aYjuutiS1DgZkFo6L3"/>
+<div class="absolute inset-0 bg-gradient-to-r from-navy-deep/80 to-transparent flex items-center p-space-lg">
+<div class="text-on-primary max-w-sm space-y-1">
+<span class="px-2.5 py-0.5 rounded-full bg-amber-deep font-label-sm text-label-sm font-bold">معيار الاختيار</span>
+<h4 class="font-headline-md text-headline-md font-bold">كفاءات تشاركك شغف الإنجاز</h4>
+<p class="font-body-sm text-body-sm text-inverse-on-surface/80">ننتقي مستشارينا وفق أدق معايير الكفاءة والاحترافية وسجل النجاحات المثبتة.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 8. Commitment to Saudi Vision 2030 (National Flagship Card) -->
+<section class="w-full py-space-2xl bg-surface-container-low/40">
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg">
+<div class="bg-gradient-to-br from-navy-deep via-navy-card to-primary-container text-inverse-on-surface rounded-xl p-space-lg lg:p-space-2xl shadow-2xl relative overflow-hidden">
+<!-- Background Pattern Watermark -->
+<div class="absolute -bottom-16 -right-16 w-80 h-80 rounded-full bg-amber-deep/10 blur-3xl pointer-events-none"></div>
+<div class="space-y-space-lg relative z-10">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-space-md pb-space-md border-b border-border-dark-subtle/40">
+<div class="space-y-space-xs">
+<div class="inline-flex items-center gap-space-xs px-space-md py-1 rounded-full bg-amber-deep/20 text-amber-soft font-label-sm text-label-sm">
+<span class="w-2 h-2 rounded-full bg-amber-vibrant"></span>
+<span>المواءمة الاستراتيجية الوطنية</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-inverse-on-surface font-bold">
+                التزامنا الاستراتيجي نحو رؤية المملكة 2030
+              </h2>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="px-4 py-2 rounded-full bg-white/10 text-amber-soft font-headline-sm text-headline-sm font-bold tracking-widest">
+                VISION 2030
+              </div>
+</div>
+</div>
+<p class="font-body-xl text-body-xl text-inverse-on-surface/90 leading-relaxed max-w-4xl">
+            نعتبر أنفسنا محركاً تمكينياً في رحلة التحول الكبرى التي تشهدها بلادنا. نترجم ركائز رؤية المملكة 2030 إلى مؤشرات أداء ومشاريع ومبادرات حية تنهض بالقدرات الذاتية للمؤسسات الشريكة عبر المحاور الوطنية الثلاثة:
+          </p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Pillar 1 -->
+<div class="p-space-lg rounded bg-white/5 backdrop-blur-md space-y-space-sm hover:bg-white/10 transition-colors">
+<div class="w-12 h-12 rounded-full bg-amber-deep/20 flex items-center justify-center text-amber-soft">
+<span class="material-symbols-outlined text-2xl">favorite</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-inverse-on-surface font-bold">مجتمع حيوي</h3>
+<p class="font-body-sm text-body-sm text-outline-variant leading-relaxed">
+                تمكين المنظمات المجتمعية والقطاع غير الربحي من بناء حوكمة متينة وتطوير خدمات مستدامة تسهم في رفع جودة الحياة للمواطن والمقيم.
+              </p>
+</div>
+<!-- Pillar 2 -->
+<div class="p-space-lg rounded bg-white/5 backdrop-blur-md space-y-space-sm hover:bg-white/10 transition-colors">
+<div class="w-12 h-12 rounded-full bg-amber-deep/20 flex items-center justify-center text-amber-soft">
+<span class="material-symbols-outlined text-2xl">trending_up</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-inverse-on-surface font-bold">اقتصاد مزدهر</h3>
+<p class="font-body-sm text-body-sm text-outline-variant leading-relaxed">
+                دعم نمو المنشآت الصغيرة والمتوسطة، إعادة هيكلة العمليات لخفض التكاليف التشغيلية، وتعزيز الابتكار والإنتاجية التنافسية.
+              </p>
+</div>
+<!-- Pillar 3 -->
+<div class="p-space-lg rounded bg-white/5 backdrop-blur-md space-y-space-sm hover:bg-white/10 transition-colors">
+<div class="w-12 h-12 rounded-full bg-amber-deep/20 flex items-center justify-center text-amber-soft">
+<span class="material-symbols-outlined text-2xl">account_balance</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-inverse-on-surface font-bold">وطن طموح</h3>
+<p class="font-body-sm text-body-sm text-outline-variant leading-relaxed">
+                ترسيخ مفاهيم الحوكمة والشفافية وكفاءة الأداء الحكومي والمسؤولية المؤسسية لبناء أجهزة تنفيذية مرنة وفعالة.
+              </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- 9. Call to Action Banner (Invitation to Partnership) -->
+<section class="w-full py-space-2xl bg-surface-cream relative">
+<div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg">
+<div class="bg-gradient-to-r from-amber-soft via-surface-cream to-surface-container-low p-space-lg lg:p-space-2xl rounded-xl shadow-xl flex flex-col lg:flex-row items-center justify-between gap-space-xl relative overflow-hidden">
+<div class="space-y-space-sm max-w-2xl text-center lg:text-right">
+<div class="inline-flex items-center gap-space-xs px-space-md py-1 rounded-full bg-surface-container-lowest text-amber-deep font-label-sm text-label-sm shadow-sm">
+<span class="material-symbols-outlined text-sm">rocket_launch</span>
+<span>ابدأ خطوتك الأولى نحو التميز</span>
+</div>
+<h2 class="font-headline-xl text-headline-xl text-on-surface font-bold">
+            هل أنت مستعد لنقل منظمتك إلى مستوى جديد من النضج المؤسسي؟
+          </h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-relaxed">
+            يسعد فريق مستشارينا في «شركة الأفكار الناجحة» بعقد جلسة استشارية تشخيصية أولى لمناقشة أهداف منظمتكم وتحديد مسارات التحول الأنسب لقطاعكم.
+          </p>
+</div>
+<div class="flex flex-col sm:flex-row items-center gap-space-md shrink-0">
+<a class="inline-flex items-center gap-space-xs px-space-xl py-space-md bg-gradient-to-l from-amber-deep to-amber-vibrant text-on-primary rounded-full font-label-lg text-label-lg shadow-[0_10px_25px_-3px_rgba(245,158,11,0.35)] hover:shadow-[0_14px_30px_-2px_rgba(245,158,11,0.5)] transition-all" href="#">
+<span class="material-symbols-outlined text-xl">contact_support</span>
+<span>احجز جلسة استشارية تشخيصية</span>
+</a>
+<a class="inline-flex items-center gap-space-xs px-space-lg py-space-md bg-surface-container-lowest text-on-surface hover:text-amber-deep rounded-full font-label-lg text-label-lg shadow-sm hover:shadow transition-all" href="#">
+<span class="material-symbols-outlined text-xl">download</span>
+<span>تحميل الملف التعريفي للشركة (PDF)</span>
+</a>
+</div>
+</div>
+</div>
+</section>
+</div></main><footer class="w-full bg-navy-card text-on-surface-variant mt-space-2xl"><div class="max-w-7xl mx-auto px-gutter-sm lg:px-margin-lg pt-space-2xl pb-space-xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter-lg"><div class="space-y-space-md"><div class="flex items-center gap-space-sm"><div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center"><span class="material-symbols-outlined text-on-surface">lightbulb</span></div><div><h3 class="font-headline-sm text-headline-sm text-inverse-on-surface">شركة الأفكار الناجحة</h3><p class="font-label-sm text-label-sm text-outline-variant">حلول مؤسسية وتطوير استراتيجي</p></div></div><p class="font-body-sm text-body-sm text-outline-variant leading-relaxed">شريككم الاستراتيجي الموثوق في تمكين المنظمات وصناعة التحول المؤسسي المستدام بالمملكة العربية السعودية وفق مستهدفات رؤية 2030.</p><div class="flex items-center gap-space-sm pt-space-xs"><a class="w-9 h-9 rounded-full bg-navy-deep flex items-center justify-center text-outline-variant hover:text-on-primary hover:bg-amber-deep transition-colors" href="#"><span class="material-symbols-outlined text-base">share</span></a><a class="w-9 h-9 rounded-full bg-navy-deep flex items-center justify-center text-outline-variant hover:text-on-primary hover:bg-amber-deep transition-colors" href="#"><span class="material-symbols-outlined text-base">play_circle</span></a><a class="w-9 h-9 rounded-full bg-navy-deep flex items-center justify-center text-outline-variant hover:text-on-primary hover:bg-amber-deep transition-colors" href="#"><span class="material-symbols-outlined text-base">alternate_email</span></a></div></div><div class="space-y-space-md"><h4 class="font-headline-sm text-headline-sm text-inverse-on-surface">روابط سريعة</h4><ul class="space-y-space-xs font-body-sm text-body-sm"><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="home" href="#">الرئيسية</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="about-us" href="#">من نحن</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="our-services" href="#">خدماتنا المتخصصة</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="our-projects" href="#">سجل الإنجازات</a></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">arrow_left</span><a class="hover:text-inverse-on-surface transition-colors" data-path="our-partners" href="#">شبكة الشركاء</a></li></ul></div><div class="space-y-space-md"><h4 class="font-headline-sm text-headline-sm text-inverse-on-surface">مجالات التميز</h4><ul class="space-y-space-xs font-body-sm text-body-sm"><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>التخطيط الاستراتيجي والحوكمة</span></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>إعادة الهيكلة والتطوير المؤسسي</span></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>إدارة الابتكار والتحول الرقمي</span></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>مؤشرات الأداء وإدارة التغيير</span></li><li class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-sm">verified</span><span>تطوير القيادات وبناء القدرات</span></li></ul></div><div class="space-y-space-md"><h4 class="font-headline-sm text-headline-sm text-inverse-on-surface">معلومات التواصل</h4><div class="space-y-space-sm font-body-sm text-body-sm"><div class="flex items-start gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-base">location_on</span><span>الرياض، المملكة العربية السعودية - حي الملقا</span></div><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-base">call</span><span dir="ltr">+966 11 000 0000</span></div><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-base">mail</span><span>info@alafkar.sa</span></div><div class="flex items-center gap-space-xs"><span class="material-symbols-outlined text-amber-deep text-base">schedule</span><span>الأحد - الخميس: 8:00 ص - 4:00 م</span></div></div><div class="inline-flex items-center gap-space-xs px-space-md py-1.5 rounded-full bg-navy-deep text-amber-soft font-label-sm text-label-sm"><span class="w-2 h-2 rounded-full bg-amber-vibrant"></span><span>متوائم مع رؤية السعودية 2030</span></div></div></div><div class="bg-navy-deep py-space-md px-gutter-sm lg:px-margin-lg text-center"><div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-space-sm text-outline-variant font-label-sm text-label-sm"><span>© 2025 شركة الأفكار الناجحة للاستشارات والحلول المؤسسية. جميع الحقوق محفوظة.</span><div class="flex items-center gap-space-md"><a class="hover:text-inverse-on-surface transition-colors" href="#">سياسة الخصوصية</a><a class="hover:text-inverse-on-surface transition-colors" href="#">الشروط والأحكام</a></div></div></div></footer></body></html>
